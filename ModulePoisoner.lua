@@ -1,3 +1,6 @@
+--{{This is a powerful in game module poisoner, it is still a WIP use at your own risk. ]]
+
+
 type ModuleScript = any
 type GuiObject = any
 type GuiButton = any
@@ -36,7 +39,7 @@ local selectedPoisonType: string = POISON_TYPES[1]
 local originalFunctions: {[string]: {[string]: (...any) -> ...any}} = {}
 
 local screenGui: ScreenGui = Instance.new("ScreenGui")
-screenGui.Name = "ModulePoisonerv5"
+screenGui.Name = "Methnaroundv2"
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 screenGui.ResetOnSpawn = false
 
@@ -471,4 +474,5 @@ UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: 
 end)
 
 screenGui.Parent = CoreGui
+
 showNotification("Module Poisoner v5 Loaded. Press RightAlt to toggle.")
