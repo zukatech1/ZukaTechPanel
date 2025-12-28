@@ -1,0 +1,17 @@
+# requirements.txt
+
+# Core GUI Framework
+PyQt6
+
+# Dynamic Instrumentation & Process Interaction
+frida
+frida-tools
+
+# High-Performance Disassembly Engine
+capstone
+
+# Static Executable (PE) File Parser
+pefile
+
+# Utility for Listing System Processes
+psutil
