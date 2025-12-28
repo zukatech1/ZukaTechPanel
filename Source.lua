@@ -1,16 +1,31 @@
 --[[
 made by zuka @OverZuka on roblox
-v5.2 December 24th
+v6 - December 28th
+
+
 github - loadstring(game:HttpGet("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZukasSource.lua"))()
---
+
+backup - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
+
+
+
 setpath game:GetService("ReplicatedStorage").events.equipItem,   settype function
---
+
 __________      ____  __.        ___________    _________ .__     
 \____    /__ __|    |/ _|____    \__    ___/___ \_   ___ \|  |__  
   /     /|  |  \      < \__  \     |    |_/ __ \/    \  \/|  |  \ 
  /     /_|  |  /    |  \ / __ \_   |    |\  ___/\     \___|   Y  \
 /_______ \____/|____|__ (____  /   |____| \___  >\______  /___|  /
         \/             \/    \/               \/        \/     \/ 
+
+feel free to use this however but please shout me out, much appreciated.
+                           .__   
+___________    ____   ____ |  |  
+\____ \__  \  /    \_/ __ \|  |  
+|  |_> > __ \|   |  \  ___/|  |__
+|   __(____  /___|  /\___  >____/
+|__|       \/     \/     \/      
+
 
 --]]
 
