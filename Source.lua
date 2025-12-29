@@ -13977,6 +13977,56 @@ RegisterCommand({
     Modules.WhisperSpy:Toggle()
 end)
 
+Modules.Dex = {
+    State = {
+        IsLoaded = false,
+        Instance = nil
+    }
+}
+
+function Modules.Dex:Load(): ()
+    if self.State.IsLoaded then
+        DoNotif("Dex is already active.", 2)
+        return
+    end
+
+    local success, err = pcall(function()
+        local dexSource = game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua")
+        local dexFunc = loadstring(dexSource)
+        
+        if dexFunc then
+            local dexGui = dexFunc()
+            if typeof(dexGui) == "Instance" then
+                if gethui then
+                    dexGui.Parent = gethui()
+                else
+                    dexGui.Parent = CoreGui
+                end
+            end
+            self.State.IsLoaded = true
+            DoNotif("Dex V4 Loaded Successfully.", 2)
+        else
+            error("Failed to load bytecode from source.")
+        end
+    end)
+
+    if not success then
+        warn("Dex Integration Error:", err)
+        DoNotif("Failed to initialize Dex. See console (F9).", 4)
+    end
+end
+
+function Modules.Dex:Initialize(): ()
+    local module = self
+    RegisterCommand({
+        Name = "zukadex",
+        Aliases = {},
+        Description = "Loads an optimized version of the Dex Explorer interface."
+    }, function()
+        module:Load()
+    end)
+end
+
 Modules.ToolAttributeLister = {
     State = {}
 }
