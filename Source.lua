@@ -3,7 +3,9 @@ made by zuka @OverZuka on roblox
 v6 - December 28th
 
 
-updater - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
+github - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisoner.lua"))()
+
+backup - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
 
 
 __________      ____  __.        ___________    _________ .__     
@@ -13106,21 +13108,16 @@ RegisterCommand({
     Aliases = {"setnight", "nighttime"},
     Description = "Sets the time to night on your client."
 }, function(args)
-    -- Get the Lighting service robustly.
     local Lighting = game:GetService("Lighting")
     
-    -- Parse the optional hour argument from the user's input.
     local targetTime = tonumber(args[1])
     
-    -- If no valid time is given (or if it's out of the 0-24 range), default to 00:00 (Midnight).
     if not targetTime or targetTime < 0 or targetTime >= 24 then
         targetTime = 0 
     end
     
-    -- Set the time. This is a purely local, visual change.
     Lighting.ClockTime = targetTime
     
-    -- Notify the user of the successful change.
     DoNotif(string.format("Client time set to %02d:00", targetTime), 2)
 end)
 
@@ -13132,18 +13129,14 @@ RegisterCommand({
     -- Get the Lighting service robustly.
     local Lighting = game:GetService("Lighting")
     
-    -- Parse the optional hour argument from the user's input.
     local targetTime = tonumber(args[1])
     
-    -- If no valid time is given (or if it's out of the 0-24 range), default to 14:00 (2 PM).
     if not targetTime or targetTime < 0 or targetTime >= 24 then
         targetTime = 14 
     end
     
-    -- Set the time. This is a purely local, visual change.
     Lighting.ClockTime = targetTime
     
-    -- Notify the user of the successful change.
     DoNotif(string.format("Client time set to %02d:00", targetTime), 2)
 end)
 
@@ -13272,7 +13265,6 @@ Modules.InstanceInterceptor = {
         IsEnabled = false,
         OriginalNew = nil,
         Blacklist = {
-            -- Common anti-cheat names. This list can be expanded.
             ["Watchdog"] = true,
             ["ClientDetector"] = true,
             ["AntiCheat"] = true,
@@ -13288,10 +13280,8 @@ function Modules.InstanceInterceptor:Enable(): ()
         return DoNotif("Executor does not support hookfunction.", 4)
     end
 
-    local module = self -- Capture the module's context for the closure
+    local module = self
 
-    -- [FIX] Corrected function signature to match Instance.new(className, parent)
-    -- This resolves the argument misalignment and prevents the hook from breaking other scripts.
     self.State.OriginalNew = hookfunction(Instance.new, function(className: string, parent: Instance)
         if parent and module.State.Blacklist[parent.Name] then
             print("--> [InstanceInterceptor] Blocked creation of " .. className .. " due to blacklisted parent: " .. parent.Name)
@@ -13362,9 +13352,11 @@ end
 RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function()
 loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/Universe%20Viewer", "Universe Initialized")
 end)
-RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function()
+
+--[[RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function()
 loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/WallWalk.lua", "Loaded!")
-end)
+end)--]]
+
 RegisterCommand({Name = "dex", Aliases = {}, Description = "Loads Dex"}, function()
 loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit")
 end)
@@ -13396,7 +13388,7 @@ RegisterCommand({Name = "scripts", Aliases = {}, Description = "May or may not w
 
 RegisterCommand({Name = "antiafk", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
 
-RegisterCommand({Name = "poisoner" Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisoner.lua", "Loading GUI..") end)
+RegisterCommand({Name = "poisoner", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisoner.lua", "Loading GUI..") end)
 
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
 
