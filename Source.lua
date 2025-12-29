@@ -13140,6 +13140,392 @@ RegisterCommand({
     DoNotif(string.format("Client time set to %02d:00", targetTime), 2)
 end)
 
+Modules.FullBright = {
+    State = {
+        IsEnabled = false,
+        OriginalSettings = {}
+    }
+}
+
+function Modules.FullBright:Enable(): ()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+    self.State.OriginalSettings = {
+        Ambient = Lighting.Ambient,
+        OutdoorAmbient = Lighting.OutdoorAmbient,
+        Brightness = Lighting.Brightness,
+        ClockTime = Lighting.ClockTime,
+        GlobalShadows = Lighting.GlobalShadows
+    }
+    Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+    Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+    Lighting.Brightness = 2
+    Lighting.GlobalShadows = false
+    self.State.Connection = Lighting.Changed:Connect(function()
+        if self.State.IsEnabled then
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            Lighting.Brightness = 2
+            Lighting.GlobalShadows = false
+        end
+    end)
+    DoNotif("FullBright: ENABLED", 2)
+end
+
+function Modules.FullBright:Disable(): ()
+    if not self.State.IsEnabled then return end
+    self.State.IsEnabled = false
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+    local settings = self.State.OriginalSettings
+    Lighting.Ambient = settings.Ambient
+    Lighting.OutdoorAmbient = settings.OutdoorAmbient
+    Lighting.Brightness = settings.Brightness
+    Lighting.ClockTime = settings.ClockTime
+    Lighting.GlobalShadows = settings.GlobalShadows
+    DoNotif("FullBright: DISABLED", 2)
+end
+
+RegisterCommand({
+    Name = "fullbright",
+    Aliases = {"fb", "bright"},
+    Description = "Removes all shadows and maximizes ambient light."
+}, function()
+    if Modules.FullBright.State.IsEnabled then
+        Modules.FullBright:Disable()
+    else
+        Modules.FullBright:Enable()
+    end
+end)
+
+Modules.ObjectESP = {
+    State = {
+        IsEnabled = false,
+        Targets = {},
+        Visuals = {}
+    }
+}
+
+function Modules.ObjectESP:_apply(object: Instance): ()
+    if not object:IsA("BasePart") or self.State.Visuals[object] then return end
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = Color3.fromRGB(255, 170, 0)
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.5
+    highlight.Parent = object
+    local billboard = Instance.new("BillboardGui")
+    billboard.AlwaysOnTop = true
+    billboard.Size = UDim2.fromOffset(100, 40)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.fromScale(1, 1)
+    label.BackgroundTransparency = 1
+    label.Text = object.Name
+    label.TextColor3 = Color3.fromRGB(255, 170, 0)
+    label.Font = Enum.Font.Code
+    label.TextSize = 14
+    label.Parent = billboard
+    billboard.Parent = object
+    self.State.Visuals[object] = {highlight, billboard}
+end
+
+function Modules.ObjectESP:Toggle(name: string): ()
+    if not name then return DoNotif("Usage: ;itemesp <name>", 3) end
+    self.State.IsEnabled = true
+    local count = 0
+    for _, descendant in ipairs(Workspace:GetDescendants()) do
+        if descendant.Name:lower():find(name:lower()) and descendant:IsA("BasePart") then
+            self:_apply(descendant)
+            count = count + 1
+        end
+    end
+    DoNotif("Found " .. count .. " items matching: " .. name, 3)
+end
+
+function Modules.ObjectESP:Clear(): ()
+    for part, effects in pairs(self.State.Visuals) do
+        for _, effect in ipairs(effects) do
+            pcall(function() effect:Destroy() end)
+        end
+    end
+    table.clear(self.State.Visuals)
+    DoNotif("Object ESP Cleared", 2)
+end
+
+RegisterCommand({
+    Name = "itemesp",
+    Aliases = {"finditem", "iesp"},
+    Description = "Highlights specific objects in the workspace by name."
+}, function(args)
+    local name = table.concat(args, " ")
+    if name == "clear" or name == "off" then
+        Modules.ObjectESP:Clear()
+    else
+        Modules.ObjectESP:Toggle(name)
+    end
+end)
+
+Modules.InternalAntiAfk = {
+    State = {
+        IsEnabled = false,
+        Connection = nil
+    }
+}
+
+function Modules.InternalAntiAfk:Toggle(): ()
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        local virtualUser = game:GetService("VirtualUser")
+        self.State.Connection = LocalPlayer.Idled:Connect(function()
+            virtualUser:CaptureController()
+            virtualUser:ClickButton2(Vector2.new())
+        end)
+        DoNotif("Internal Anti-AFK: ENABLED", 2)
+    else
+        if self.State.Connection then
+            self.State.Connection:Disconnect()
+            self.State.Connection = nil
+        end
+        DoNotif("Internal Anti-AFK: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "idlesaver",
+    Aliases = {"afk", "antiafk"},
+    Description = "Prevents being disconnected for inactivity via internal engine signals."
+}, function()
+    Modules.InternalAntiAfk:Toggle()
+end)
+
+Modules.CooldownBypass = {
+    State = {
+        IsEnabled = false,
+        OriginalWait = nil,
+        OriginalTaskWait = nil
+    }
+}
+
+function Modules.CooldownBypass:Toggle(): ()
+    if not getrawmetatable then return DoNotif("Executor missing getrawmetatable", 3) end
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        self.State.OriginalWait = wait
+        self.State.OriginalTaskWait = task.wait
+        getgenv().wait = function(n: number?)
+            return self.State.OriginalWait(n and n * 0.1 or 0)
+        end
+        getgenv().task.wait = function(n: number?)
+            return self.State.OriginalTaskWait(n and n * 0.1 or 0)
+        end
+        DoNotif("Cooldown Bypass: ENABLED (10x Speed)", 2)
+    else
+        getgenv().wait = self.State.OriginalWait
+        getgenv().task.wait = self.State.OriginalTaskWait
+        DoNotif("Cooldown Bypass: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "nowait",
+    Aliases = {"fastcooldown", "instant"},
+    Description = "Locally accelerates all wait calls to bypass client-side timers."
+}, function()
+    Modules.CooldownBypass:Toggle()
+end)
+
+Modules.ToolSpy = {
+    State = {
+        IsEnabled = false
+    }
+}
+
+function Modules.ToolSpy:Scan(): ()
+    print("--- [Tool Spy Report] ---")
+    local found = 0
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            local backpack = player:FindFirstChild("Backpack")
+            local tools = {}
+            if char then
+                for _, item in ipairs(char:GetChildren()) do
+                    if item:IsA("Tool") then
+                        table.insert(tools, "[EQUIPPED] " .. item.Name)
+                    end
+                end
+            end
+            if backpack then
+                for _, item in ipairs(backpack:GetChildren()) do
+                    if item:IsA("Tool") then
+                        table.insert(tools, item.Name)
+                    end
+                end
+            end
+            if #tools > 0 then
+                found = found + 1
+                print(string.format("Player: %s | Tools: %s", player.Name, table.concat(tools, ", ")))
+            end
+        end
+    end
+    print("--- End of Report ---")
+    DoNotif("Tool Spy: Found inventory for " .. found .. " players. Check Console (F9).", 4)
+end
+
+RegisterCommand({
+    Name = "toolspy",
+    Aliases = {"invspy", "checktools"},
+    Description = "Dumps the inventory of every player in the server to the developer console."
+}, function()
+    Modules.ToolSpy:Scan()
+end)
+
+Modules.PositionSpoofer = {
+    State = {
+        IsEnabled = false,
+        SafeCFrame = CFrame.new(),
+        OriginalNamecall = nil,
+        OriginalIndex = nil
+    }
+}
+
+function Modules.PositionSpoofer:Toggle(): ()
+    if not (getrawmetatable and setreadonly and newcclosure) then
+        return DoNotif("Executor does not support metatable manipulation.", 4)
+    end
+
+    local mt = getrawmetatable(game)
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    
+    self.State.IsEnabled = not self.State.IsEnabled
+
+    if self.State.IsEnabled then
+        if root then self.State.SafeCFrame = root.CFrame end
+        
+        self.State.OriginalIndex = mt.__index
+        setreadonly(mt, false)
+
+        mt.__index = newcclosure(function(selfArg, key)
+            if self.State.IsEnabled and root and selfArg == root then
+                if key == "CFrame" then
+                    return self.State.SafeCFrame
+                elseif key == "Position" then
+                    return self.State.SafeCFrame.Position
+                end
+            end
+            return self.State.OriginalIndex(selfArg, key)
+        end)
+
+        setreadonly(mt, true)
+        DoNotif("Position Spoofer: ENABLED (Bypassing client-side position checks)", 3)
+    else
+        setreadonly(mt, false)
+        mt.__index = self.State.OriginalIndex
+        setreadonly(mt, true)
+        DoNotif("Position Spoofer: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "spoofpos",
+    Aliases = {"anticheatpos", "fakecframe"},
+    Description = "Spoofs your HumanoidRootPart position to local scripts to bypass teleport detection."
+}, function()
+    Modules.PositionSpoofer:Toggle()
+end)
+
+Modules.SoundNullifier = {
+    State = {
+        IsEnabled = false,
+        OriginalIndex = nil
+    }
+}
+
+function Modules.SoundNullifier:Toggle(): ()
+    local mt = getrawmetatable(game)
+    self.State.IsEnabled = not self.State.IsEnabled
+
+    if self.State.IsEnabled then
+        self.State.OriginalIndex = mt.__index
+        setreadonly(mt, false)
+
+        mt.__index = newcclosure(function(selfArg, key)
+            if self.State.IsEnabled and selfArg:IsA("Sound") then
+                if key == "Volume" then
+                    return 0
+                elseif key == "Playing" then
+                    return false
+                end
+            end
+            return self.State.OriginalIndex(selfArg, key)
+        end)
+
+        setreadonly(mt, true)
+        DoNotif("Sound Nullifier: ENABLED (All game audio muted via engine hook)", 3)
+    else
+        setreadonly(mt, false)
+        mt.__index = self.State.OriginalIndex
+        setreadonly(mt, true)
+        DoNotif("Sound Nullifier: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "mutesounds",
+    Aliases = {"nosound", "silence"},
+    Description = "Forces all Sound instances to have 0 volume and appear as not playing."
+}, function()
+    Modules.SoundNullifier:Toggle()
+end)
+
+Modules.StateSpoofer = {
+    State = {
+        IsEnabled = false,
+        OriginalNamecall = nil,
+        TargetState = Enum.HumanoidStateType.Running
+    }
+}
+
+function Modules.StateSpoofer:Toggle(requestedState: string?): ()
+    local mt = getrawmetatable(game)
+    self.State.IsEnabled = not self.State.IsEnabled
+
+    if self.State.IsEnabled then
+        if requestedState and Enum.HumanoidStateType[requestedState] then
+            self.State.TargetState = Enum.HumanoidStateType[requestedState]
+        end
+
+        self.State.OriginalNamecall = mt.__namecall
+        setreadonly(mt, false)
+
+        mt.__namecall = newcclosure(function(selfArg, ...)
+            local method = getnamecallmethod()
+            if self.State.IsEnabled and method == "GetState" and selfArg:IsA("Humanoid") then
+                return self.State.TargetState
+            end
+            return self.State.OriginalNamecall(selfArg, ...)
+        end)
+
+        setreadonly(mt, true)
+        DoNotif("State Spoofer: ENABLED (Spoofing state to " .. self.State.TargetState.Name .. ")", 3)
+    else
+        setreadonly(mt, false)
+        mt.__namecall = self.State.OriginalNamecall
+        setreadonly(mt, true)
+        DoNotif("State Spoofer: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "spoofstate",
+    Aliases = {"fakestate", "fs"},
+    Description = "Spoofs your Humanoid state (e.g. Running) to prevent detection of falling/jumping."
+}, function(args)
+    Modules.StateSpoofer:Toggle(args[1])
+end)
+
 Modules.HitboxExtender = {
     State = {
         IsEnabled = false,
@@ -13260,6 +13646,530 @@ RegisterCommand({
     end
 end)
 
+Modules.RaycastVisualBypass = {
+    State = {
+        IsEnabled = false,
+        OriginalNamecall = nil,
+        BlacklistedNames = {}
+    }
+}
+
+function Modules.RaycastVisualBypass:Toggle(): ()
+    if not (getrawmetatable and getnamecallmethod and newcclosure) then
+        return DoNotif("Environment does not support namecall hooks.", 3)
+    end
+
+    local mt = getrawmetatable(game)
+    self.State.IsEnabled = not self.State.IsEnabled
+
+    if self.State.IsEnabled then
+        self.State.OriginalNamecall = mt.__namecall
+        setreadonly(mt, false)
+
+        mt.__namecall = newcclosure(function(selfArg, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+
+            if selfArg == Workspace and method == "Raycast" then
+                local result = self.State.OriginalNamecall(selfArg, unpack(args))
+                if result and result.Instance and self.State.BlacklistedNames[result.Instance.Name] then
+                    return nil
+                end
+            end
+
+            return self.State.OriginalNamecall(selfArg, unpack(args))
+        end)
+
+        setreadonly(mt, true)
+        DoNotif("Raycast Bypass: ENABLED (Hiding specific parts from scripts)", 2)
+    else
+        setreadonly(mt, false)
+        mt.__namecall = self.State.OriginalNamecall
+        setreadonly(mt, true)
+        DoNotif("Raycast Bypass: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "rayblock",
+    Aliases = {"rayignore", "rb"},
+    Description = "Makes scripts ignore specific parts during raycasting. Usage: ;rb [PartName]"
+}, function(args)
+    local name = args[1]
+    if not name then
+        Modules.RaycastVisualBypass:Toggle()
+    else
+        Modules.RaycastVisualBypass.State.BlacklistedNames[name] = true
+        DoNotif("Added '" .. name .. "' to raycast blacklist.", 2)
+        if not Modules.RaycastVisualBypass.State.IsEnabled then
+            Modules.RaycastVisualBypass:Toggle()
+        end
+    end
+end)
+
+Modules.SpatialQueryBypass = {
+    State = {
+        IsEnabled = false,
+        OriginalNamecall = nil
+    }
+}
+
+function Modules.SpatialQueryBypass:Toggle(): ()
+    local mt = getrawmetatable(game)
+    self.State.IsEnabled = not self.State.IsEnabled
+
+    if self.State.IsEnabled then
+        self.State.OriginalNamecall = mt.__namecall
+        setreadonly(mt, false)
+
+        mt.__namecall = newcclosure(function(selfArg, ...)
+            local method = getnamecallmethod()
+            if selfArg == Workspace and (method == "GetPartBoundsInBox" or method == "GetPartBoundsInRadius" or method == "GetPartsInPart") then
+                local results = self.State.OriginalNamecall(selfArg, ...)
+                if typeof(results) == "table" then
+                    for i = #results, 1, -1 do
+                        if results[i]:IsDescendantOf(LocalPlayer.Character) then
+                            table.remove(results, i)
+                        end
+                    end
+                    return results
+                end
+            end
+            return self.State.OriginalNamecall(selfArg, ...)
+        end)
+
+        setreadonly(mt, true)
+        DoNotif("Spatial Query Bypass: ENABLED (Invisible to area-detection scripts)", 3)
+    else
+        setreadonly(mt, false)
+        mt.__namecall = self.State.OriginalNamecall
+        setreadonly(mt, true)
+        DoNotif("Spatial Query Bypass: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "ghostmode",
+    Aliases = {"invisdetect", "gm"},
+    Description = "Prevents anti-cheats from detecting your character inside parts or zones."
+}, function()
+    Modules.SpatialQueryBypass:Toggle()
+end)
+
+Modules.AttributeSpoofer = {
+    State = {
+        IsEnabled = false,
+        OriginalNamecall = nil,
+        SpoofTable = {}
+    }
+}
+
+function Modules.AttributeSpoofer:Toggle(): ()
+    local mt = getrawmetatable(game)
+    self.State.IsEnabled = not self.State.IsEnabled
+
+    if self.State.IsEnabled then
+        self.State.OriginalNamecall = mt.__namecall
+        setreadonly(mt, false)
+
+        mt.__namecall = newcclosure(function(selfArg, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+            if method == "GetAttribute" and self.State.SpoofTable[args[1]] ~= nil then
+                return self.State.SpoofTable[args[1]]
+            end
+            return self.State.OriginalNamecall(selfArg, ...)
+        end)
+
+        setreadonly(mt, true)
+        DoNotif("Attribute Spoofer: ENABLED", 2)
+    else
+        setreadonly(mt, false)
+        mt.__namecall = self.State.OriginalNamecall
+        setreadonly(mt, true)
+        DoNotif("Attribute Spoofer: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "spoofattribute",
+    Aliases = {"sa", "setattr"},
+    Description = "Spoofs return values of GetAttribute."
+}, function(args)
+    local attrName = args[1]
+    local attrValue = args[2]
+
+    if not attrName then return DoNotif("Usage: ;sa <attribute> <value>", 3) end
+
+    if attrValue == "true" then attrValue = true
+    elseif attrValue == "false" then attrValue = false
+    elseif tonumber(attrValue) then attrValue = tonumber(attrValue) end
+
+    Modules.AttributeSpoofer.State.SpoofTable[attrName] = attrValue
+    DoNotif("Spoofing attribute '" .. attrName .. "' as: " .. tostring(attrValue), 3)
+
+    if not Modules.AttributeSpoofer.State.IsEnabled then
+        Modules.AttributeSpoofer:Toggle()
+    end
+end)
+
+Modules.MeleeFreezer = {
+    State = {
+        IsEnabled = false,
+        FrozenTracks = {},
+        Connection = nil
+    },
+    Config = {
+        ToggleKey = Enum.KeyCode.G
+    }
+}
+
+function Modules.MeleeFreezer:Enable(): ()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+    
+    self.State.Connection = RunService.RenderStepped:Connect(function()
+        local character = LocalPlayer.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+        
+        if animator then
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                if track.IsPlaying and track.Speed ~= 0 then
+                    track:AdjustSpeed(0)
+                end
+            end
+        end
+    end)
+    
+    DoNotif("Melee Freeze: ENABLED (Animations Locked)", 2)
+end
+
+function Modules.MeleeFreezer:Disable(): ()
+    if not self.State.IsEnabled then return end
+    self.State.IsEnabled = false
+    
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+    
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+    
+    if animator then
+        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+            track:AdjustSpeed(1)
+        end
+    end
+    
+    DoNotif("Melee Freeze: DISABLED (Animations Restored)", 2)
+end
+
+function Modules.MeleeFreezer:Toggle(): ()
+    if self.State.IsEnabled then
+        self:Disable()
+    else
+        self:Enable()
+    end
+end
+
+function Modules.MeleeFreezer:Initialize(): ()
+    local module = self
+    
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == module.Config.ToggleKey then
+            module:Toggle()
+        end
+    end)
+    
+    RegisterCommand({
+        Name = "freezemelee",
+        Aliases = {"animfreeze", "lagswing"},
+        Description = "Toggles an animation freeze (Key: G) to keep weapon hitboxes active during a swing."
+    }, function()
+        module:Toggle()
+    end)
+end
+
+Modules.WhisperSpy = {
+    State = {
+        IsEnabled = false,
+        Connections = {}
+    }
+}
+
+function Modules.WhisperSpy:Enable(): ()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+
+    local function handleLegacyMessage(data: table)
+        if not self.State.IsEnabled then return end
+        
+        local message = data.Message
+        local sender = data.FromPlayer
+        local recipient = data.ToPlayer
+        local isWhisper = data.IsWhisper or (data.MessageType == "Whisper")
+
+        if isWhisper and sender and recipient then
+            if sender ~= LocalPlayer.Name and recipient ~= LocalPlayer.Name then
+                local log = string.format("[WhisperSpy] %s -> %s: %s", sender, recipient, message)
+                print(log)
+                DoNotif(log, 4)
+            end
+        end
+    end
+
+    local chatEvents = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+    if chatEvents then
+        local onMsg = chatEvents:FindFirstChild("OnMessageDoneFiltering")
+        if onMsg and onMsg:IsA("RemoteEvent") then
+            self.State.Connections.Legacy = onMsg.OnClientEvent:Connect(handleLegacyMessage)
+        end
+    end
+
+    self.State.Connections.Modern = TextChatService.MessageReceived:Connect(function(textChatMessage: TextChatMessage)
+        local metadata = textChatMessage.Metadata
+        local textSource = textChatMessage.TextSource
+        
+        if textSource and metadata and metadata:find("whisper") then
+            local senderId = textSource.UserId
+            local sender = Players:GetPlayerByUserId(senderId)
+            
+            if sender and sender ~= LocalPlayer then
+                local log = string.format("[WhisperSpy Modern] %s: %s", sender.Name, textChatMessage.Text)
+                print(log)
+                DoNotif(log, 4)
+            end
+        end
+    end)
+
+    DoNotif("Whisper Spy: ENABLED. Monitoring private channels.", 3)
+end
+
+function Modules.WhisperSpy:Disable(): ()
+    if not self.State.IsEnabled then return end
+    self.State.IsEnabled = false
+    
+    for _, conn in pairs(self.State.Connections) do
+        if conn then conn:Disconnect() end
+    end
+    table.clear(self.State.Connections)
+    
+    DoNotif("Whisper Spy: DISABLED", 2)
+end
+
+function Modules.WhisperSpy:Toggle(): ()
+    if self.State.IsEnabled then
+        self:Disable()
+    else
+        self:Enable()
+    end
+end
+
+RegisterCommand({
+    Name = "whisperspy",
+    Aliases = {"chatspy", "viewwhispers"},
+    Description = "Attempts to intercept and display private whisper messages between other players."
+}, function()
+    Modules.WhisperSpy:Toggle()
+end)
+
+Modules.ToolAttributeLister = {
+    State = {}
+}
+
+function Modules.ToolAttributeLister:Scan(): ()
+    local character = LocalPlayer.Character
+    if not character then
+        return DoNotif("Character not found.", 3)
+    end
+
+    local tool = character:FindFirstChildOfClass("Tool")
+    if not tool then
+        return DoNotif("You must have a tool equipped to scan it.", 3)
+    end
+
+    local attributes = tool:GetAttributes()
+    local attributeCount = 0
+
+    print("--- [Attribute Scan: " .. tool.Name .. "] ---")
+    
+    for name, value in pairs(attributes) do
+        attributeCount = attributeCount + 1
+        local valueType = typeof(value)
+        local formattedValue = tostring(value)
+
+        if valueType == "Color3" then
+            formattedValue = string.format("RGB(%d, %d, %d)", value.R * 255, value.G * 255, value.B * 255)
+        elseif valueType == "Vector3" then
+            formattedValue = string.format("(%.2f, %.2f, %.2f)", value.X, value.Y, value.Z)
+        end
+
+        print(string.format("  [!] %s [%s]: %s", name, valueType, formattedValue))
+    end
+
+    if attributeCount == 0 then
+        print("  (No attributes found on this tool)")
+        DoNotif("No attributes found on " .. tool.Name, 3)
+    else
+        print("--- Total Attributes: " .. attributeCount .. " ---")
+        DoNotif("Listed " .. attributeCount .. " attributes for " .. tool.Name .. " in F9 console.", 4)
+    end
+end
+
+RegisterCommand({
+    Name = "listattributes",
+    Aliases = {"toolattrs", "getattr", "scantool"},
+    Description = "Dumps every attribute and value of the equipped tool to the developer console (F9)."
+}, function()
+    Modules.ToolAttributeLister:Scan()
+end)
+
+Modules.RoFController = {
+    State = {
+        IsEnabled = false,
+        Multiplier = 1,
+        StartTime = os.clock(),
+        OriginalIndex = nil
+    }
+}
+
+function Modules.RoFController:Toggle(multiplier: number?): ()
+    if not (getrawmetatable and setreadonly and newcclosure) then
+        return DoNotif("Executor does not support engine-level hooks.", 4)
+    end
+
+    local mt = getrawmetatable(game)
+    self.State.IsEnabled = not self.State.IsEnabled
+
+    if self.State.IsEnabled then
+        self.State.Multiplier = multiplier or 2
+        self.State.StartTime = os.clock()
+        self.State.OriginalIndex = mt.__index
+        
+        local clock = os.clock
+        local tick = tick
+        local startTime = self.State.StartTime
+
+        setreadonly(mt, false)
+
+        mt.__index = newcclosure(function(selfArg, key)
+            if self.State.IsEnabled then
+                if key == "os" or selfArg == os then
+                    local originalOs = self.State.OriginalIndex(selfArg, "os") or os
+                    return setmetatable({}, {
+                        __index = function(_, k)
+                            if k == "clock" then
+                                return function()
+                                    return startTime + (clock() - startTime) * self.State.Multiplier
+                                end
+                            end
+                            return originalOs[k]
+                        end
+                    })
+                elseif key == "tick" then
+                    return function()
+                        return startTime + (tick() - startTime) * self.State.Multiplier
+                    end
+                end
+            end
+            return self.State.OriginalIndex(selfArg, key)
+        end)
+
+        setreadonly(mt, true)
+        DoNotif("RoF Controller: ENABLED (" .. self.State.Multiplier .. "x speed)", 3)
+    else
+        setreadonly(mt, false)
+        mt.__index = self.State.OriginalIndex
+        setreadonly(mt, true)
+        DoNotif("RoF Controller: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "fastfire",
+    Aliases = {"rof", "rapidfire", "fireate"},
+    Description = "Manipulates local time to increase weapon rate of fire."
+}, function(args)
+    local mult = tonumber(args[1])
+    if Modules.RoFController.State.IsEnabled then
+        if mult then
+            Modules.RoFController.State.Multiplier = mult
+            DoNotif("RoF Multiplier updated to: " .. mult, 2)
+        else
+            Modules.RoFController:Toggle()
+        end
+    else
+        Modules.RoFController:Toggle(mult)
+    end
+end)
+
+Modules.ClassicSwordAnim = {
+    State = {
+        IsEnabled = false,
+        OriginalNamecall = nil,
+        TargetAnimationId = "rbxassetid://1259011"
+    }
+}
+
+function Modules.ClassicSwordAnim:Toggle(): ()
+    if not (getrawmetatable and getnamecallmethod and newcclosure and setreadonly) then
+        return DoNotif("Executor does not support namecall hooks.", 3)
+    end
+
+    local mt = getrawmetatable(game)
+    self.State.IsEnabled = not self.State.IsEnabled
+
+    if self.State.IsEnabled then
+        self.State.OriginalNamecall = mt.__namecall
+        setreadonly(mt, false)
+
+        mt.__namecall = newcclosure(function(selfArg, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+
+            if self.State.IsEnabled and (method == "LoadAnimation" or method == "loadAnimation") then
+                local animationObject = args[1]
+                if animationObject and animationObject:IsA("Animation") then
+                    animationObject.AnimationId = self.State.TargetAnimationId
+                end
+            end
+
+            return self.State.OriginalNamecall(selfArg, unpack(args))
+        end)
+
+        setreadonly(mt, true)
+        
+        if LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+            if animator then
+                for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                    track:Stop()
+                end
+            end
+        end
+
+        DoNotif("Classic Sword Anims: ENABLED (All melee now uses Linked Sword slash)", 3)
+    else
+        setreadonly(mt, false)
+        mt.__namecall = self.State.OriginalNamecall
+        setreadonly(mt, true)
+        DoNotif("Classic Sword Anims: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "classicsword",
+    Aliases = {"swordanim", "linkedsword"},
+    Description = "Forces all loaded animations to use the classic Linked Sword slash ID."
+}, function()
+    Modules.ClassicSwordAnim:Toggle()
+end)
+
 Modules.InstanceInterceptor = {
     State = {
         IsEnabled = false,
@@ -13349,13 +14259,17 @@ local function loadstringCmd(url, notif)
     end)
     DoNotif(notif, 3)
 end
+
+
 RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function()
 loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/Universe%20Viewer", "Universe Initialized")
 end)
 
+
 --[[RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function()
 loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/WallWalk.lua", "Loaded!")
 end)--]]
+
 
 RegisterCommand({Name = "dex", Aliases = {}, Description = "Loads Dex"}, function()
 loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit")
@@ -13386,7 +14300,7 @@ RegisterCommand({Name = "nocooldown", Aliases = {"ncd"}, Description = "For http
 
 RegisterCommand({Name = "scripts", Aliases = {}, Description = "May or may not work.."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/scriptsearcher.lua", "Loading Scripts.") end)
 
-RegisterCommand({Name = "antiafk", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
+RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
 
 RegisterCommand({Name = "poisoner", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisoner.lua", "Loading GUI..") end)
 
