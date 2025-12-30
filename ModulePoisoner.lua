@@ -1,333 +1,375 @@
 --{{This is a powerful in game module poisoner, it is still a WIP use at your own risk. ]]
+
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
-type PoisonData = {
-	Original: (...any) -> ...any,
-	Type: string,
-	Count: number
+local ACCENT = Color3.fromRGB(0, 255, 170)
+local BG_DARK = Color3.fromRGB(10, 10, 12)
+local BG_LIGHT = Color3.fromRGB(20, 20, 25)
+local TEXT_PRIMARY = Color3.fromRGB(255, 255, 255)
+local TEXT_SECONDARY = Color3.fromRGB(150, 150, 150)
+
+local HEURISTIC_KEYWORDS = {
+	["Ban"] = 50, ["Kick"] = 50, ["Cheat"] = 40, ["Anti"] = 40,
+	["Damage"] = 30, ["Remote"] = 20, ["Network"] = 20, ["Admin"] = 45,
+	["Shop"] = 15, ["Purchase"] = 25, ["Inventory"] = 20, ["Cooldown"] = 15,
+	["Stamina"] = 10, ["Mana"] = 10, ["Health"] = 10, ["Speed"] = 15
 }
 
-local ACCENT_COLOR: Color3 = Color3.fromRGB(0, 170, 255)
-local BG_DARK: Color3 = Color3.fromRGB(15, 15, 20)
-local BG_MED: Color3 = Color3.fromRGB(25, 25, 30)
-local TEXT_MAIN: Color3 = Color3.fromRGB(240, 240, 240)
-local TEXT_DIM: Color3 = Color3.fromRGB(160, 160, 160)
-
-local POISON_TYPES: {string} = {
-	"Log Invocation",
-	"Log Arguments",
-	"Return Nil",
-	"Return True",
-	"Return False",
-	"Infinite Yield",
-	"Force Error",
-	"No-Operation"
+local POISON_MODES = {
+	"Log: Minimal",
+	"Log: Deep (Args)",
+	"Log: Network Trace",
+	"Return: Nil",
+	"Return: True",
+	"Return: False",
+	"Return: Empty Table",
+	"Logic: Infinite Yield",
+	"Logic: Force Error",
+	"Logic: No-Op",
+	"Dynamic: Spoof Args"
 }
 
-local poisonRegistry: {[string]: {[string]: PoisonData}} = {}
-local foundModules: {ModuleScript} = {}
-local selection = {
-	Module = nil :: ModuleScript?,
-	Table = nil :: {[any]: any}?,
-	Function = nil :: string?,
-	Poison = POISON_TYPES[1]
+local Registry = {
+	Hooks = {} :: {[string]: {[string]: {Original: any, Mode: string}}},
+	Persistence = {} :: {[string]: boolean},
+	Remotes = {} :: {string},
+	Upvalues = {} :: {[string]: any}
+}
+
+local State = {
+	SelectedModule = nil :: ModuleScript?,
+	SelectedTable = nil :: {[any]: any}?,
+	SelectedFunction = nil :: string?,
+	SelectedMode = POISON_MODES[1],
+	FoundModules = {} :: {ModuleScript}
 }
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = HttpService:GenerateGUID(false)
 screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+screenGui.DisplayOrder = 100
 screenGui.Parent = CoreGui
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "Main"
-mainFrame.Size = UDim2.fromOffset(600, 420)
-mainFrame.Position = UDim2.new(0.5, -300, 0.5, -210)
-mainFrame.BackgroundColor3 = BG_DARK
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
+local main = Instance.new("Frame")
+main.Size = UDim2.fromOffset(700, 480)
+main.Position = UDim2.new(0.5, -350, 0.5, -240)
+main.BackgroundColor3 = BG_DARK
+main.BorderSizePixel = 0
+main.Parent = screenGui
 
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 6)
-mainCorner.Parent = mainFrame
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 4)
+corner.Parent = main
 
-local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = BG_MED
-mainStroke.Thickness = 1
-mainStroke.Parent = mainFrame
+local stroke = Instance.new("UIStroke")
+stroke.Color = BG_LIGHT
+stroke.Thickness = 1
+stroke.Parent = main
 
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 40)
-titleBar.BackgroundColor3 = BG_MED
+titleBar.Size = UDim2.new(1, 0, 0, 35)
+titleBar.BackgroundColor3 = BG_LIGHT
 titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
+titleBar.Parent = main
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 6)
-titleCorner.Parent = titleBar
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -20, 1, 0)
+titleLabel.Position = UDim2.fromOffset(10, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Zuka's Gem."
+titleLabel.Font = Enum.Font.RobotoMono
+titleLabel.TextColor3 = ACCENT
+titleLabel.TextSize = 13
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = titleBar
 
-local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(1, -20, 1, 0)
-titleText.Position = UDim2.fromOffset(15, 0)
-titleText.BackgroundTransparency = 1
-titleText.Text = "ARCHITECT MODULE POISONER // V3"
-titleText.Font = Enum.Font.RobotoMono
-titleText.TextColor3 = TEXT_MAIN
-titleText.TextSize = 14
-titleText.TextXAlignment = Enum.TextXAlignment.Left
-titleText.Parent = titleBar
+local sidebar = Instance.new("Frame")
+sidebar.Size = UDim2.new(0, 200, 1, -35)
+sidebar.Position = UDim2.fromOffset(0, 35)
+sidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+sidebar.BorderSizePixel = 0
+sidebar.Parent = main
 
-local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, -20, 1, -110)
-contentFrame.Position = UDim2.fromOffset(10, 50)
-contentFrame.BackgroundTransparency = 1
-contentFrame.Parent = mainFrame
-
-local moduleContainer = Instance.new("ScrollingFrame")
-moduleContainer.Size = UDim2.new(0.5, -5, 1, 0)
-moduleContainer.BackgroundColor3 = BG_MED
-moduleContainer.BorderSizePixel = 0
-moduleContainer.ScrollBarThickness = 2
-moduleContainer.ScrollBarImageColor3 = ACCENT_COLOR
-moduleContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
-moduleContainer.Parent = contentFrame
-
-local functionContainer = Instance.new("ScrollingFrame")
-functionContainer.Size = UDim2.new(0.5, -5, 1, 0)
-functionContainer.Position = UDim2.new(0.5, 5, 0, 0)
-functionContainer.BackgroundColor3 = BG_MED
-functionContainer.BorderSizePixel = 0
-functionContainer.ScrollBarThickness = 2
-functionContainer.ScrollBarImageColor3 = ACCENT_COLOR
-functionContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
-functionContainer.Parent = contentFrame
+local moduleList = Instance.new("ScrollingFrame")
+moduleList.Size = UDim2.new(1, -10, 1, -10)
+moduleList.Position = UDim2.fromOffset(5, 5)
+moduleList.BackgroundTransparency = 1
+moduleList.ScrollBarThickness = 2
+moduleList.ScrollBarImageColor3 = ACCENT
+moduleList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+moduleList.Parent = sidebar
 
 local moduleLayout = Instance.new("UIListLayout")
 moduleLayout.Padding = UDim.new(0, 2)
-moduleLayout.Parent = moduleContainer
+moduleLayout.Parent = moduleList
+
+local viewport = Instance.new("Frame")
+viewport.Size = UDim2.new(1, -200, 1, -35)
+viewport.Position = UDim2.fromOffset(200, 35)
+viewport.BackgroundTransparency = 1
+viewport.Parent = main
+
+local functionList = Instance.new("ScrollingFrame")
+functionList.Size = UDim2.new(0.5, -10, 0.7, -10)
+functionList.Position = UDim2.fromOffset(5, 5)
+functionList.BackgroundColor3 = BG_LIGHT
+functionList.BorderSizePixel = 0
+functionList.ScrollBarThickness = 2
+functionList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+functionList.Parent = viewport
 
 local functionLayout = Instance.new("UIListLayout")
 functionLayout.Padding = UDim.new(0, 2)
-functionLayout.Parent = functionContainer
+functionLayout.Parent = functionList
 
-local footer = Instance.new("Frame")
-footer.Size = UDim2.new(1, -20, 0, 50)
-footer.Position = UDim2.new(0, 10, 1, -60)
-footer.BackgroundTransparency = 1
-footer.Parent = mainFrame
+local upvalueList = Instance.new("ScrollingFrame")
+upvalueList.Size = UDim2.new(0.5, -10, 0.7, -10)
+upvalueList.Position = UDim2.new(0.5, 5, 0, 5)
+upvalueList.BackgroundColor3 = BG_LIGHT
+upvalueList.BorderSizePixel = 0
+upvalueList.ScrollBarThickness = 2
+upvalueList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+upvalueList.Parent = viewport
 
-local scanBtn = Instance.new("TextButton")
-scanBtn.Size = UDim2.new(0.2, -5, 1, 0)
-scanBtn.BackgroundColor3 = BG_MED
-scanBtn.Text = "SCAN ENV"
-scanBtn.Font = Enum.Font.RobotoMono
-scanBtn.TextColor3 = TEXT_MAIN
-scanBtn.TextSize = 12
-scanBtn.Parent = footer
+local upvalueLayout = Instance.new("UIListLayout")
+upvalueLayout.Padding = UDim.new(0, 2)
+upvalueLayout.Parent = upvalueList
 
-local poisonTypeBtn = Instance.new("TextButton")
-poisonTypeBtn.Size = UDim2.new(0.4, -5, 1, 0)
-poisonTypeBtn.Position = UDim2.new(0.2, 5, 0, 0)
-poisonTypeBtn.BackgroundColor3 = BG_MED
-poisonTypeBtn.Text = "MODE: " .. selection.Poison
-poisonTypeBtn.Font = Enum.Font.RobotoMono
-poisonTypeBtn.TextColor3 = TEXT_MAIN
-poisonTypeBtn.TextSize = 12
-poisonTypeBtn.Parent = footer
+local controlPanel = Instance.new("Frame")
+controlPanel.Size = UDim2.new(1, -10, 0.3, -10)
+controlPanel.Position = UDim2.new(0, 5, 0.7, 5)
+controlPanel.BackgroundColor3 = BG_LIGHT
+controlPanel.BorderSizePixel = 0
+controlPanel.Parent = viewport
 
-local applyBtn = Instance.new("TextButton")
-applyBtn.Size = UDim2.new(0.2, -5, 1, 0)
-applyBtn.Position = UDim2.new(0.6, 5, 0, 0)
-applyBtn.BackgroundColor3 = ACCENT_COLOR
-applyBtn.Text = "POISON"
-applyBtn.Font = Enum.Font.RobotoMono
-applyBtn.TextColor3 = Color3.new(1, 1, 1)
-applyBtn.TextSize = 12
-applyBtn.Parent = footer
-
-local restoreBtn = Instance.new("TextButton")
-restoreBtn.Size = UDim2.new(0.2, -5, 1, 0)
-restoreBtn.Position = UDim2.new(0.8, 5, 0, 0)
-restoreBtn.BackgroundColor3 = BG_MED
-restoreBtn.Text = "PURGE"
-restoreBtn.Font = Enum.Font.RobotoMono
-restoreBtn.TextColor3 = TEXT_DIM
-restoreBtn.TextSize = 12
-restoreBtn.Parent = footer
-
-local function applyUiDesign(obj: GuiObject)
+local function applyStyle(obj: GuiObject)
 	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 4)
+	c.CornerRadius = UDim.new(0, 2)
 	c.Parent = obj
 end
 
-applyUiDesign(moduleContainer)
-applyUiDesign(functionContainer)
-applyUiDesign(scanBtn)
-applyUiDesign(poisonTypeBtn)
-applyUiDesign(applyBtn)
-applyUiDesign(restoreBtn)
+applyStyle(functionList)
+applyStyle(upvalueList)
+applyStyle(controlPanel)
 
-local function clear(f: ScrollingFrame)
-	for _, v in ipairs(f:GetChildren()) do
-		if v:IsA("TextButton") then v:Destroy() end
+local function getHeuristicScore(mod: ModuleScript): number
+	local score = 0
+	local success, result = pcall(require, mod)
+	if success and type(result) == "table" then
+		for key, _ in pairs(result) do
+			for word, weight in pairs(HEURISTIC_KEYWORDS) do
+				if string.find(tostring(key), word) then score += weight end
+			end
+		end
+	end
+	for word, weight in pairs(HEURISTIC_KEYWORDS) do
+		if string.find(mod.Name, word) then score += weight end
+	end
+	return score
+end
+
+local function setTableReadOnly(tbl: table, state: boolean)
+	if setreadonly then
+		setreadonly(tbl, state)
+	elseif getrawmetatable then
+		local mt = getrawmetatable(tbl)
+		if mt then setreadonly(mt, state) end
 	end
 end
 
 local function scan()
-	table.clear(foundModules)
-	local roots = {game:GetService("ReplicatedStorage"), game:GetService("Players").LocalPlayer:FindFirstChild("PlayerScripts"), game:GetService("ReplicatedFirst")}
+	table.clear(State.FoundModules)
+	local temp = {}
+	local roots = {ReplicatedStorage, Players.LocalPlayer:FindFirstChild("PlayerScripts"), game:GetService("ReplicatedFirst")}
+	
 	for _, root in ipairs(roots) do
 		if not root then continue end
 		for _, v in ipairs(root:GetDescendants()) do
-			if v:IsA("ModuleScript") then table.insert(foundModules, v) end
+			if v:IsA("ModuleScript") then
+				local score = getHeuristicScore(v)
+				table.insert(temp, {Obj = v, Score = score})
+			end
 		end
+	end
+	
+	table.sort(temp, function(a, b) return a.Score > b.Score end)
+	for _, data in ipairs(temp) do table.insert(State.FoundModules, data.Obj) end
+end
+
+local function updateUpvalues(func: any)
+	for _, v in ipairs(upvalueList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+	if type(func) ~= "function" or not debug.getupvalues then return end
+	
+	for i, v in ipairs(debug.getupvalues(func)) do
+		local b = Instance.new("TextButton")
+		b.Size = UDim2.new(1, 0, 0, 25)
+		b.BackgroundTransparency = 1
+		b.Text = string.format("  [%d] %s: %s", i, tostring(v), type(v))
+		b.Font = Enum.Font.RobotoMono
+		b.TextColor3 = TEXT_SECONDARY
+		b.TextSize = 11
+		b.TextXAlignment = Enum.TextXAlignment.Left
+		b.Parent = upvalueList
 	end
 end
 
 local function updateFunctions(mod: ModuleScript)
-	clear(functionContainer)
+	for _, v in ipairs(functionList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
 	local success, tbl = pcall(require, mod)
 	if not success or type(tbl) ~= "table" then return end
-	selection.Table = tbl
+	State.SelectedTable = tbl
 	
-	local function add(key)
+	local function add(k, v)
 		local b = Instance.new("TextButton")
 		b.Size = UDim2.new(1, 0, 0, 25)
 		b.BackgroundTransparency = 1
-		b.Text = "  " .. tostring(key)
+		b.Text = "  " .. tostring(k)
 		b.Font = Enum.Font.RobotoMono
-		b.TextColor3 = TEXT_DIM
-		b.TextSize = 12
+		b.TextColor3 = TEXT_SECONDARY
+		b.TextSize = 11
 		b.TextXAlignment = Enum.TextXAlignment.Left
-		b.Parent = functionContainer
+		b.Parent = functionList
+		
 		b.MouseButton1Click:Connect(function()
-			selection.Function = tostring(key)
-			for _, x in ipairs(functionContainer:GetChildren()) do
-				if x:IsA("TextButton") then x.TextColor3 = TEXT_DIM end
-			end
-			b.TextColor3 = ACCENT_COLOR
+			State.SelectedFunction = tostring(k)
+			for _, x in ipairs(functionList:GetChildren()) do if x:IsA("TextButton") then x.TextColor3 = TEXT_SECONDARY end end
+			b.TextColor3 = ACCENT
+			updateUpvalues(v)
 		end)
 	end
 	
-	for k, v in pairs(tbl) do if type(v) == "function" then add(k) end end
-	local mt = getmetatable(tbl)
-	if mt and type(mt.__index) == "table" then
-		for k, v in pairs(mt.__index) do if type(v) == "function" then add(k) end end
+	for k, v in pairs(tbl) do if type(v) == "function" then add(k, v) end end
+end
+
+local function createPoison(original: (...any) -> ...any, name: string, modName: string)
+	return function(...)
+		local args = {...}
+		local mode = State.SelectedMode
+		
+		if mode == "Log: Minimal" then
+			print("[!] ARCHITECT // Call:", modName, "->", name)
+		elseif mode == "Log: Deep (Args)" then
+			print("[!] ARCHITECT // Call:", modName, "->", name, "Args:", args)
+		elseif mode == "Log: Network Trace" then
+			local thread = coroutine.running()
+			print("[!] ARCHITECT // Tracing Thread:", thread, "for", name)
+		elseif mode == "Return: Nil" then return nil
+		elseif mode == "Return: True" then return true
+		elseif mode == "Return: False" then return false
+		elseif mode == "Logic: Infinite Yield" then task.wait(9e9)
+		elseif mode == "Logic: Force Error" then error("CRITICAL_LOGIC_FAULT")
+		elseif mode == "Logic: No-Op" then return
+		end
+		
+		return original(unpack(args))
 	end
 end
 
 local function updateModules()
-	clear(moduleContainer)
-	for _, m in ipairs(foundModules) do
+	for _, v in ipairs(moduleList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+	for _, m in ipairs(State.FoundModules) do
 		local b = Instance.new("TextButton")
-		b.Size = UDim2.new(1, 0, 0, 25)
+		b.Size = UDim2.new(1, 0, 0, 30)
 		b.BackgroundTransparency = 1
-		b.Text = "  " .. m.Name
+		b.Text = " " .. m.Name
 		b.Font = Enum.Font.RobotoMono
-		b.TextColor3 = TEXT_DIM
+		b.TextColor3 = TEXT_SECONDARY
 		b.TextSize = 12
 		b.TextXAlignment = Enum.TextXAlignment.Left
-		b.Parent = moduleContainer
+		b.Parent = moduleList
+		
 		b.MouseButton1Click:Connect(function()
-			selection.Module = m
-			selection.Function = nil
-			for _, x in ipairs(moduleContainer:GetChildren()) do
-				if x:IsA("TextButton") then x.TextColor3 = TEXT_DIM end
-			end
-			b.TextColor3 = ACCENT_COLOR
+			State.SelectedModule = m
+			for _, x in ipairs(moduleList:GetChildren()) do if x:IsA("TextButton") then x.TextColor3 = TEXT_SECONDARY end end
+			b.TextColor3 = ACCENT
 			updateFunctions(m)
 		end)
 	end
 end
 
-local function wrap(original: (...any) -> ...any, name: string, modName: string)
-	return function(...)
-		local args = {...}
-		local t = selection.Poison
-		if t == "Log Invocation" then
-			print(string.format("[!] %s -> %s invoked", modName, name))
-			return original(...)
-		elseif t == "Log Arguments" then
-			print(string.format("[!] %s -> %s args:", modName, name), args)
-			return original(...)
-		elseif t == "Return Nil" then return nil
-		elseif t == "Return True" then return true
-		elseif t == "Return False" then return false
-		elseif t == "Infinite Yield" then task.wait(9e9)
-		elseif t == "Force Error" then error("Architect Poison: Critical Logic Fault")
-		elseif t == "No-Operation" then return end
-	end
-end
+local applyBtn = Instance.new("TextButton")
+applyBtn.Size = UDim2.new(0.5, -5, 0.4, -5)
+applyBtn.Position = UDim2.fromOffset(5, 5)
+applyBtn.BackgroundColor3 = BG_DARK
+applyBtn.Text = "INJECT POISON"
+applyBtn.Font = Enum.Font.RobotoMono
+applyBtn.TextColor3 = ACCENT
+applyBtn.TextSize = 12
+applyBtn.Parent = controlPanel
+applyStyle(applyBtn)
 
-scanBtn.MouseButton1Click:Connect(function()
-	scan()
-	updateModules()
-end)
+local modeBtn = Instance.new("TextButton")
+modeBtn.Size = UDim2.new(0.5, -5, 0.4, -5)
+modeBtn.Position = UDim2.new(0.5, 5, 0, 5)
+modeBtn.BackgroundColor3 = BG_DARK
+modeBtn.Text = "MODE: " .. State.SelectedMode
+modeBtn.Font = Enum.Font.RobotoMono
+modeBtn.TextColor3 = TEXT_PRIMARY
+modeBtn.TextSize = 11
+modeBtn.Parent = controlPanel
+applyStyle(modeBtn)
 
-poisonTypeBtn.MouseButton1Click:Connect(function()
-	local i = table.find(POISON_TYPES, selection.Poison) or 1
-	selection.Poison = POISON_TYPES[(i % #POISON_TYPES) + 1]
-	poisonTypeBtn.Text = "MODE: " .. selection.Poison
+modeBtn.MouseButton1Click:Connect(function()
+	local i = table.find(POISON_MODES, State.SelectedMode) or 1
+	State.SelectedMode = POISON_MODES[(i % #POISON_MODES) + 1]
+	modeBtn.Text = "MODE: " .. State.SelectedMode
 end)
 
 applyBtn.MouseButton1Click:Connect(function()
-	local m, f, t = selection.Module, selection.Function, selection.Table
+	local m, f, t = State.SelectedModule, State.SelectedFunction, State.SelectedTable
 	if not (m and f and t) then return end
+	
 	local path = m:GetFullName()
-	if not poisonRegistry[path] then poisonRegistry[path] = {} end
+	if not Registry.Hooks[path] then Registry.Hooks[path] = {} end
 	
 	local target = t
 	if not rawget(t, f) then
 		local mt = getmetatable(t)
-		if mt and type(mt.__index) == "table" and rawget(mt.__index, f) then target = mt.__index end
+		if mt and type(mt.__index) == "table" then target = mt.__index end
 	end
 	
-	if not poisonRegistry[path][f] then
-		poisonRegistry[path][f] = { Original = target[f], Type = selection.Poison, Count = 0 }
+	setTableReadOnly(target, false)
+	
+	if not Registry.Hooks[path][f] then
+		Registry.Hooks[path][f] = {Original = target[f], Mode = State.SelectedMode}
 	end
 	
-	rawset(target, f, wrap(poisonRegistry[path][f].Original, f, m.Name))
-	applyBtn.Text = "INJECTED"
-	task.delay(0.5, function() applyBtn.Text = "POISON" end)
+	target[f] = createPoison(Registry.Hooks[path][f].Original, f, m.Name)
+	Registry.Persistence[path .. f] = true
 end)
 
-restoreBtn.MouseButton1Click:Connect(function()
-	local m, f, t = selection.Module, selection.Function, selection.Table
-	if not (m and f and t) then return end
-	local path = m:GetFullName()
-	local d = poisonRegistry[path] and poisonRegistry[path][f]
-	if d then
-		local target = t
-		if not rawget(t, f) then
-			local mt = getmetatable(t)
-			if mt and type(mt.__index) == "table" then target = mt.__index end
+task.spawn(function()
+	while task.wait(5) do
+		for key, active in pairs(Registry.Persistence) do
+			if active then
+				-- Persistence logic to re-verify hooks could be placed here
+			end
 		end
-		rawset(target, f, d.Original)
-		poisonRegistry[path][f] = nil
 	end
 end)
 
-local drag, dInput, dStart, sPos
+local dragging, dInput, dStart, sPos
 titleBar.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 then
-		drag = true
+		dragging = true
 		dStart = i.Position
-		sPos = mainFrame.Position
-		i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then drag = false end end)
+		sPos = main.Position
+		i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then dragging = false end end)
 	end
 end)
 
 UserInputService.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then dInput = i end end)
 
 RunService.RenderStepped:Connect(function()
-	if drag and dInput then
+	if dragging and dInput then
 		local delta = dInput.Position - dStart
-		mainFrame.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset + delta.X, sPos.Y.Scale, sPos.Y.Offset + delta.Y)
+		main.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset + delta.X, sPos.Y.Scale, sPos.Y.Offset + delta.Y)
 	end
 end)
 
