@@ -6188,7 +6188,7 @@ function Modules.AnimationSpeed:Initialize()
     end)
 end
 
-Modules.ChatTranslator = {
+--[[Modules.ChatTranslator = {
 	State = {
 		IsEnabled = false,
 		IsPersistent = false,
@@ -6466,7 +6466,7 @@ function Modules.ChatTranslator:Initialize(): ()
 	end)
 
 	self:Enable()
-end
+end--]]
 
 Modules.Spider = {
     State = {
@@ -6803,6 +6803,92 @@ RegisterCommand({
     end
     Modules.Attacher:Toggle()
 end)
+
+Modules.StaffSentry = {
+    State = {
+        IsEnabled = false,
+        AutoJoinConnection = nil,
+        StaffGroups = {1200769, 2868472, 4199740} 
+    }
+}
+
+function Modules.StaffSentry:Scan()
+    local found = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        local isStaff = false
+        for _, groupId in ipairs(self.State.StaffGroups) do
+            if player:GetRankInGroup(groupId) > 0 then
+                isStaff = true
+                break
+            end
+        end
+        
+        if isStaff or player:IsFriendsWith(LocalPlayer.UserId) == false and (player.AccountAge < 5) then
+            table.insert(found, player.Name)
+        end
+    end
+    
+    if #found > 0 then
+        DoNotif("Staff/Suspects Found: " .. table.concat(found, ", "), 5)
+    else
+        DoNotif("No staff members detected in current server.", 3)
+    end
+end
+
+function Modules.StaffSentry:Initialize()
+    RegisterCommand({
+        Name = "staffcheck",
+        Aliases = {"scheck", "admins"},
+        Description = "Scans the server for players in common staff groups or with suspicious account ages."
+    }, function()
+        self:Scan()
+    end)
+end
+
+Modules.KnockbackNullifier = {
+    State = {
+        IsEnabled = false,
+        Connection = nil
+    }
+}
+
+function Modules.KnockbackNullifier:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    
+    if self.State.IsEnabled then
+        self.State.Connection = RunService.Heartbeat:Connect(function()
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local vel = hrp.AssemblyLinearVelocity
+                if vel.Magnitude > 0 and not UserInputService:GetFocusedTextBox() then
+                    local moveDir = char:FindFirstChildOfClass("Humanoid").MoveDirection
+                    if moveDir.Magnitude == 0 then
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, vel.Y, 0)
+                    end
+                end
+            end
+        end)
+        DoNotif("Knockback Nullifier: ENABLED", 2)
+    else
+        if self.State.Connection then
+            self.State.Connection:Disconnect()
+            self.State.Connection = nil
+        end
+        DoNotif("Knockback Nullifier: DISABLED", 2)
+    end
+end
+
+function Modules.KnockbackNullifier:Initialize()
+    RegisterCommand({
+        Name = "noknockb",
+        Aliases = {"noknockback", "steady"},
+        Description = "Negates external physics impulses to prevent being pushed around."
+    }, function()
+        self:Toggle()
+    end)
+end
 
 Modules.AntiCheatBypass = {
     State = {
@@ -13717,7 +13803,7 @@ end)
 
 RegisterCommand({
     Name = "promptaura",
-    Aliases = {"pa", "autointeract"},
+    Aliases = {"pa"},
     Description = "Automatically triggers proximity prompts in a radius."
 }, function(args)
     Modules.PromptAura:Toggle(args[1])
@@ -13943,7 +14029,7 @@ end
 
 RegisterCommand({
     Name = "rayblock",
-    Aliases = {"rayignore", "rb"},
+    Aliases = {"rayignore", "rbloc"},
     Description = "Makes scripts ignore specific parts during raycasting. Usage: ;rb [PartName]"
 }, function(args)
     local name = args[1]
@@ -15052,4 +15138,7 @@ DoNotif("Thanks for using my script. use ; for command bar.", 3)
 ⠀⠀⠀⠀⢸⣿⠀⢸⡇⠀⡄⠐⢠⠀⠁⠀⡄⣴⣾⣿⣿⣿⣿⣿⢻⣿⣿⣿⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⡄⠈⣿⡆⠀⢠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⠀⡄⠂⠁⢠⠈⢠⠀⢹⣿⣿⣿⢻⣿⣾⢳⢳⡏⠀⣼⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⢀⣾⡇⠀⣾⣄⣀⣄⣐⣀⣀⣀⣠⣾⣿⣿⣿⣿⣿⣷⣿⣿⣿⣿⣿⣿⡀⢸⣿⣠⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣧⠀⣹⣿⣤⣀⣀⣀⣀⣀⣀⣀⡀⠀⠀⠀⠀⠀⣀⣀⣸⣿⣀⣠⣔⣈⣤⣐⣀⣈⣀⣈⣹⣿⣿⣾⣷⣏⣾⠁⣠⣿⡃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠈⠀⠈⠁⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠈⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
- --]]
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⢰⡆⠀⣦⠀⠀⠀⠀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣶⡀⠀⢀⣄⣠⣀⣴⠀⠀⠀⠀⠀⠀⠀⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡦⠀⠀⠀⠀⠀⠀⠀⠀⢰⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣶⠀⠀⣠⣴⣀⠀⠀⠀⠀⠀⠀⣠⣄⠀⠀⠀⠀⠀⠀⠀⠀
+⢸⣇⣢⣿⠠⣶⢶⣰⣿⡒⣶⡶⠒⣶⠀⡖⢲⠶⢶⣀⣶⣶⣦⠀⢀⡟⢧⡀⡾⣿⢰⠆⣯⡠⠖⣶⠂⣶⠀⠀⢰⣶⣗⢶⠀⢀⡴⠶⣆⣰⠆⢰⡖⣶⠾⠂⠀⡇⣠⡷⢶⣄⣶⠶⣶⡶⢾⠀⠀⣰⡖⣦⢰⡶⠶⡄⣴⠶⢾⠀⠀⡻⣤⣈⠸⠶⣶⢲⡀⣰⣷⡆⣰⠶⢶⣀⡶⠶⠀⠀
+⢸⣧⠀⠿⠘⠯⢽⠇⠻⠤⠬⠽⠃⠿⠵⠇⢸⠆⠸⠌⠷⠾⠷⠀⠈⡧⠘⠿⠀⠿⢸⠆⠿⠱⣤⠹⠥⠿⠀⠀⢸⡵⢬⠿⠀⠀⠿⠤⠟⠹⠷⠼⠇⡿⠀⠀⠀⣇⠘⠦⠼⠃⠿⠀⠹⠦⠾⠀⠀⠿⢯⠿⢸⡇⠸⠏⠻⠦⠾⠀⠀⠦⠤⠟⠻⠭⠿⠀⠷⠇⠸⠇⠻⡤⠾⠐⡇⠰⣶⠆-ˋˏ✄┈┈┈┈(⸝⸝> ᴗ•⸝⸝) --]]
