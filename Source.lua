@@ -26,6 +26,7 @@ __________      ____  __.        ___________    _________ .__
 
 --]]
 
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
@@ -38,6 +39,9 @@ local TextService = game:GetService("TextService")
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
 do
     local THEME = {
     Title = "Welcome!",
@@ -13480,6 +13484,253 @@ RegisterCommand({
     Modules.SoundNullifier:Toggle()
 end)
 
+Modules.RaycastRedirector = {
+    State = {
+        IsEnabled = false,
+        OriginalNamecall = nil,
+        TargetPart = "HumanoidRootPart",
+        ExpansionRadius = 10,
+        MaxDistance = 25
+    }
+}
+
+function Modules.RaycastRedirector:_getClosestToRay(origin: Vector3, direction: Vector3)
+    local closestPlayer, minProjection = nil, self.State.ExpansionRadius
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character then
+            local part = player.Character:FindFirstChild(self.State.TargetPart)
+            if part then
+                local toPart = (part.Position - origin)
+                local projection = toPart:Dot(direction.Unit)
+                if projection > 0 and projection < self.State.MaxDistance then
+                    local perpendicular = (toPart - (direction.Unit * projection)).Magnitude
+                    if perpendicular < minProjection then
+                        minProjection = perpendicular
+                        closestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+function Modules.RaycastRedirector:Enable()
+    if self.State.IsEnabled then return end
+    if not (getrawmetatable and getnamecallmethod and newcclosure) then
+        return DoNotif("Metatable redirection not supported by executor.", 3)
+    end
+    self.State.IsEnabled = true
+    local gameMetatable = getrawmetatable(game)
+    self.State.OriginalNamecall = gameMetatable.__namecall
+    local original = self.State.OriginalNamecall
+    setreadonly(gameMetatable, false)
+    gameMetatable.__namecall = newcclosure(function(selfArg, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        if Modules.RaycastRedirector.State.IsEnabled and selfArg == Workspace and method == "Raycast" then
+            local origin, direction = args[1], args[2]
+            if typeof(origin) == "Vector3" and typeof(direction) == "Vector3" then
+                local target = Modules.RaycastRedirector:_getClosestToRay(origin, direction)
+                if target and target.Character then
+                    local hitPart = target.Character:FindFirstChild(Modules.RaycastRedirector.State.TargetPart)
+                    if hitPart then
+                        args[2] = (hitPart.Position - origin).Unit * direction.Magnitude
+                    end
+                end
+            end
+        end
+        return original(selfArg, unpack(args))
+    end)
+    setreadonly(gameMetatable, true)
+    DoNotif("Raycast Redirector: ENABLED", 2)
+end
+
+function Modules.RaycastRedirector:Disable()
+    if not self.State.IsEnabled then return end
+    self.State.IsEnabled = false
+    DoNotif("Raycast Redirector: DISABLED", 2)
+end
+
+Modules.AudioVisualizer = {
+    State = {
+        IsEnabled = false,
+        Markers = {},
+        Connection = nil
+    }
+}
+
+function Modules.AudioVisualizer:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        self.State.Connection = Workspace.DescendantAdded:Connect(function(desc)
+            if desc:IsA("Sound") then
+                local marker = Instance.new("BillboardGui")
+                marker.AlwaysOnTop = true
+                marker.Size = UDim2.fromOffset(20, 20)
+                local frame = Instance.new("Frame", marker)
+                frame.Size = UDim2.fromScale(1, 1)
+                frame.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+                Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 0)
+                local function update()
+                    if desc.IsPlaying then
+                        marker.Enabled = true
+                        marker.Adornee = desc.Parent:IsA("BasePart") and desc.Parent or nil
+                    else
+                        marker.Enabled = false
+                    end
+                end
+                desc:GetPropertyChangedSignal("IsPlaying"):Connect(update)
+                marker.Parent = CoreGui
+                table.insert(self.State.Markers, marker)
+            end
+        end)
+        DoNotif("Audio ESP: ENABLED", 2)
+    else
+        if self.State.Connection then self.State.Connection:Disconnect() end
+        for _, m in ipairs(self.State.Markers) do m:Destroy() end
+        table.clear(self.State.Markers)
+        self.State.IsEnabled = false
+        DoNotif("Audio ESP: DISABLED", 2)
+    end
+end
+
+Modules.LightingLock = {
+    State = {
+        IsEnabled = false,
+        OriginalNamecall = nil,
+        Properties = {
+            Brightness = 2,
+            ClockTime = 14,
+            FogEnd = 100000,
+            GlobalShadows = false
+        }
+    }
+}
+
+function Modules.LightingLock:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        local mt = getrawmetatable(game)
+        self.State.OriginalNamecall = mt.__newindex
+        local original = self.State.OriginalNamecall
+        setreadonly(mt, false)
+        mt.__newindex = newcclosure(function(t, k, v)
+            if t == Lighting and Modules.LightingLock.State.IsEnabled then
+                if Modules.LightingLock.State.Properties[k] ~= nil then
+                    return
+                end
+            end
+            return original(t, k, v)
+        end)
+        setreadonly(mt, true)
+        for k, v in pairs(self.State.Properties) do
+            pcall(function() Lighting[k] = v end)
+        end
+        DoNotif("Lighting Lock: ENABLED", 2)
+    else
+        self.State.IsEnabled = false
+        DoNotif("Lighting Lock: DISABLED", 2)
+    end
+end
+
+Modules.PromptAura = {
+    State = {
+        IsEnabled = false,
+        Connection = nil,
+        Distance = 15
+    }
+}
+
+function Modules.PromptAura:Toggle(dist)
+    self.State.IsEnabled = not self.State.IsEnabled
+    self.State.Distance = tonumber(dist) or 15
+    if self.State.IsEnabled then
+        self.State.Connection = RunService.Heartbeat:Connect(function()
+            local char = Players.LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            for _, prompt in ipairs(Workspace:GetDescendants()) do
+                if prompt:IsA("ProximityPrompt") then
+                    local part = prompt.Parent
+                    if part and part:IsA("BasePart") then
+                        if (hrp.Position - part.Position).Magnitude <= self.State.Distance then
+                            if fireproximityprompt then fireproximityprompt(prompt) end
+                        end
+                    end
+                end
+            end
+        end)
+        DoNotif("Prompt Aura: ENABLED", 2)
+    else
+        if self.State.Connection then self.State.Connection:Disconnect() end
+        self.State.IsEnabled = false
+        DoNotif("Prompt Aura: DISABLED", 2)
+    end
+end
+
+Modules.SafeTeleport = {
+    State = {
+        IsEnabled = false
+    }
+}
+
+function Modules.SafeTeleport:Execute(targetName: string)
+    local target = Utilities.findPlayer(targetName)
+    if not target or not target.Character then return DoNotif("Target not found.", 2) end
+    local hrp = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+    if hrp and targetHrp then
+        local rayParams = RaycastParams.new()
+        rayParams.FilterDescendantsInstances = {Players.LocalPlayer.Character, target.Character}
+        rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+        local result = Workspace:Raycast(targetHrp.Position, Vector3.new(0, 5, 0), rayParams)
+        local finalPos = result and result.Position or (targetHrp.Position + Vector3.new(0, 3, 0))
+        hrp.CFrame = CFrame.new(finalPos)
+        DoNotif("Safe Teleport to " .. target.Name, 2)
+    end
+end
+
+RegisterCommand({
+    Name = "raybox",
+    Aliases = {"meleebypass", "rb"},
+    Description = "Redirects raycasts to the nearest target to bypass melee accuracy checks."
+}, function(args)
+    if args[1] == "off" then Modules.RaycastRedirector:Disable() else Modules.RaycastRedirector:Enable() end
+end)
+
+RegisterCommand({
+    Name = "audioesp",
+    Aliases = {"soundesp", "ae"},
+    Description = "Visualizes the source of playing sounds in the world."
+}, function()
+    Modules.AudioVisualizer:Toggle()
+end)
+
+RegisterCommand({
+    Name = "locklighting",
+    Aliases = {"lightlock", "ll"},
+    Description = "Prevents the server from changing your local lighting settings."
+}, function()
+    Modules.LightingLock:Toggle()
+end)
+
+RegisterCommand({
+    Name = "promptaura",
+    Aliases = {"pa", "autointeract"},
+    Description = "Automatically triggers proximity prompts in a radius."
+}, function(args)
+    Modules.PromptAura:Toggle(args[1])
+end)
+
+RegisterCommand({
+    Name = "stp",
+    Aliases = {"safeteleport"},
+    Description = "Teleports to a player while checking for ceiling/wall obstructions."
+}, function(args)
+    Modules.SafeTeleport:Execute(args[1])
+end)
+
 Modules.StateSpoofer = {
     State = {
         IsEnabled = false,
@@ -13756,6 +14007,293 @@ RegisterCommand({
     Modules.SpatialQueryBypass:Toggle()
 end)
 
+Modules.AutoInteract = {
+    State = {
+        IsEnabled = false,
+        Radius = 15,
+        Connection = nil
+    }
+}
+
+function Modules.AutoInteract:Enable(radius: number)
+    if self.State.IsEnabled then self:Disable() end
+    self.State.Radius = tonumber(radius) or 15
+    self.State.IsEnabled = true
+    
+    self.State.Connection = RunService.Heartbeat:Connect(function()
+        local character = Players.LocalPlayer.Character
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        for _, prompt in ipairs(Workspace:GetDescendants()) do
+            if prompt:IsA("ProximityPrompt") then
+                local part = prompt.Parent
+                if part and part:IsA("BasePart") then
+                    local distance = (hrp.Position - part.Position).Magnitude
+                    if distance <= self.State.Radius then
+                        if fireproximityprompt then
+                            fireproximityprompt(prompt)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    DoNotif("Auto-Interact: ENABLED (Radius: " .. self.State.Radius .. ")", 2)
+end
+
+function Modules.AutoInteract:Disable()
+    if not self.State.IsEnabled then return end
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+    self.State.IsEnabled = false
+    DoNotif("Auto-Interact: DISABLED", 2)
+end
+
+RegisterCommand({
+    Name = "autoprompt",
+    Aliases = {"autointeract", "ap"},
+    Description = "Automatically triggers proximity prompts within a radius."
+}, function(args)
+    if args[1] == "off" then
+        Modules.AutoInteract:Disable()
+    else
+        Modules.AutoInteract:Enable(args[1])
+    end
+end)
+
+Modules.Backtrack = {
+    State = {
+        IsEnabled = false,
+        History = {},
+        Ghosts = {},
+        Connection = nil
+    },
+    Config = {
+        MaxHistory = 10,
+        RecordInterval = 0.1
+    }
+}
+
+function Modules.Backtrack:Enable()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+    local lastRecord = 0
+    
+    self.State.Connection = RunService.Heartbeat:Connect(function()
+        if os.clock() - lastRecord < self.Config.RecordInterval then return end
+        lastRecord = os.clock()
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer and player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    if not self.State.History[player] then self.State.History[player] = {} end
+                    table.insert(self.State.History[player], 1, hrp.CFrame)
+                    
+                    if #self.State.History[player] > self.Config.MaxHistory then
+                        table.remove(self.State.History[player])
+                    end
+                    
+                    if not self.State.Ghosts[player] then
+                        local ghost = Instance.new("Part")
+                        ghost.Size = hrp.Size
+                        ghost.Color = Color3.fromRGB(255, 0, 255)
+                        ghost.Transparency = 0.6
+                        ghost.Anchored = true
+                        ghost.CanCollide = false
+                        ghost.Material = Enum.Material.Neon
+                        ghost.Parent = Workspace
+                        self.State.Ghosts[player] = ghost
+                    end
+                    
+                    local oldestPos = self.State.History[player][#self.State.History[player]]
+                    self.State.Ghosts[player].CFrame = oldestPos
+                end
+            end
+        end
+    end)
+    DoNotif("Backtrack Visualizer: ENABLED", 2)
+end
+
+function Modules.Backtrack:Disable()
+    if not self.State.IsEnabled then return end
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+    for _, ghost in pairs(self.State.Ghosts) do
+        ghost:Destroy()
+    end
+    table.clear(self.State.Ghosts)
+    table.clear(self.State.History)
+    self.State.IsEnabled = false
+    DoNotif("Backtrack Visualizer: DISABLED", 2)
+end
+
+RegisterCommand({
+    Name = "backtrack",
+    Aliases = {"ghosts", "bt"},
+    Description = "Visualizes player positions from 1 second ago."
+}, function()
+    if Modules.Backtrack.State.IsEnabled then
+        Modules.Backtrack:Disable()
+    else
+        Modules.Backtrack:Enable()
+    end
+end)
+
+Modules.PhysicsGun = {
+    State = {
+        IsEnabled = false,
+        SelectedPart = nil,
+        Connection = nil,
+        AlignPos = nil,
+        AlignOri = nil,
+        Attachment0 = nil,
+        Attachment1 = nil
+    }
+}
+
+function Modules.PhysicsGun:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        local mouse = Players.LocalPlayer:GetMouse()
+        self.State.Connection = RunService.RenderStepped:Connect(function()
+            if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                if not self.State.SelectedPart then
+                    local target = mouse.Target
+                    if target and not target.Anchored and not target:FindFirstAncestorOfClass("Model"):FindFirstChild("Humanoid") then
+                        self.State.SelectedPart = target
+                        
+                        self.State.Attachment1 = Instance.new("Attachment", Workspace.Terrain)
+                        self.State.Attachment0 = Instance.new("Attachment", target)
+                        
+                        local ap = Instance.new("AlignPosition")
+                        ap.Attachment0 = self.State.Attachment0
+                        ap.Attachment1 = self.State.Attachment1
+                        ap.MaxForce = 1e9
+                        ap.Responsiveness = 200
+                        ap.Parent = target
+                        self.State.AlignPos = ap
+                        
+                        local ao = Instance.new("AlignOrientation")
+                        ao.Attachment0 = self.State.Attachment0
+                        ao.Attachment1 = self.State.Attachment1
+                        ao.MaxTorque = 1e9
+                        ao.Responsiveness = 200
+                        ao.Parent = target
+                        self.State.AlignOri = ao
+                    end
+                end
+                
+                if self.State.SelectedPart and self.State.Attachment1 then
+                    self.State.Attachment1.WorldCFrame = mouse.Hit
+                end
+            else
+                if self.State.AlignPos then self.State.AlignPos:Destroy() end
+                if self.State.AlignOri then self.State.AlignOri:Destroy() end
+                if self.State.Attachment0 then self.State.Attachment0:Destroy() end
+                if self.State.Attachment1 then self.State.Attachment1:Destroy() end
+                self.State.SelectedPart = nil
+            end
+        end)
+        DoNotif("Physics Gun: ENABLED (Hold LMB)", 2)
+    else
+        if self.State.Connection then self.State.Connection:Disconnect() end
+        self.State.IsEnabled = false
+        DoNotif("Physics Gun: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "physicsgun",
+    Aliases = {"pgun", "grab"},
+    Description = "Allows you to grab and move unanchored parts with your mouse."
+}, function()
+    Modules.PhysicsGun:Toggle()
+end)
+
+Modules.VisualClear = {
+    State = {
+        IsEnabled = false,
+        OriginalStates = {}
+    }
+}
+
+function Modules.VisualClear:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        for _, effect in ipairs(Lighting:GetChildren()) do
+            if effect:IsA("PostProcessEffect") then
+                self.State.OriginalStates[effect] = effect.Enabled
+                effect.Enabled = false
+            end
+        end
+        for _, effect in ipairs(Workspace.CurrentCamera:GetChildren()) do
+            if effect:IsA("PostProcessEffect") then
+                self.State.OriginalStates[effect] = effect.Enabled
+                effect.Enabled = false
+            end
+        end
+        DoNotif("Visual Clear: ENABLED (Blur/Bloom Removed)", 2)
+    else
+        for effect, state in pairs(self.State.OriginalStates) do
+            if effect and effect.Parent then
+                effect.Enabled = state
+            end
+        end
+        table.clear(self.State.OriginalStates)
+        DoNotif("Visual Clear: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "clearvisuals",
+    Aliases = {"noblur", "clean"},
+    Description = "Removes all post-processing effects like Blur, Bloom, and ColorCorrection."
+}, function()
+    Modules.VisualClear:Toggle()
+end)
+
+Modules.NetworkOwner = {
+    State = {
+        IsEnabled = false,
+        Connection = nil
+    }
+}
+
+function Modules.NetworkOwner:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        self.State.Connection = RunService.Stepped:Connect(function()
+            local char = Players.LocalPlayer.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Velocity = Vector3.new(0, 30, 0)
+                    end
+                end
+            end
+        end)
+        DoNotif("Netless: ENABLED (Bypasses distance-based network ownership)", 2)
+    else
+        if self.State.Connection then self.State.Connection:Disconnect() end
+        self.State.IsEnabled = false
+        DoNotif("Netless: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "netless",
+    Aliases = {"networkowner", "net"},
+    Description = "Maintains network ownership of your character parts at all times."
+}, function()
+    Modules.NetworkOwner:Toggle()
+end)
+
 Modules.AttributeSpoofer = {
     State = {
         IsEnabled = false,
@@ -13976,56 +14514,6 @@ RegisterCommand({
 }, function()
     Modules.WhisperSpy:Toggle()
 end)
-
-Modules.Dex = {
-    State = {
-        IsLoaded = false,
-        Instance = nil
-    }
-}
-
-function Modules.Dex:Load(): ()
-    if self.State.IsLoaded then
-        DoNotif("Dex is already active.", 2)
-        return
-    end
-
-    local success, err = pcall(function()
-        local dexSource = game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua")
-        local dexFunc = loadstring(dexSource)
-        
-        if dexFunc then
-            local dexGui = dexFunc()
-            if typeof(dexGui) == "Instance" then
-                if gethui then
-                    dexGui.Parent = gethui()
-                else
-                    dexGui.Parent = CoreGui
-                end
-            end
-            self.State.IsLoaded = true
-            DoNotif("Dex V4 Loaded Successfully.", 2)
-        else
-            error("Failed to load bytecode from source.")
-        end
-    end)
-
-    if not success then
-        warn("Dex Integration Error:", err)
-        DoNotif("Failed to initialize Dex. See console (F9).", 4)
-    end
-end
-
-function Modules.Dex:Initialize(): ()
-    local module = self
-    RegisterCommand({
-        Name = "zukadex",
-        Aliases = {},
-        Description = "Loads an optimized version of the Dex Explorer interface."
-    }, function()
-        module:Load()
-    end)
-end
 
 Modules.ToolAttributeLister = {
     State = {}
@@ -14564,7 +15052,4 @@ DoNotif("Thanks for using my script. use ; for command bar.", 3)
 ⠀⠀⠀⠀⢸⣿⠀⢸⡇⠀⡄⠐⢠⠀⠁⠀⡄⣴⣾⣿⣿⣿⣿⣿⢻⣿⣿⣿⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⡄⠈⣿⡆⠀⢠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⠀⡄⠂⠁⢠⠈⢠⠀⢹⣿⣿⣿⢻⣿⣾⢳⢳⡏⠀⣼⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⢀⣾⡇⠀⣾⣄⣀⣄⣐⣀⣀⣀⣠⣾⣿⣿⣿⣿⣿⣷⣿⣿⣿⣿⣿⣿⡀⢸⣿⣠⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣧⠀⣹⣿⣤⣀⣀⣀⣀⣀⣀⣀⡀⠀⠀⠀⠀⠀⣀⣀⣸⣿⣀⣠⣔⣈⣤⣐⣀⣈⣀⣈⣹⣿⣿⣾⣷⣏⣾⠁⣠⣿⡃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠈⠀⠈⠁⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠈⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⢰⡆⠀⣦⠀⠀⠀⠀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣶⡀⠀⢀⣄⣠⣀⣴⠀⠀⠀⠀⠀⠀⠀⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡦⠀⠀⠀⠀⠀⠀⠀⠀⢰⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣶⠀⠀⣠⣴⣀⠀⠀⠀⠀⠀⠀⣠⣄⠀⠀⠀⠀⠀⠀⠀⠀
-⢸⣇⣢⣿⠠⣶⢶⣰⣿⡒⣶⡶⠒⣶⠀⡖⢲⠶⢶⣀⣶⣶⣦⠀⢀⡟⢧⡀⡾⣿⢰⠆⣯⡠⠖⣶⠂⣶⠀⠀⢰⣶⣗⢶⠀⢀⡴⠶⣆⣰⠆⢰⡖⣶⠾⠂⠀⡇⣠⡷⢶⣄⣶⠶⣶⡶⢾⠀⠀⣰⡖⣦⢰⡶⠶⡄⣴⠶⢾⠀⠀⡻⣤⣈⠸⠶⣶⢲⡀⣰⣷⡆⣰⠶⢶⣀⡶⠶⠀⠀
-⢸⣧⠀⠿⠘⠯⢽⠇⠻⠤⠬⠽⠃⠿⠵⠇⢸⠆⠸⠌⠷⠾⠷⠀⠈⡧⠘⠿⠀⠿⢸⠆⠿⠱⣤⠹⠥⠿⠀⠀⢸⡵⢬⠿⠀⠀⠿⠤⠟⠹⠷⠼⠇⡿⠀⠀⠀⣇⠘⠦⠼⠃⠿⠀⠹⠦⠾⠀⠀⠿⢯⠿⢸⡇⠸⠏⠻⠦⠾⠀⠀⠦⠤⠟⠻⠭⠿⠀⠷⠇⠸⠇⠻⡤⠾⠐⡇⠰⣶⠆-ˋˏ✄┈┈┈┈(⸝⸝> ᴗ•⸝⸝) --]]
+ --]]
