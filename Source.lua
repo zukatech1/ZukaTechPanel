@@ -1,6 +1,7 @@
 --[[
 made by zuka @OverZuka on roblox
-v6 - December 28th
+
+v10 - December 31st
 
 
 Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
