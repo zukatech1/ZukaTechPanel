@@ -3,7 +3,7 @@ made by zuka @OverZuka on roblox
 v6 - December 28th
 
 
-github - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisoner.lua"))()
+github - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisonerRefactor.lua"))()
 
 backup - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
 
