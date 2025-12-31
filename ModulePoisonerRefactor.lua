@@ -1,329 +1,187 @@
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
-local StarterGui = game:GetService("StarterGui")
+local CoreGui = game:GetService("CoreGui") local UserInputService = game:GetService("UserInputService") local TweenService = game:GetService("TweenService") local RunService = game:GetService("RunService") local HttpService = game:GetService("HttpService") local ReplicatedStorage = game:GetService("ReplicatedStorage") local Players = game:GetService("Players")
 
-local SCAN_TARGETS = {ReplicatedStorage, game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui"), game:GetService("StarterPack")}
-local BLACKLISTED_MODULE_NAMES = {["Settings"] = true, ["CoreScript"] = true, ["Chat"] = true, ["Camera"] = true, ["ControlModule"] = true}
-local TOGGLE_KEY = Enum.KeyCode.RightAlt
-local ACCENT_COLOR = Color3.fromRGB(0, 255, 150)
-local BACK_COLOR = Color3.fromRGB(20, 20, 25)
-local ITEM_COLOR = Color3.fromRGB(30, 30, 35)
+local ACCENT = Color3.fromRGB(0, 255, 170) local BG_DARK = Color3.fromRGB(10, 10, 12) local BG_LIGHT = Color3.fromRGB(20, 20, 25) local TEXT_PRIMARY = Color3.fromRGB(255, 255, 255) local TEXT_SECONDARY = Color3.fromRGB(150, 150, 150)
 
-local POISON_TYPES = {"Log Call", "Return Nil", "Return True", "Return False", "No-Op", "Upvalue Dump", "Custom Constant"}
-local foundModules = {}
-local selectedModule = nil
-local selectedModuleTable = nil
-local selectedFunctionName = nil
-local selectedPoisonType = POISON_TYPES[1]
-local originalFunctions = {}
-local autoPoisonList = {}
+local HEURISTIC_KEYWORDS = { ["Ban"] = 50, ["Kick"] = 50, ["Cheat"] = 40, ["Anti"] = 40, ["Damage"] = 30, ["Remote"] = 20, ["Network"] = 20, ["Admin"] = 45, ["Shop"] = 15, ["Purchase"] = 25, ["Inventory"] = 20, ["Cooldown"] = 15, ["Stamina"] = 10, ["Mana"] = 10, ["Health"] = 10, ["Speed"] = 15 }
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ZukaModulePoisoner_v6"
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-screenGui.ResetOnSpawn = false
+local POISON_MODES = { "Log: Minimal", "Log: Deep (Args)", "Log: Network Trace", "Return: Nil", "Return: True", "Return: False", "Return: Empty Table", "Logic: Infinite Yield", "Logic: Force Error", "Logic: No-Op", "Dynamic: Spoof Args" }
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 650, 0, 450)
-mainFrame.Position = UDim2.new(0.5, -325, 0.5, -225)
-mainFrame.BackgroundColor3 = BACK_COLOR
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = screenGui
+local Registry = { Hooks = {} :: {[string]: {[string]: {Original: any, Mode: string}}}, Persistence = {} :: {[string]: boolean}, Remotes = {} :: {string}, Upvalues = {} :: {[string]: any} }
 
-local uiCorner = Instance.new("UICorner", mainFrame)
-uiCorner.CornerRadius = UDim.new(0, 8)
-local uiStroke = Instance.new("UIStroke", mainFrame)
-uiStroke.Color = ACCENT_COLOR
-uiStroke.Thickness = 2
-uiStroke.Transparency = 0.5
+local State = { SelectedModule = nil :: ModuleScript?, SelectedTable = nil :: {[any]: any}?, SelectedFunction = nil :: string?, SelectedMode = POISON_MODES[1], FoundModules = {} :: {ModuleScript} }
 
-local topBar = Instance.new("Frame")
-topBar.Size = UDim2.new(1, 0, 0, 40)
-topBar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-topBar.Parent = mainFrame
+local screenGui = Instance.new("ScreenGui") screenGui.Name = HttpService:GenerateGUID(false) screenGui.ResetOnSpawn = false screenGui.DisplayOrder = 100 screenGui.Parent = CoreGui
 
-local topCorner = Instance.new("UICorner", topBar)
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -100, 1, 0)
-titleLabel.Position = UDim2.fromOffset(15, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "ARCHITECT MODULE POISONER [V6]"
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextColor3 = ACCENT_COLOR
-titleLabel.TextSize = 16
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = topBar
+local main = Instance.new("Frame") main.Size = UDim2.fromOffset(700, 480) main.Position = UDim2.new(0.5, -350, 0.5, -240) main.BackgroundColor3 = BG_DARK main.BorderSizePixel = 0 main.Parent = screenGui
 
-local searchBox = Instance.new("TextBox")
-searchBox.Size = UDim2.new(0, 200, 0, 25)
-searchBox.Position = UDim2.new(1, -215, 0.5, -12)
-searchBox.BackgroundColor3 = ITEM_COLOR
-searchBox.PlaceholderText = "Search Modules..."
-searchBox.Text = ""
-searchBox.Font = Enum.Font.Code
-searchBox.TextColor3 = Color3.new(1,1,1)
-searchBox.TextSize = 12
-searchBox.Parent = topBar
-Instance.new("UICorner", searchBox)
+local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 4) corner.Parent = main
 
-local moduleList = Instance.new("ScrollingFrame")
-moduleList.Size = UDim2.new(0.4, -10, 1, -100)
-moduleList.Position = UDim2.fromOffset(10, 50)
-moduleList.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-moduleList.BorderSizePixel = 0
-moduleList.ScrollBarThickness = 4
-moduleList.Parent = mainFrame
-local moduleLayout = Instance.new("UIListLayout", moduleList)
-moduleLayout.Padding = UDim.new(0, 2)
+local stroke = Instance.new("UIStroke") stroke.Color = BG_LIGHT stroke.Thickness = 1 stroke.Parent = main
 
-local functionList = Instance.new("ScrollingFrame")
-functionList.Size = UDim2.new(0.6, -20, 1, -100)
-functionList.Position = UDim2.new(0.4, 5, 0, 50)
-functionList.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-functionList.BorderSizePixel = 0
-functionList.ScrollBarThickness = 4
-functionList.Parent = mainFrame
-local functionLayout = Instance.new("UIListLayout", functionList)
-functionLayout.Padding = UDim.new(0, 2)
+local titleBar = Instance.new("Frame") titleBar.Size = UDim2.new(1, 0, 0, 35) titleBar.BackgroundColor3 = BG_LIGHT titleBar.BorderSizePixel = 0 titleBar.Parent = main
 
-local controls = Instance.new("Frame")
-controls.Size = UDim2.new(1, -20, 0, 40)
-controls.Position = UDim2.new(0, 10, 1, -50)
-controls.BackgroundTransparency = 1
-controls.Parent = mainFrame
+local titleLabel = Instance.new("TextLabel") titleLabel.Size = UDim2.new(1, -20, 1, 0) titleLabel.Position = UDim2.fromOffset(10, 0) titleLabel.BackgroundTransparency = 1 titleLabel.Text = "Zuka's Gem" titleLabel.Font = Enum.Font.RobotoMono titleLabel.TextColor3 = ACCENT titleLabel.TextSize = 13 titleLabel.TextXAlignment = Enum.TextXAlignment.Left titleLabel.Parent = titleBar
 
-local function createButton(name, pos, size, color)
-    local btn = Instance.new("TextButton")
-    btn.Name = name
-    btn.Size = size
-    btn.Position = pos
-    btn.BackgroundColor3 = color
-    btn.Text = name
-    btn.Font = Enum.Font.GothamBold
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.TextSize = 14
-    btn.Parent = controls
-    Instance.new("UICorner", btn)
-    return btn
+local sidebar = Instance.new("Frame") sidebar.Size = UDim2.new(0, 200, 1, -35) sidebar.Position = UDim2.fromOffset(0, 35) sidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 18) sidebar.BorderSizePixel = 0 sidebar.Parent = main
+
+local scanBtn = Instance.new("TextButton") scanBtn.Size = UDim2.new(1, -10, 0, 30) scanBtn.Position = UDim2.fromOffset(5, 5) scanBtn.BackgroundColor3 = BG_LIGHT scanBtn.Text = "SCAN ENVIRONMENT" scanBtn.Font = Enum.Font.RobotoMono scanBtn.TextColor3 = ACCENT scanBtn.TextSize = 10 scanBtn.Parent = sidebar
+
+local moduleList = Instance.new("ScrollingFrame") moduleList.Size = UDim2.new(1, -10, 1, -45) moduleList.Position = UDim2.fromOffset(5, 40) moduleList.BackgroundTransparency = 1 moduleList.ScrollBarThickness = 2 moduleList.ScrollBarImageColor3 = ACCENT moduleList.AutomaticCanvasSize = Enum.AutomaticSize.Y moduleList.CanvasSize = UDim2.new(0, 0, 0, 0) moduleList.Parent = sidebar
+
+local moduleLayout = Instance.new("UIListLayout") moduleLayout.Padding = UDim.new(0, 2) moduleLayout.SortOrder = Enum.SortOrder.LayoutOrder moduleLayout.Parent = moduleList
+
+local viewport = Instance.new("Frame") viewport.Size = UDim2.new(1, -200, 1, -35) viewport.Position = UDim2.fromOffset(200, 35) viewport.BackgroundTransparency = 1 viewport.Parent = main
+
+local functionList = Instance.new("ScrollingFrame") functionList.Size = UDim2.new(0.5, -10, 0.7, -10) functionList.Position = UDim2.fromOffset(5, 5) functionList.BackgroundColor3 = BG_LIGHT functionList.BorderSizePixel = 0 functionList.ScrollBarThickness = 2 functionList.AutomaticCanvasSize = Enum.AutomaticSize.Y functionList.Parent = viewport
+
+local functionLayout = Instance.new("UIListLayout") functionLayout.Padding = UDim.new(0, 2) functionLayout.Parent = functionList
+
+local upvalueList = Instance.new("ScrollingFrame") upvalueList.Size = UDim2.new(0.5, -10, 0.7, -10) upvalueList.Position = UDim2.new(0.5, 5, 0, 5) upvalueList.BackgroundColor3 = BG_LIGHT upvalueList.BorderSizePixel = 0 upvalueList.ScrollBarThickness = 2 upvalueList.AutomaticCanvasSize = Enum.AutomaticSize.Y upvalueList.Parent = viewport
+
+local upvalueLayout = Instance.new("UIListLayout") upvalueLayout.Padding = UDim.new(0, 2) upvalueLayout.Parent = upvalueList
+
+local controlPanel = Instance.new("Frame") controlPanel.Size = UDim2.new(1, -10, 0.3, -10) controlPanel.Position = UDim2.new(0, 5, 0.7, 5) controlPanel.BackgroundColor3 = BG_LIGHT controlPanel.BorderSizePixel = 0 controlPanel.Parent = viewport
+
+local function applyStyle(obj: GuiObject) local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 2) c.Parent = obj end
+
+applyStyle(functionList) applyStyle(upvalueList) applyStyle(controlPanel) applyStyle(scanBtn)
+
+local function getHeuristicScore(mod: ModuleScript): number local score = 0 for word, weight in pairs(HEURISTIC_KEYWORDS) do if string.find(mod.Name, word) then score += weight end end local success, result = pcall(function() return require(mod) end) if success and type(result) == "table" then for key, _ in pairs(result) do for word, weight in pairs(HEURISTIC_KEYWORDS) do if string.find(tostring(key), word) then score += weight end end end end return score end
+
+local function setTableReadOnly(tbl: table, state: boolean) if setreadonly then setreadonly(tbl, state) elseif getrawmetatable then local mt = getrawmetatable(tbl) if mt then setreadonly(mt, state) end end end
+
+local function updateUpvalues(func: any) for _, v in ipairs(upvalueList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end if type(func) ~= "function" or not debug.getupvalues then return end
+
+for i, v in ipairs(debug.getupvalues(func)) do
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(1, -5, 0, 25)
+	b.BackgroundTransparency = 1
+	b.Text = string.format("  [%d] %s: %s", i, tostring(v), type(v))
+	b.Font = Enum.Font.RobotoMono
+	b.TextColor3 = TEXT_SECONDARY
+	b.TextSize = 11
+	b.TextXAlignment = Enum.TextXAlignment.Left
+	b.Parent = upvalueList
+end
 end
 
-local scanBtn = createButton("SCAN", UDim2.fromScale(0, 0), UDim2.fromScale(0.2, 1), ACCENT_COLOR)
-local poisonBtn = createButton("POISON", UDim2.fromScale(0.22, 0), UDim2.fromScale(0.2, 1), Color3.fromRGB(200, 50, 80))
-local restoreBtn = createButton("RESTORE", UDim2.fromScale(0.44, 0), UDim2.fromScale(0.2, 1), Color3.fromRGB(50, 100, 200))
-local typeBtn = createButton(selectedPoisonType, UDim2.fromScale(0.66, 0), UDim2.fromScale(0.34, 1), ITEM_COLOR)
+local function updateFunctions(mod: ModuleScript) for _, v in ipairs(functionList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end local success, tbl = pcall(require, mod) if not success or type(tbl) ~= "table" then return end State.SelectedTable = tbl
 
-local typeMenu = Instance.new("Frame")
-typeMenu.Size = UDim2.new(0, 200, 0, #POISON_TYPES * 30)
-typeMenu.Position = UDim2.new(0.66, 0, 0, -typeMenu.Size.Y.Offset)
-typeMenu.BackgroundColor3 = ITEM_COLOR
-typeMenu.Visible = false
-typeMenu.ZIndex = 10
-typeMenu.Parent = controls
-Instance.new("UIListLayout", typeMenu)
-
-for _, pType in ipairs(POISON_TYPES) do
-    local opt = Instance.new("TextButton")
-    opt.Size = UDim2.new(1, 0, 0, 30)
-    opt.BackgroundTransparency = 1
-    opt.Text = pType
-    opt.TextColor3 = Color3.new(1,1,1)
-    opt.Font = Enum.Font.Code
-    opt.Parent = typeMenu
-    opt.MouseButton1Click:Connect(function()
-        selectedPoisonType = pType
-        typeBtn.Text = pType
-        typeMenu.Visible = false
-    end)
+for k, v in pairs(tbl) do
+	if type(v) == "function" then
+		local b = Instance.new("TextButton")
+		b.Size = UDim2.new(1, -5, 0, 25)
+		b.BackgroundTransparency = 1
+		b.Text = "  " .. tostring(k)
+		b.Font = Enum.Font.RobotoMono
+		b.TextColor3 = TEXT_SECONDARY
+		b.TextSize = 11
+		b.TextXAlignment = Enum.TextXAlignment.Left
+		b.Parent = functionList
+		
+		b.MouseButton1Click:Connect(function()
+			State.SelectedFunction = tostring(k)
+			for _, x in ipairs(functionList:GetChildren()) do if x:IsA("TextButton") then x.TextColor3 = TEXT_SECONDARY end end
+			b.TextColor3 = ACCENT
+			updateUpvalues(v)
+		end)
+	end
+end
 end
 
-typeBtn.MouseButton1Click:Connect(function()
-    typeMenu.Visible = not typeMenu.Visible
+local function updateModulesUI() for _, v in ipairs(moduleList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end for i, m in ipairs(State.FoundModules) do local b = Instance.new("TextButton") b.Size = UDim2.new(1, -5, 0, 30) b.BackgroundTransparency = 1 b.Text = " " .. m.Name b.Font = Enum.Font.RobotoMono b.TextColor3 = TEXT_SECONDARY b.TextSize = 11 b.TextXAlignment = Enum.TextXAlignment.Left b.Parent = moduleList b.LayoutOrder = i
+
+	b.MouseButton1Click:Connect(function()
+		State.SelectedModule = m
+		for _, x in ipairs(moduleList:GetChildren()) do if x:IsA("TextButton") then x.TextColor3 = TEXT_SECONDARY end end
+		b.TextColor3 = ACCENT
+		updateFunctions(m)
+	end)
+end
+end
+
+local function scan() scanBtn.Text = "SCANNING..." scanBtn.TextColor3 = TEXT_SECONDARY
+
+task.spawn(function()
+	table.clear(State.FoundModules)
+	local temp = {}
+	local roots = {ReplicatedStorage, Players.LocalPlayer:FindFirstChild("PlayerScripts"), game:GetService("ReplicatedFirst"), workspace}
+	
+	for _, root in ipairs(roots) do
+		if not root then continue end
+		for _, v in ipairs(root:GetDescendants()) do
+			if v:IsA("ModuleScript") then
+				local score = getHeuristicScore(v)
+				table.insert(temp, {Obj = v, Score = score})
+			end
+		end
+		task.wait()
+	end
+	
+	table.sort(temp, function(a, b) return a.Score > b.Score end)
+	for _, data in ipairs(temp) do table.insert(State.FoundModules, data.Obj) end
+	
+	updateModulesUI()
+	scanBtn.Text = "SCAN ENVIRONMENT"
+	scanBtn.TextColor3 = ACCENT
+end)
+end
+
+local function createPoison(original: (...any) -> ...any, name: string, modName: string) return function(...) local args = {...} local mode = State.SelectedMode
+
+	if mode == "Log: Minimal" then
+		print("[!] ARCHITECT // Call:", modName, "->", name)
+	elseif mode == "Log: Deep (Args)" then
+		print("[!] ARCHITECT // Call:", modName, "->", name, "Args:", args)
+	elseif mode == "Log: Network Trace" then
+		print("[!] ARCHITECT // Tracing Traceback for", name, ":", debug.traceback())
+	elseif mode == "Return: Nil" then return nil
+	elseif mode == "Return: True" then return true
+	elseif mode == "Return: False" then return false
+	elseif mode == "Logic: Infinite Yield" then task.wait(9e9)
+	elseif mode == "Logic: Force Error" then error("CRITICAL_LOGIC_FAULT")
+	elseif mode == "Logic: No-Op" then return
+	end
+	
+	return original(unpack(args))
+end
+end
+
+local applyBtn = Instance.new("TextButton") applyBtn.Size = UDim2.new(0.5, -5, 0.4, -5) applyBtn.Position = UDim2.fromOffset(5, 5) applyBtn.BackgroundColor3 = BG_DARK applyBtn.Text = "INJECT POISON" applyBtn.Font = Enum.Font.RobotoMono applyBtn.TextColor3 = ACCENT applyBtn.TextSize = 12 applyBtn.Parent = controlPanel applyStyle(applyBtn)
+
+local modeBtn = Instance.new("TextButton") modeBtn.Size = UDim2.new(0.5, -5, 0.4, -5) modeBtn.Position = UDim2.new(0.5, 5, 0, 5) modeBtn.BackgroundColor3 = BG_DARK modeBtn.Text = "MODE: " .. State.SelectedMode modeBtn.Font = Enum.Font.RobotoMono modeBtn.TextColor3 = TEXT_PRIMARY modeBtn.TextSize = 10 modeBtn.Parent = controlPanel applyStyle(modeBtn)
+
+modeBtn.MouseButton1Click:Connect(function() local i = table.find(POISON_MODES, State.SelectedMode) or 1 State.SelectedMode = POISON_MODES[(i % #POISON_MODES) + 1] modeBtn.Text = "MODE: " .. State.SelectedMode end)
+
+scanBtn.MouseButton1Click:Connect(function() scan() end)
+
+applyBtn.MouseButton1Click:Connect(function() local m, f, t = State.SelectedModule, State.SelectedFunction, State.SelectedTable if not (m and f and t) then return end
+
+local path = m:GetFullName()
+if not Registry.Hooks[path] then Registry.Hooks[path] = {} end
+
+local target = t
+if not rawget(t, f) then
+	local mt = getmetatable(t)
+	if mt and type(mt.__index) == "table" then target = mt.__index end
+end
+
+setTableReadOnly(target, false)
+
+if not Registry.Hooks[path][f] then
+	Registry.Hooks[path][f] = {Original = target[f], Mode = State.SelectedMode}
+end
+
+target[f] = createPoison(Registry.Hooks[path][f].Original, f, m.Name)
+Registry.Persistence[path .. f] = true
 end)
 
-local function notify(txt)
-    StarterGui:SetCore("SendNotification", {Title = "SYSTEM", Text = txt, Duration = 2})
-end
+local dragging, dInput, dStart, sPos titleBar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true dStart = i.Position sPos = main.Position i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then dragging = false end end) end end)
 
-local function deepSearchFunctions(tbl, nameList, depth)
-    if depth > 3 then return end
-    for k, v in pairs(tbl) do
-        if type(v) == "function" then
-            nameList[tostring(k)] = v
-        elseif type(v) == "table" and k ~= "_G" and k ~= "shared" then
-            deepSearchFunctions(v, nameList, depth + 1)
-        end
-    end
-    local mt = getmetatable(tbl)
-    if mt and type(mt.__index) == "table" then
-        deepSearchFunctions(mt.__index, nameList, depth + 1)
-    end
-end
+UserInputService.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then dInput = i end end)
 
-local function getTablePath(root, targetFunc)
-    local foundTbl = nil
-    local function scan(t)
-        if foundTbl then return end
-        for k, v in pairs(t) do
-            if v == targetFunc then
-                foundTbl = t
-                return
-            end
-            if type(v) == "table" and k ~= "_G" then scan(v) end
-        end
-    end
-    scan(root)
-    return foundTbl
-end
+RunService.RenderStepped:Connect(function() if dragging and dInput then local delta = dInput.Position - dStart main.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset + delta.X, sPos.Y.Scale, sPos.Y.Offset + delta.Y) end end)
 
-local function populateFunctions(module)
-    for _, v in ipairs(functionList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    local success, returned = pcall(require, module)
-    if not success then return notify("Module Require Failed") end
-    
-    selectedModuleTable = returned
-    local funcs = {}
-    if type(returned) == "table" then
-        deepSearchFunctions(returned, funcs, 1)
-    end
-
-    for name, func in pairs(funcs) do
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, -10, 0, 25)
-        btn.BackgroundColor3 = ITEM_COLOR
-        btn.Text = "  " .. name
-        btn.Font = Enum.Font.Code
-        btn.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.Parent = functionList
-        Instance.new("UICorner", btn)
-        
-        btn.MouseButton1Click:Connect(function()
-            selectedFunctionName = name
-            for _, b in ipairs(functionList:GetChildren()) do if b:IsA("TextButton") then b.TextColor3 = Color3.new(0.8,0.8,0.8) end end
-            btn.TextColor3 = ACCENT_COLOR
-        end)
-    end
-end
-
-local function scan()
-    for _, v in ipairs(moduleList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    foundModules = {}
-    for _, target in ipairs(SCAN_TARGETS) do
-        if not target then continue end
-        for _, desc in ipairs(target:GetDescendants()) do
-            if desc:IsA("ModuleScript") and not BLACKLISTED_MODULE_NAMES[desc.Name] then
-                table.insert(foundModules, desc)
-                local btn = Instance.new("TextButton")
-                btn.Size = UDim2.new(1, -10, 0, 25)
-                btn.BackgroundColor3 = ITEM_COLOR
-                btn.Text = "  " .. desc.Name
-                btn.Font = Enum.Font.Code
-                btn.TextColor3 = Color3.new(0.8,0.8,0.8)
-                btn.TextXAlignment = Enum.TextXAlignment.Left
-                btn.Parent = moduleList
-                Instance.new("UICorner", btn)
-                
-                btn.MouseButton1Click:Connect(function()
-                    selectedModule = desc
-                    for _, b in ipairs(moduleList:GetChildren()) do if b:IsA("TextButton") then b.TextColor3 = Color3.new(0.8,0.8,0.8) end end
-                    btn.TextColor3 = ACCENT_COLOR
-                    populateFunctions(desc)
-                end)
-            end
-        end
-    end
-end
-
-scanBtn.MouseButton1Click:Connect(scan)
-
-poisonBtn.MouseButton1Click:Connect(function()
-    if not selectedModule or not selectedFunctionName then return notify("Select target first") end
-    
-    local path = selectedModule:GetFullName()
-    local funcs = {}
-    deepSearchFunctions(selectedModuleTable, funcs, 1)
-    local targetFunc = funcs[selectedFunctionName]
-    local targetTbl = getTablePath(selectedModuleTable, targetFunc)
-    
-    if not targetTbl then return notify("Table Path Lost") end
-    
-    if not originalFunctions[path] then originalFunctions[path] = {} end
-    if not originalFunctions[path][selectedFunctionName] then
-        originalFunctions[path][selectedFunctionName] = targetFunc
-    end
-    
-    local original = originalFunctions[path][selectedFunctionName]
-    local poison
-    
-    if selectedPoisonType == "Log Call" then
-        poison = function(...)
-            print("--> [POISON] " .. path .. " -> " .. selectedFunctionName .. " CALLED")
-            return original(...)
-        end
-    elseif selectedPoisonType == "Return Nil" then
-        poison = function() return nil end
-    elseif selectedPoisonType == "Return True" then
-        poison = function() return true end
-    elseif selectedPoisonType == "Return False" then
-        poison = function() return false end
-    elseif selectedPoisonType == "No-Op" then
-        poison = function() end
-    elseif selectedPoisonType == "Upvalue Dump" then
-        poison = function(...)
-            if debug and debug.getupvalues then
-                print("--- [UPVALUES] " .. selectedFunctionName .. " ---")
-                for i, v in pairs(debug.getupvalues(original)) do
-                    print("  [" .. i .. "]:", v)
-                end
-            end
-            return original(...)
-        end
-    end
-    
-    if hookfunction then
-        hookfunction(original, newcclosure(poison))
-    else
-        targetTbl[selectedFunctionName] = poison
-    end
-    
-    notify("Poisoned: " .. selectedFunctionName)
-end)
-
-restoreBtn.MouseButton1Click:Connect(function()
-    if not selectedModule or not selectedFunctionName then return end
-    local path = selectedModule:GetFullName()
-    local original = originalFunctions[path] and originalFunctions[path][selectedFunctionName]
-    if original then
-        local funcs = {}
-        deepSearchFunctions(selectedModuleTable, funcs, 1)
-        local targetTbl = getTablePath(selectedModuleTable, funcs[selectedFunctionName])
-        if targetTbl then
-            targetTbl[selectedFunctionName] = original
-            notify("Restored: " .. selectedFunctionName)
-        end
-    end
-end)
-
-searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    local query = searchBox.Text:lower()
-    for _, btn in ipairs(moduleList:GetChildren()) do
-        if btn:IsA("TextButton") then
-            btn.Visible = btn.Text:lower():find(query) ~= nil
-        end
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if not gp and input.KeyCode == TOGGLE_KEY then
-        mainFrame.Visible = not mainFrame.Visible
-    end
-end)
+UserInputService.InputBegan:Connect(function(i, g) if not g and i.KeyCode == Enum.KeyCode.RightAlt then screenGui.Enabled = not screenGui.Enabled end end)
 
 scan()
