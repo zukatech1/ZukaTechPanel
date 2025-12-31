@@ -25,7 +25,7 @@ __________      ____  __.        ___________    _________ .__
 
 
 --]]
-
+local HttpService = game:GetService("HttpService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
@@ -771,7 +771,7 @@ end
 				for i, part in ipairs(parts) do local btn = Instance.new("TextButton", partDropdownFrame); btn.Size, btn.Position = UDim2.new(1, 0, 0, 22), UDim2.new(0, 0, 0, (i-1)*22); btn.BackgroundColor3, btn.TextColor3 = Color3.fromRGB(40,40,40), Color3.fromRGB(255,255,255); btn.Font, btn.TextSize, btn.Text = Enum.Font.Code, 15, part; makeUICorner(btn, 6); table.insert(janitor, btn.MouseButton1Click:Connect(function() partDropdown.Text = part; if partDropdownFrame then partDropdownFrame:Destroy() end; partDropdownOpen = false end)) end
 			end));
 			
-			local fovRadius = 150;
+			local fovRadius = 55;
 			local smoothingEnabled = false;
 			local smoothingFactor = 0.2;
 			local selectedPlayerTarget, selectedPart = nil, nil;
@@ -6503,9 +6503,7 @@ function Modules.Spider:Enable()
         weld.Part0 = hrp
         weld.Part1 = ceilingPart
         
-        -- ARCHITECT'S NOTE: The C0 CFrame defines the offset from the HRP.
-        -- We calculate the position of the hit relative to the HRP's CFrame and add a
-        -- small downward offset to prevent clipping into the ceiling.
+
         local hitCFrame = CFrame.new(result.Position)
         weld.C0 = hrp.CFrame:Inverse() * (hitCFrame * CFrame.new(0, -2.5, 0))
         
@@ -14918,11 +14916,11 @@ RegisterCommand({Name = "zoneui", Aliases = {"masterequiper"}, Description = "Fo
 
 RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded Gui For Btools"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/fixedbtools.lua", "Loading Revamped Btools Gui") end)
 
-RegisterCommand({Name = "ketamine", Aliases = {"kspy"}, Description = "Outdated"}, function() loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/simplee%20spyyy%20mobilee", "Loading rSpy...") end)
+RegisterCommand({Name = "simplespy", Aliases = {"bestspy"}, Description = "Best remote spy after ketamine"}, function() loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/simplee%20spyyy%20mobilee", "Loading rSpy...") end)
 
 RegisterCommand({Name = "nocooldown", Aliases = {"ncd"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/NocooldownsZombieUpd3.txt", "Loading Cooldownremover...") end)
 
-RegisterCommand({Name = "scripts", Aliases = {}, Description = "May or may not work.."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/scriptsearcher.lua", "Loading Scripts.") end)
+RegisterCommand({Name = "extendroot", Aliases = {}, Description = "Bypasses Raycasting"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/HitboxExtender.lua", "Loading Extender.") end)
 
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
 
