@@ -1570,22 +1570,28 @@ function Modules.CommandList:Toggle()
         end)
     end
 end
+
+
 Modules.CommandBar = {
     State = {
         UI = nil,
         Container = nil,
         TextBox = nil,
         LogFrame = nil,
+        SuggestionLabel = nil,
         PrefixKey = Enum.KeyCode.Semicolon,
         IsAnimating = false,
         IsEnabled = false,
         MaxLogs = 500,
-        MinSize = Vector2.new(400, 200)
+        CurrentSuggestion = "",
+        MinSize = Vector2.new(400, 250)
     },
+
     Theme = {
         Background = Color3.fromRGB(10, 10, 10),
         Accent = Color3.fromRGB(255, 105, 180),
         Text = Color3.fromRGB(220, 220, 220),
+        Suggestion = Color3.fromRGB(120, 120, 120),
         Font = Enum.Font.Code
     }
 }
@@ -1600,15 +1606,21 @@ function Modules.CommandBar:Toggle(): ()
     
     if isOpening then
         self.State.UI.Enabled = true
+        local goalPosition: UDim2 = UDim2.new(0.5, -self.State.Container.Size.X.Offset/2, 0.5, -self.State.Container.Size.Y.Offset/2)
+        
         local anim = TweenService:Create(self.State.Container, tweenInfo, {
-            Position = UDim2.new(0.5, -self.State.Container.Size.X.Offset/2, 0.5, -self.State.Container.Size.Y.Offset/2),
+            Position = goalPosition,
             BackgroundTransparency = 0.3
         })
         anim:Play()
         self.State.TextBox:CaptureFocus()
         task.spawn(function()
             task.wait()
-            if self.State.IsEnabled then self.State.TextBox.Text = "" end
+            if self.State.IsEnabled then 
+                self.State.TextBox.Text = "" 
+                self.State.SuggestionLabel.Text = ""
+                self.State.CurrentSuggestion = ""
+            end
         end)
         anim.Completed:Connect(function() self.State.IsAnimating = false end)
     else
@@ -1632,13 +1644,15 @@ function Modules.CommandBar:AddOutput(text: string, color: Color3?): ()
     line.Name = "TerminalLine"
     line.Parent = self.State.LogFrame
     line.BackgroundTransparency = 1
-    line.Size = UDim2.new(1, 0, 0, 18)
+    line.Size = UDim2.new(1, -15, 0, 0)
+    line.AutomaticSize = Enum.AutomaticSize.Y
     line.Font = self.Theme.Font
     line.Text = " " .. text
     line.TextColor3 = color or self.Theme.Text
     line.TextSize = 13
     line.TextXAlignment = Enum.TextXAlignment.Left
     line.RichText = true
+    line.TextWrapped = true
     
     local children: {Instance} = self.State.LogFrame:GetChildren()
     if #children > self.State.MaxLogs then
@@ -1647,7 +1661,11 @@ function Modules.CommandBar:AddOutput(text: string, color: Color3?): ()
         end
     end
 
-    self.State.LogFrame.CanvasPosition = Vector2.new(0, self.State.LogFrame.AbsoluteCanvasSize.Y + 40)
+    task.defer(function()
+        if self.State.LogFrame then
+            self.State.LogFrame.CanvasPosition = Vector2.new(0, self.State.LogFrame.AbsoluteCanvasSize.Y)
+        end
+    end)
 end
 
 function Modules.CommandBar:ListCommands(): ()
@@ -1675,6 +1693,31 @@ function Modules.CommandBar:ListCommands(): ()
     self:AddOutput("ACTIVE_MODULES_FOUND: " .. #sorted, self.Theme.Accent)
 end
 
+function Modules.CommandBar:UpdateSuggestions(): ()
+    local input: string = self.State.TextBox.Text:lower()
+    if input == "" then
+        self.State.SuggestionLabel.Text = ""
+        self.State.CurrentSuggestion = ""
+        return
+    end
+
+    local match: string = ""
+    for cmdName, _ in pairs(Commands) do
+        if cmdName:lower():sub(1, #input) == input then
+            match = cmdName:lower()
+            break
+        end
+    end
+
+    if match ~= "" then
+        self.State.CurrentSuggestion = match
+        self.State.SuggestionLabel.Text = match
+    else
+        self.State.CurrentSuggestion = ""
+        self.State.SuggestionLabel.Text = ""
+    end
+end
+
 function Modules.CommandBar:Initialize(): ()
     local CommandBarUI: ScreenGui = Instance.new("ScreenGui")
     CommandBarUI.Name = "ForensicTerminal_V10"
@@ -1688,7 +1731,7 @@ function Modules.CommandBar:Initialize(): ()
     MainContainer.Size = UDim2.new(0, 600, 0, 350)
     MainContainer.Position = UDim2.new(0.5, -300, 1, 50)
     MainContainer.BackgroundColor3 = self.Theme.Background
-    MainContainer.BackgroundTransparency = 0.1
+    MainContainer.BackgroundTransparency = 0.4
     MainContainer.BorderSizePixel = 0
     MainContainer.Active = true
     
@@ -1698,15 +1741,29 @@ function Modules.CommandBar:Initialize(): ()
     UIStroke.Thickness = 1.2
     UIStroke.Transparency = 0.5
 
-    local ResizeHandle: ImageButton = Instance.new("ImageButton")
+    local GlowEffect: UIStroke = Instance.new("UIStroke", MainContainer)
+    GlowEffect.Color = self.Theme.Accent
+    GlowEffect.Thickness = 2
+    GlowEffect.Transparency = 0.4
+
+    local ResizeHandle = Instance.new("ImageButton")
     ResizeHandle.Name = "ResizeHandle"
-    ResizeHandle.Parent = MainContainer
-    ResizeHandle.Size = UDim2.new(0, 15, 0, 15)
-    ResizeHandle.Position = UDim2.new(1, -15, 1, -15)
+    ResizeHandle.Size = UDim2.fromOffset(16, 16)
+    ResizeHandle.Position = UDim2.new(1, -16, 1, -16)
     ResizeHandle.BackgroundTransparency = 1
     ResizeHandle.Image = "rbxassetid://12134015093"
     ResizeHandle.ImageColor3 = self.Theme.Accent
     ResizeHandle.ZIndex = 10
+    ResizeHandle.Parent = MainContainer
+
+    task.spawn(function()
+        while RunService.RenderStepped:Wait() do
+            if not MainContainer or not MainContainer.Parent then break end
+            local sine: number = math.sin(os.clock() * 3)
+            GlowEffect.Transparency = 0.7 + (sine * 0.2)
+            GlowEffect.Thickness = 2 + (sine * 0.8)
+        end
+    end)
 
     local OutputLog: ScrollingFrame = Instance.new("ScrollingFrame")
     OutputLog.Name = "Buffer"
@@ -1719,22 +1776,36 @@ function Modules.CommandBar:Initialize(): ()
     OutputLog.ScrollBarImageColor3 = self.Theme.Accent
     OutputLog.CanvasSize = UDim2.new(0, 0, 0, 0)
     OutputLog.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    OutputLog.ScrollingDirection = Enum.ScrollingDirection.Y
     
-    Instance.new("UIListLayout", OutputLog).Padding = UDim.new(0, 2)
+    local LogLayout: UIListLayout = Instance.new("UIListLayout", OutputLog)
+    LogLayout.Padding = UDim.new(0, 2)
+    LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
     local InputArea: Frame = Instance.new("Frame", MainContainer)
     InputArea.Position = UDim2.new(0, 10, 1, -35)
     InputArea.Size = UDim2.new(1, -20, 0, 25)
-    InputArea.BackgroundTransparency = 1
+    InputArea.BackgroundTransparency = 0.8
 
     local Prompt: TextLabel = Instance.new("TextLabel", InputArea)
     Prompt.Size = UDim2.new(0, 130, 1, 0)
     Prompt.BackgroundTransparency = 1
     Prompt.Font = self.Theme.Font
-    Prompt.Text = "zuka@kernel:~$  :"
+    Prompt.Text = "zuka@kernel:~$ "
     Prompt.TextColor3 = self.Theme.Accent
-    Prompt.TextSize = 15
+    Prompt.TextSize = 14
     Prompt.TextXAlignment = Enum.TextXAlignment.Left
+
+    local SuggestionLabel: TextLabel = Instance.new("TextLabel", InputArea)
+    SuggestionLabel.Name = "Suggestion"
+    SuggestionLabel.Position = UDim2.new(0, 135, 0, 0)
+    SuggestionLabel.Size = UDim2.new(1, -140, 1, 0)
+    SuggestionLabel.BackgroundTransparency = 1
+    SuggestionLabel.Font = self.Theme.Font
+    SuggestionLabel.Text = ""
+    SuggestionLabel.TextColor3 = self.Theme.Suggestion
+    SuggestionLabel.TextSize = 14
+    SuggestionLabel.TextXAlignment = Enum.TextXAlignment.Left
 
     local InputField: TextBox = Instance.new("TextBox", InputArea)
     InputField.Name = "Prompt"
@@ -1747,50 +1818,61 @@ function Modules.CommandBar:Initialize(): ()
     InputField.TextSize = 14
     InputField.TextXAlignment = Enum.TextXAlignment.Left
     InputField.ClearTextOnFocus = false
+    InputField.ZIndex = 2
 
     self.State.UI = CommandBarUI
     self.State.Container = MainContainer
     self.State.TextBox = InputField
     self.State.LogFrame = OutputLog
+    self.State.SuggestionLabel = SuggestionLabel
 
-    local dragging: boolean, dragStart: Vector3, startPos: UDim2
+    local dragging, resizing = false, false
+    local dragStart, resizeStart, startPos, startSize
+
     MainContainer.InputBegan:Connect(function(input: InputObject)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos = MainContainer.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then 
+                    dragging = false 
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end)
+
+    ResizeHandle.InputBegan:Connect(function(input: InputObject)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = true
+            resizeStart = input.Position
+            startSize = MainContainer.Size
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then 
+                    resizing = false 
+                    conn:Disconnect()
+                end
             end)
         end
     end)
     
     UserInputService.InputChanged:Connect(function(input: InputObject)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
-            local delta: Vector3 = input.Position - dragStart
-            MainContainer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            if dragging then
+                local delta: Vector3 = input.Position - dragStart
+                MainContainer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            elseif resizing then
+                local delta: Vector2 = Vector2.new(input.Position.X - resizeStart.X, input.Position.Y - resizeStart.Y)
+                local newX = math.max(self.State.MinSize.X, startSize.X.Offset + delta.X)
+                local newY = math.max(self.State.MinSize.Y, startSize.Y.Offset + delta.Y)
+                MainContainer.Size = UDim2.new(0, newX, 0, newY)
+            end
         end
     end)
 
-    local resizing: boolean, resizeStartSize: UDim2, resizeStartPos: Vector3
-    ResizeHandle.InputBegan:Connect(function(input: InputObject)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            resizing = true
-            resizeStartPos = input.Position
-            resizeStartSize = MainContainer.Size
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then resizing = false end
-            end)
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input: InputObject)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and resizing then
-            local delta: Vector3 = input.Position - resizeStartPos
-            local newWidth: number = math.max(self.State.MinSize.X, resizeStartSize.X.Offset + delta.X)
-            local newHeight: number = math.max(self.State.MinSize.Y, resizeStartSize.Y.Offset + delta.Y)
-            MainContainer.Size = UDim2.new(0, newWidth, 0, newHeight)
-        end
+    InputField:GetPropertyChangedSignal("Text"):Connect(function()
+        self:UpdateSuggestions()
     end)
 
     InputField.FocusLost:Connect(function(enter: boolean)
@@ -1799,6 +1881,7 @@ function Modules.CommandBar:Initialize(): ()
             local cmd: string = string.match(raw, "^%s*(.-)%s*$")
             if cmd ~= "" then
                 self:AddOutput("~$ " .. cmd, self.Theme.Text)
+                
                 if cmd:lower() == "cmds" or cmd:lower() == "help" then
                     self:ListCommands()
                 else
@@ -1807,30 +1890,39 @@ function Modules.CommandBar:Initialize(): ()
                         self:AddOutput("ERR: command_not_found: " .. cmd, Color3.fromRGB(255, 80, 80))
                     end
                 end
+                
                 InputField.Text = ""
             end
-            InputField:CaptureFocus()
+            self:Toggle()
         end
     end)
 
     UserInputService.InputBegan:Connect(function(input: InputObject, gpe: boolean)
+        if input.KeyCode == Enum.KeyCode.Tab and InputField:IsFocused() then
+            if self.State.CurrentSuggestion ~= "" then
+                InputField.Text = self.State.CurrentSuggestion
+                InputField.CursorPosition = #InputField.Text + 1
+            end
+        end
+
         if not gpe and input.KeyCode == self.State.PrefixKey then self:Toggle() end
     end)
 
-    self:AddOutput("KERNEL_V10_STABLE_BUILD", self.Theme.Accent)
-    self:AddOutput("USER_SESSION_ACTIVE: " .. Players.LocalPlayer.Name, self.Theme.Accent)
+    self:AddOutput("ZUKATECH_V10_INITIALIZED", self.Theme.Accent)
+    self:AddOutput("AUTH_TOKEN_ACCEPTED: " .. Players.LocalPlayer.Name, self.Theme.Accent)
+    self:AddOutput("Type 'cmds' for documentation or ';' to toggle shell.", self.Theme.Text)
 end
 
 function DoNotif(text: string, duration: number?): ()
     NotificationManager.Send(text, duration)
     if Modules.CommandBar and Modules.CommandBar.AddOutput then
-        Modules.CommandBar:AddOutput("[!] " .. tostring(text), Modules.CommandBar.Theme.Accent)
+        Modules.CommandBar:AddOutput("[SYS]: " .. tostring(text), Modules.CommandBar.Theme.Accent)
     end
 end
 
 
 Modules.UnlockMouse = { State = { Enabled = false, Connection = nil } }
-RegisterCommand({ Name = "UnlockMouse", Aliases = {"unlockcursor", "freemouse", "um"}, Description = "Toggles a persistent loop to unlock the mouse cursor." }, function()
+RegisterCommand({ Name = "unlockmouse", Aliases = {"unlockcursor", "freemouse", "um"}, Description = "Toggles a persistent loop to unlock the mouse cursor." }, function()
 local State = Modules.UnlockMouse.State
 State.Enabled = not State.Enabled
 if State.Enabled then
@@ -1845,6 +1937,8 @@ if State.Connection then State.Connection:Disconnect(); State.Connection = nil e
     DoNotif("Mouse Unlock Disabled", 2)
 end
 end)
+
+
 Modules.ESP = {
     State = {
         PlayersEnabled = false,
@@ -2208,8 +2302,6 @@ Modules.NoClip = {
     State = {
         IsEnabled = false,
         Connections = {},
-        -- A table to keep track of all character parts that need noclip enforced.
-        -- Using a dictionary/set is highly efficient for the per-frame loop.
         TrackedParts = setmetatable({}, {__mode = "k"})
     },
     Services = {
@@ -2218,39 +2310,28 @@ Modules.NoClip = {
     }
 }
 
----
--- [Private] Adds a part to the tracking list and sets its collision to false.
----
 function Modules.NoClip:_addPart(part)
     if not part:IsA("BasePart") then return end
     self.State.TrackedParts[part] = true
     part.CanCollide = false
 end
 
----
--- [Private] Scans a character, adds all its parts to the tracking list,
--- and sets up listeners for new parts (like tools) being added.
----
 function Modules.NoClip:_processCharacter(character)
     if not character then return end
     
-    -- Clean up any existing listeners for this character to prevent duplicates
     if self.State.Connections[character] then
         for _, conn in ipairs(self.State.Connections[character]) do conn:Disconnect() end
     end
     self.State.Connections[character] = {}
 
-    -- Process all parts that already exist in the character
     for _, descendant in ipairs(character:GetDescendants()) do
         self:_addPart(descendant)
     end
     
-    -- Listen for parts that are added while noclip is active (e.g., equipping a tool)
     local descAddedConn = character.DescendantAdded:Connect(function(descendant)
         self:_addPart(descendant)
     end)
     
-    -- Listen for parts being removed to stop tracking them
     local descRemovingConn = character.DescendantRemoving:Connect(function(descendant)
         if self.State.TrackedParts[descendant] then
             self.State.TrackedParts[descendant] = nil
@@ -2312,9 +2393,7 @@ function Modules.NoClip:Enable()
     DoNotif("Persistent NoClip Enabled", 2)
 end
 
----
--- Disables the NoClip module and cleans up all resources.
----
+
 function Modules.NoClip:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
@@ -2324,9 +2403,7 @@ function Modules.NoClip:Disable()
     DoNotif("NoClip Disabled", 2)
 end
 
----
--- Toggles the NoClip state.
----
+
 function Modules.NoClip:Toggle()
     if self.State.IsEnabled then
         self:Disable()
@@ -2335,7 +2412,6 @@ function Modules.NoClip:Toggle()
     end
 end
 
--- This part remains in your main script to register the command
 RegisterCommand({ Name = "noclip", Aliases = {"nc"}, Description = "Allows you to fly through walls and objects." }, function()
     Modules.NoClip:Toggle()
 end)
@@ -2426,6 +2502,7 @@ end)
                                             }, function()
                                             Modules.AnimationFreezer:Toggle()
                                         end)
+
                                         Modules.AutoDecompiler = {
                                         State = {
                                         IsEnabled = false,
@@ -2533,8 +2610,10 @@ end)
                             module:Toggle()
                         end)
                     end
+
                     local Players = game:GetService("Players")
                     local RunService = game:GetService("RunService")
+                    
                     Modules.RespawnAtDeath = {
                     State = {
                     Enabled = false,
@@ -2578,13 +2657,13 @@ end)
                         local localPlayer = Players.LocalPlayer
                         Modules.RespawnAtDeath.State.Enabled = not Modules.RespawnAtDeath.State.Enabled
                         if Modules.RespawnAtDeath.State.Enabled then
-                            print("Respawn at Death: ENABLED")
+                            print("revert: ENABLED")
                             Modules.RespawnAtDeath.State.CharacterConnection = localPlayer.CharacterAdded:Connect(Modules.RespawnAtDeath.OnCharacterAdded)
                             if localPlayer.Character then
                                 Modules.RespawnAtDeath.OnCharacterAdded(localPlayer.Character)
                             end
                         else
-                        print("Respawn at Death: DISABLED")
+                        print("revert: DISABLED")
                         if Modules.RespawnAtDeath.State.DiedConnection then
                             Modules.RespawnAtDeath.State.DiedConnection:Disconnect()
                             Modules.RespawnAtDeath.State.DiedConnection = nil
@@ -2597,7 +2676,7 @@ end)
                     end
                 end
                 RegisterCommand({
-                Name = "RespawnAtDeath",
+                Name = "revert",
                 Aliases = {"deathspawn", "spawnondeath"},
                 Description = "Toggles respawning at your last death location."
                 }, function(args)
@@ -15118,18 +15197,16 @@ DoNotif("We're So back. The Best Underground Panel.", 3)
 ⠀⠀⠀⠀⠀⠀⠀⠈⣿⠛⣿⣿⣿⣿⡟⡟⠛⠛⠛⠿⠛⠿⠛⠛⠟⠛⠉⠁⠠⣄⣾⣿⣿⣿⣿⣿⣿⡟⠁⣼⠁⠀⠀⠀⠀⢸⡏⠀⣾⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠠⢀⠁⠂⢿⠀⠀⠀⠀⣿⣦⡾⢋⣴⣿⣿⣿⣿⣿⣿⣦⡀⠈⠻⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⢸⣿⠀⣘⣿⣿⣿⣿⡱⠡⠌⢂⣄⡀⠀⠄⢂⡀⠀⠀⠄⣱⣾⣿⣿⣿⣿⣿⡿⠋⣠⢾⡇⠀⠀⠀⠀⢠⣞⢁⣸⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠐⡀⠈⠄⡘⣇⠀⠀⠀⣿⣷⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⡀⠈⢻⣧⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⢸⡏⠀⢹⣿⣿⣿⣿⣇⠻⣌⠲⣌⠷⢬⠐⠠⢀⠂⣀⣴⣿⣿⣿⣿⠿⠛⢁⣤⠞⠁⠈⣿⣄⠀⠀⢀⣾⠇⣼⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠐⡀⠡⠀⠄⢿⠀⠀⠀⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀⠈⣿⡆⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⡿⠈⠻⣿⡿⢿⢷⣾⣿⣾⣽⣦⣭⣶⠟⠛⠛⠛⠛⢉⣉⣠⡴⠞⠋⠀⣠⣶⡀⠘⢿⣦⣶⡿⠋⠚⠛⠓⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢨⡗⠠⠐⠀⠡⠀⢼⡆⠀⠀⢹⣿⡏⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⢰⣿⠁⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⢰⣿⠀⢰⡇⠠⢀⠀⢀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣿⣿⣿⣾⠛⠛⠉⠁⣀⣤⣶⠿⠛⠻⣿⡀⠸⣿⡿⡖⠒⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⢀⠂⢁⠂⢁⠀⣧⠀⠀⠸⣿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⠀⣼⡏⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⣸⡏⠀⣸⠀⠠⠀⠌⠀⠠⠈⢀⠐⠀⠂⠀⠈⠉⢉⣿⣿⣿⠀⢰⣾⠿⠛⠉⠀⠀⠀⠀⢿⣧⠀⢸⣷⣷⠀⠠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣇⠀⡐⠠⠐⠀⢂⢻⠀⠀⢸⣿⣿⣿⠟⣻⣿⣿⣿⣻⡟⣿⣿⡟⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⣿⡇⠀⣿⠀⡀⢁⠂⠈⠀⠄⠂⠀⠌⠀⠁⠀⠀⣾⣿⣿⣿⠀⠈⣿⠄⠀⠀⠀⠀⠀⠀⠩⣿⣆⠀⢻⣿⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠠⠐⡀⠡⢀⢸⡆⠀⢸⣿⣿⣥⣿⣿⣿⣿⣿⣿⡿⠈⣿⠀⢠⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⢀⣿⠀⢰⡇⠀⠄⡀⠂⢁⠀⠂⢀⠐⠀⣈⣤⣄⣾⣿⣿⣿⣿⡄⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠸⣿⡄⠈⢿⣧⠤⠀⠀⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠡⠐⢀⠐⡀⠈⣷⠀⢸⣿⣿⣿⣿⣿⣿⣿⡿⡿⠁⣰⠇⠀⣾⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⣸⡟⠀⢸⠃⢀⠂⠠⠐⠀⡀⠌⠀⠀⠄⣾⣿⣿⣿⢿⣿⣿⣿⡇⠀⢻⡇⠀⠀⠀⠀⠀⠀⠀⠀⢻⣷⡀⠘⣿⣆⠀⢀⠠⠐⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡅⠂⢈⠠⠀⠄⡁⠸⡆⢸⣿⣿⣿⣿⣿⣿⡿⢱⣇⣀⡟⠀⣼⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⣿⡇⠀⡿⠀⠠⠀⡁⢀⠂⠀⠠⠐⠈⠀⣿⣿⣿⣯⣿⣿⣿⣿⡇⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⣧⠀⢹⣿⡄⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⢂⠠⠈⡀⠄⠁⢿⣻⣿⣿⣿⣿⣿⡿⢠⣟⣼⡿⠁⢰⣿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⢠⣿⠀⢰⡇⠀⡁⠠⠐⠀⠀⠀⠂⠀⠄⣠⣿⣿⣿⣟⣿⣿⣿⣿⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⡄⠀⢻⣧⠀⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣻⣇⠈⡀⠄⠂⡀⠂⢁⠘⣿⣿⣿⣿⣿⣿⣥⡟⡴⣼⠃⢀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⢸⣿⠀⢸⡇⠀⡄⠐⢠⠀⠁⠀⡄⣴⣾⣿⣿⣿⣿⣿⢻⣿⣿⣿⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⡄⠈⣿⡆⠀⢠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⠀⡄⠂⠁⢠⠈⢠⠀⢹⣿⣿⣿⢻⣿⣾⢳⢳⡏⠀⣼⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⡿⠈⠻⣿⡿⢿⢷⣾⣿⣾⣽⣦⣭⣶⠟⠛⠛⠛⠛⢉⣉⣠⡴⠞⠋⠀⣠⣶⡀⠘⢿⣦⣶⡿⠋⠚⠛⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀  ⢨⡗⠠⠐⠀⠡⠀⢼⡆⠀⠀⢹⣿⡏⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⢰⣿⠁⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢰⣿⠀⢰⡇⠠⢀⠀⢀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣿⣿⣿⣾⠛⠛⠉⠁⣀⣤⣶⠿⠛⠻⣿⡀⠸⣿⡿⡖   you⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⢀⠂⢁⠂⢁⠀⣧⠸⣿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⠀⣼⡏⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⣸⡏⠀⣸⠀⠠⠀⠌⠀⠠⠈⢀⠐⠀⠂⠀⠈⠉⢉⣿⣿⣿⠀⢰⣾⠿⠛⠉⠀⠀⠀⠀⢿⣧⠀⢸⣷⣷⠀⠠⠀⠀⠀are⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀⠘⣇⠀⡐⠠⠐⠀⢂⢻⠀⠀⢸⣿⣿⣿⠟⣻⣿⣿⣿⣻⡟⣿⣿⡟⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⣿⡇⠀⣿⠀⡀⢁⠂⠈⠀⠄⠂⠀⠌⠀⠁⠀⠀⣾⣿⣿⣿⠀⠈⣿⠄⠀⠀⠀⠀⠀⠀⠩⣿⣆⠀⢻⣿⡆⠀⠀⠀loved⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠠⠐⡀⠡⢀⢸⡆⢸⣿⣿⣥⣿⣿⣿⣿⣿⣿⡿⠈⣿⠀⢠⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⢀⣿⠀⢰⡇⠀⠄⡀⠂⢁⠀⠂⢀⠐⠀⣈⣤⣄⣾⣿⣿⣿⣿⡄⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠸⣿⡄⠈⢿⣧⠤⠀⠀⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀  ⠀⠀⣿⠀⠡⠐⢀⠐⡀⠈⣷⠀⢸⣿⣿⣿⣿⣿⣿⣿⡿⡿⠁⣰⠇⠀⣾⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⣸⡟⠀⢸⠃⢀⠂⠠⠐⠀⡀⠌⠀⠀⠄⣾⣿⣿⣿⢿⣿⣿⣿⡇⠀⢻⡇⠀⠀⠀⠀⠀⠀⠀⠀⢻⣷⡀⠘⣿⣆⠀⢀⠠⠐⠂⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀⠀⠀⠀⣿⡅⠂⢈⠠⠀⠄⡁⠸⡆⢸⣿⣿⣿⣿⣿⣿⡿⢱⣇⣀⡟⠀⣼⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⣿⡇⠀⡿⠀⠠⠀⡁⢀⠂⠀⠠⠐⠈⠀⣿⣿⣿⣯⣿⣿⣿⣿⡇⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⣧⠀⢹⣿⡄⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀ ⠀⠀⣿⡇⠀⢂⠠⠈⡀⠄⠁⢿⣻⣿⣿⣿⣿⣿⡿⢠⣟⣼⡿⠁⢰⣿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⢠⣿⠀⢰⡇⠀⡁⠠⠐⠀⠀⠀⠂⠀⠄⣠⣿⣿⣿⣟⣿⣿⣿⣿⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⡄⠀⢻⣧⠀⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀⣻⣇⠈⡀⠄⠂⡀⠂⢁⠘⣿⣿⣿⣿⣿⣿⣥⡟⡴⣼⠃⢀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⢸⣿⠀⢸⡇⠀⡄⠐⢠⠀⠁⠀⡄⣴⣾⣿⣿⣿⣿⣿⢻⣿⣿⣿⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⡄⠈⣿⡆⠀⢠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀⠀⢹⣿⠀⡄⠂⠁⢠⠈⢠⠀⢹⣿⣿⣿⢻⣿⣾⢳⢳⡏⠀⣼⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⢀⣾⡇⠀⣾⣄⣀⣄⣐⣀⣀⣀⣠⣾⣿⣿⣿⣿⣿⣷⣿⣿⣿⣿⣿⣿⡀⢸⣿⣠⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣧⠀⣹⣿⣤⣀⣀⣀⣀⣀⣀⣀⡀⠀⠀⠀⠀⠀⣀⣀⣸⣿⣀⣠⣔⣈⣤⣐⣀⣈⣀⣈⣹⣿⣿⣾⣷⣏⣾⠁⣠⣿⡃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠈⠀⠈⠁⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠈⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⢰⡆⠀⣦⠀⠀⠀⠀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣶⡀⠀⢀⣄⣠⣀⣴⠀⠀⠀⠀⠀⠀⠀⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡦⠀⠀⠀⠀⠀⠀⠀⠀⢰⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣶⠀⠀⣠⣴⣀⠀⠀⠀⠀⠀⠀⣠⣄⠀⠀⠀⠀⠀⠀⠀⠀
-⢸⣇⣢⣿⠠⣶⢶⣰⣿⡒⣶⡶⠒⣶⠀⡖⢲⠶⢶⣀⣶⣶⣦⠀⢀⡟⢧⡀⡾⣿⢰⠆⣯⡠⠖⣶⠂⣶⠀⠀⢰⣶⣗⢶⠀⢀⡴⠶⣆⣰⠆⢰⡖⣶⠾⠂⠀⡇⣠⡷⢶⣄⣶⠶⣶⡶⢾⠀⠀⣰⡖⣦⢰⡶⠶⡄⣴⠶⢾⠀⠀⡻⣤⣈⠸⠶⣶⢲⡀⣰⣷⡆⣰⠶⢶⣀⡶⠶⠀⠀
-⢸⣧⠀⠿⠘⠯⢽⠇⠻⠤⠬⠽⠃⠿⠵⠇⢸⠆⠸⠌⠷⠾⠷⠀⠈⡧⠘⠿⠀⠿⢸⠆⠿⠱⣤⠹⠥⠿⠀⠀⢸⡵⢬⠿⠀⠀⠿⠤⠟⠹⠷⠼⠇⡿⠀⠀⠀⣇⠘⠦⠼⠃⠿⠀⠹⠦⠾⠀⠀⠿⢯⠿⢸⡇⠸⠏⠻⠦⠾⠀⠀⠦⠤⠟⠻⠭⠿⠀⠷⠇⠸⠇⠻⡤⠾⠐⡇⠰⣶⠆-ˋˏ✄┈┈┈┈(⸝⸝> ᴗ•⸝⸝) --]]
+ --]]
