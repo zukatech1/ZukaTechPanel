@@ -39,7 +39,6 @@ local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
 local PathService = game:GetService("PathfindingService")
 local MarketplaceService = game:GetService("MarketplaceService")
 do
@@ -160,7 +159,6 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local Utilities = {}
 function Utilities.findPlayer(inputName)
