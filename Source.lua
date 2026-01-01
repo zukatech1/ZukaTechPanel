@@ -1,7 +1,7 @@
 --[[
 made by zuka @OverZuka on roblox
 
-v10 - December 31st
+v12 - HAPPY NEW YEAR WOOOOOO
 
 
 Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
@@ -40,7 +40,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
-
+local PathService = game:GetService("PathfindingService")
+local MarketplaceService = game:GetService("MarketplaceService")
 do
     local THEME = {
     Title = "Welcome!",
@@ -73,7 +74,7 @@ do
     icon.BackgroundTransparency = 1
     icon.Image = THEME.IconAssetId
     icon.ImageColor3 = THEME.AccentColor
-    icon.ImageTransparency = 1
+    icon.ImageTransparency = .4
     local title = Instance.new("TextLabel", centerFrame)
     title.Size = UDim2.new(1, 0, 0.2, 0)
     title.Position = UDim2.fromScale(0.5, 0.65)
@@ -1574,45 +1575,48 @@ end
 Modules.CommandBar = {
     State = {
         UI = nil,
+        Container = nil,
         TextBox = nil,
-        SuggestionsFrame = nil,
-        KeybindConnection = nil,
+        LogFrame = nil,
         PrefixKey = Enum.KeyCode.Semicolon,
         IsAnimating = false,
-        IsEnabled = false
+        IsEnabled = false,
+        MaxLogs = 500,
+        MinSize = Vector2.new(400, 200)
+    },
+    Theme = {
+        Background = Color3.fromRGB(10, 10, 10),
+        Accent = Color3.fromRGB(255, 105, 180),
+        Text = Color3.fromRGB(220, 220, 220),
+        Font = Enum.Font.Code
     }
 }
 
-function Modules.CommandBar:Toggle()
+function Modules.CommandBar:Toggle(): ()
     if self.State.IsAnimating then return end
     self.State.IsAnimating = true
     self.State.IsEnabled = not self.State.IsEnabled
-    local isOpening = self.State.IsEnabled
-    local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    
+    local isOpening: boolean = self.State.IsEnabled
+    local tweenInfo: TweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    
     if isOpening then
         self.State.UI.Enabled = true
-        self.State.Container.Position = UDim2.fromScale(0.5, 0.82)
-        self.State.Container.BackgroundTransparency = 1
         local anim = TweenService:Create(self.State.Container, tweenInfo, {
-            Position = UDim2.fromScale(0.5, 0.8),
-            BackgroundTransparency = 1
+            Position = UDim2.new(0.5, -self.State.Container.Size.X.Offset/2, 0.5, -self.State.Container.Size.Y.Offset/2),
+            BackgroundTransparency = 0.3
         })
         anim:Play()
         self.State.TextBox:CaptureFocus()
         task.spawn(function()
             task.wait()
-            if self.State.IsEnabled then
-                self.State.TextBox.Text = ""
-            end
+            if self.State.IsEnabled then self.State.TextBox.Text = "" end
         end)
-        anim.Completed:Connect(function()
-            self.State.IsAnimating = false
-        end)
+        anim.Completed:Connect(function() self.State.IsAnimating = false end)
     else
         self.State.TextBox:ReleaseFocus()
-        self:_ClearSuggestions()
         local anim = TweenService:Create(self.State.Container, tweenInfo, {
-            Position = UDim2.fromScale(0.5, 0.82),
+            Position = UDim2.new(0.5, -self.State.Container.Size.X.Offset/2, 1, 50),
             BackgroundTransparency = 1
         })
         anim:Play()
@@ -1623,225 +1627,210 @@ function Modules.CommandBar:Toggle()
     end
 end
 
-function Modules.CommandBar:_ClearSuggestions()
-    if not self.State.SuggestionsFrame then return end
-    self.State.SuggestionsFrame.Visible = false
-    for _, child in ipairs(self.State.SuggestionsFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
+function Modules.CommandBar:AddOutput(text: string, color: Color3?): ()
+    if not self.State.LogFrame then return end
+    
+    local line: TextLabel = Instance.new("TextLabel")
+    line.Name = "TerminalLine"
+    line.Parent = self.State.LogFrame
+    line.BackgroundTransparency = 1
+    line.Size = UDim2.new(1, 0, 0, 18)
+    line.Font = self.Theme.Font
+    line.Text = " " .. text
+    line.TextColor3 = color or self.Theme.Text
+    line.TextSize = 13
+    line.TextXAlignment = Enum.TextXAlignment.Left
+    line.RichText = true
+    
+    local children: {Instance} = self.State.LogFrame:GetChildren()
+    if #children > self.State.MaxLogs then
+        for i = 1, (#children - self.State.MaxLogs) do
+            if children[i]:IsA("TextLabel") then children[i]:Destroy() end
         end
     end
+
+    self.State.LogFrame.CanvasPosition = Vector2.new(0, self.State.LogFrame.AbsoluteCanvasSize.Y + 40)
 end
 
-function Modules.CommandBar:Initialize()
-    local self = self
-    -- Services needed for logic
-    local UserInputService = game:GetService("UserInputService")
-    local RunService = game:GetService("RunService")
-    local CoreGui = game:GetService("CoreGui")
-    local TweenService = game:GetService("TweenService")
-    -- UI Instances
-    local CommandBarUI_Revamped = Instance.new("ScreenGui")
-    local Container = Instance.new("Frame")
-    local InputFrame = Instance.new("Frame")
-    local UICorner = Instance.new("UICorner")
-    local Input = Instance.new("TextBox")
-    local Suggestions = Instance.new("ScrollingFrame")
-    local UICorner_2 = Instance.new("UICorner")
-    local UIListLayout = Instance.new("UIListLayout")
-    local LeftLine = Instance.new("Frame")
-    local UIGradient = Instance.new("UIGradient")
-    local RightLine = Instance.new("Frame")
-    local UIGradient_2 = Instance.new("UIGradient")
-    
-    -- Apply properties
-    CommandBarUI_Revamped.Name = "CommandBarUI_Revamped"
-    CommandBarUI_Revamped.Parent = CoreGui
-    CommandBarUI_Revamped.ResetOnSpawn = false
-    CommandBarUI_Revamped.Enabled = false
-    
-    Container.Name = "Container"
-    Container.Parent = CommandBarUI_Revamped
-    Container.AnchorPoint = Vector2.new(0.5, 0.5)
-    Container.BackgroundTransparency = 1.500
-    Container.Position = UDim2.new(0.5, 0, 0.861910284, 0)
-    Container.Size = UDim2.new(1, 0, 0.0838206634, 38)
-    
-    InputFrame.Name = "InputFrame"
-    InputFrame.Parent = Container
-    InputFrame.Active = true
-    InputFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    InputFrame.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
-    InputFrame.BackgroundTransparency = 0.550
-    InputFrame.BorderColor3 = Color3.fromRGB(35, 35, 35) -- Original border
-    InputFrame.Position = UDim2.new(0.499780267, 0, 0.512794435, 0)
-    InputFrame.Size = UDim2.new(0, 299, 0, 35)
-    
-    UICorner.Parent = InputFrame
-    
-    Input.Name = "Input"
-    Input.Parent = InputFrame
-    Input.AnchorPoint = Vector2.new(0.5, 0.5)
-    Input.BackgroundTransparency = 1.000
-    Input.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Input.Size = UDim2.new(1, -20, 1, -10)
-    Input.Font = Enum.Font.GothamBold
-    Input.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-    Input.PlaceholderText = " "
-    Input.Text = ""
-    Input.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Input.TextSize = 15.000
-    Input.ClearTextOnFocus = true
-    
-    Suggestions.Name = "Suggestions"
-    Suggestions.Parent = InputFrame
-    Suggestions.Visible = false
-    Suggestions.AnchorPoint = Vector2.new(0.5, 0)
-    Suggestions.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    Suggestions.BackgroundTransparency = 0.360
-    Suggestions.BorderSizePixel = 0
-    Suggestions.Position = UDim2.new(0.5, 0, -3, 10)
-    Suggestions.Size = UDim2.new(0, 204, 0, 86)
-    Suggestions.ScrollBarThickness = 4
-    
-    UICorner_2.CornerRadius = UDim.new(0, 6)
-    UICorner_2.Parent = Suggestions
-    
-    UIListLayout.Parent = Suggestions
-    UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    UIListLayout.Padding = UDim.new(0, 3)
-    
-    -- [NEW] Updated Left and Right line colors
-    LeftLine.Name = "LeftLine"
-    LeftLine.Parent = Container
-    LeftLine.AnchorPoint = Vector2.new(1, 0.5)
-    LeftLine.BackgroundColor3 = Color3.fromRGB(255, 105, 180) -- Hot Pink
-    LeftLine.BackgroundTransparency = 0.450
-    LeftLine.BorderSizePixel = 0
-    LeftLine.Position = UDim2.new(0.503833711, -155, 0.500998974, 0)
-    LeftLine.Size = UDim2.new(0.192698419, 0, 0.128545433, 2)
-    
-    UIGradient.Rotation = 180
-    UIGradient.Transparency = NumberSequence.new{NumberSequenceKeypoint.new(0.00, 0.20), NumberSequenceKeypoint.new(1.00, 1.00)}
-    UIGradient.Parent = LeftLine
-    
-    RightLine.Name = "RightLine"
-    RightLine.Parent = Container
-    RightLine.AnchorPoint = Vector2.new(0, 0.5)
-    RightLine.BackgroundColor3 = Color3.fromRGB(255, 105, 180) -- Hot Pink
-    RightLine.BackgroundTransparency = 0.450
-    RightLine.BorderSizePixel = 0
-    RightLine.Position = UDim2.new(0.49474448, 155, 0.489924341, 0)
-    RightLine.Size = UDim2.new(0.208382994, 0, -0.172840074, 2)
-    
-    UIGradient_2.Transparency = NumberSequence.new{NumberSequenceKeypoint.new(0.00, 0.20), NumberSequenceKeypoint.new(1.00, 1.00)}
-    UIGradient_2.Parent = RightLine
+function Modules.CommandBar:ListCommands(): ()
+    self:AddOutput("--------------------------------------------", self.Theme.Accent)
+    self:AddOutput("READING_LOCAL_SYSTEM_REGISTRY...", self.Theme.Accent)
+    self:AddOutput("--------------------------------------------", self.Theme.Accent)
 
-    -- [NEW] Radiant Glow Effect
-    local GlowStroke = Instance.new("UIStroke")
-    GlowStroke.Name = "GlowStroke"
-    GlowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
-    GlowStroke.LineJoinMode = Enum.LineJoinMode.Round
-    GlowStroke.Thickness = 2.5
-    GlowStroke.Transparency = 0.5
-    GlowStroke.Color = Color3.fromRGB(255, 182, 193) -- Light Pink
-    GlowStroke.Parent = InputFrame
+    local sorted: {any} = {}
+    for _, info in ipairs(CommandInfo) do
+        table.insert(sorted, info)
+    end
+    table.sort(sorted, function(a, b) return a.Name < b.Name end)
 
-    -- Animation for the glow effect
-    local glowConnection
-    glowConnection = RunService.RenderStepped:Connect(function()
-        if not GlowStroke or not GlowStroke.Parent then
-            glowConnection:Disconnect()
-            return
+    for _, info in ipairs(sorted) do
+        local aliasStr: string = ""
+        if info.Aliases and #info.Aliases > 0 then
+            aliasStr = " <font color='#888888'>[" .. table.concat(info.Aliases, ", ") .. "]</font>"
         end
-        -- Use a sine wave for a smooth pulsating "breathing" effect
-        local sine = math.sin(os.clock() * 5) -- Multiplier controls the speed
-        GlowStroke.Transparency = 0.4 + (sine * 0.3) -- Pulsates between 0.1 and 0.7 transparency
-        GlowStroke.Thickness = 2.5 + (sine * 0.5) -- Pulsates between 2 and 3 thickness
-    end)
-    
-    -- Assign core components to the module's state
-    self.State.UI = CommandBarUI_Revamped
-    self.State.Container = Container
-    self.State.TextBox = Input
-    self.State.SuggestionsFrame = Suggestions
-    
-    -- Preserved logic from the original script
-    local Theme = {
-        SuggestionTextColor = Color3.fromRGB(210, 210, 220),
-        SuggestionHoverColor = Color3.fromRGB(45, 45, 45),
-        MainFont = Enum.Font.Gotham
-    }
-    
-    UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        Suggestions.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
-    end)
-    
-    self.State.IsScriptUpdatingText = false
-    local MAX_SUGGESTIONS = 5
-    
-    local function createSuggestionButton(text)
-        local button = Instance.new("TextButton")
-        button.Name, button.Text, button.Parent = text, text, self.State.SuggestionsFrame
-        button.TextSize, button.Font, button.TextColor3 = 14, Theme.MainFont, Theme.SuggestionTextColor
-        button.TextXAlignment, button.BackgroundTransparency = Enum.TextXAlignment.Left, 1
-        button.Size = UDim2.new(1, -10, 0, 24)
-        local tweenInfo = TweenInfo.new(0.15)
-        button.MouseEnter:Connect(function() TweenService:Create(button, tweenInfo, {BackgroundColor3 = Theme.SuggestionHoverColor, BackgroundTransparency = 0 }):Play() end)
-        button.MouseLeave:Connect(function() TweenService:Create(button, tweenInfo, {BackgroundTransparency = 1 }):Play() end)
         
-        button.MouseButton1Click:Connect(function()
-            self.State.IsScriptUpdatingText = true
-            self.State.TextBox.Text = text .. " "
-            self.State.TextBox.CursorPosition = #self.State.TextBox.Text + 1
-            self.State.TextBox:CaptureFocus()
-            self.State.IsScriptUpdatingText = false
-            self:_ClearSuggestions()
-        end)
-        return button
+        local desc: string = info.Description or "no_description_provided"
+        self:AddOutput(string.format("<font color='#FF69B4'>%s</font>%s - %s", info.Name, aliasStr, desc))
     end
     
-    local function updateSuggestions()
-        if self.State.IsScriptUpdatingText then return end
-        self:_ClearSuggestions()
-        local inputText = self.State.TextBox.Text:match("^%s*(%S*)")
-        if not inputText or #inputText == 0 then return end
-        local matches = Modules.AutoComplete:GetMatches(inputText)
-        if #matches > 0 then
-            self.State.SuggestionsFrame.Visible = true
-            for i, match in ipairs(matches) do
-                if i > MAX_SUGGESTIONS then break end
-                createSuggestionButton(match)
-            end
-        end
-    end
+    self:AddOutput("--------------------------------------------", self.Theme.Accent)
+    self:AddOutput("ACTIVE_MODULES_FOUND: " .. #sorted, self.Theme.Accent)
+end
+
+function Modules.CommandBar:Initialize(): ()
+    local CommandBarUI: ScreenGui = Instance.new("ScreenGui")
+    CommandBarUI.Name = "ForensicTerminal_V10"
+    CommandBarUI.Parent = CoreGui
+    CommandBarUI.ResetOnSpawn = false
+    CommandBarUI.Enabled = false
     
-    self.State.TextBox.Changed:Connect(function(property) if property == "Text" then updateSuggestions() end end)
+    local MainContainer: Frame = Instance.new("Frame")
+    MainContainer.Name = "ShellFrame"
+    MainContainer.Parent = CommandBarUI
+    MainContainer.Size = UDim2.new(0, 600, 0, 350)
+    MainContainer.Position = UDim2.new(0.5, -300, 1, 50)
+    MainContainer.BackgroundColor3 = self.Theme.Background
+    MainContainer.BackgroundTransparency = 0.1
+    MainContainer.BorderSizePixel = 0
+    MainContainer.Active = true
     
-    local function submitCommand()
-        if self.State.TextBox.Text:len() > 0 then
-            processCommand(Prefix .. self.State.TextBox.Text)
-            self.State.TextBox.Text = ""
-            self:Toggle()
-        end
-    end
+    Instance.new("UICorner", MainContainer).CornerRadius = UDim.new(0, 4)
+    local UIStroke: UIStroke = Instance.new("UIStroke", MainContainer)
+    UIStroke.Color = self.Theme.Accent
+    UIStroke.Thickness = 1.2
+    UIStroke.Transparency = 0.5
+
+    local ResizeHandle: ImageButton = Instance.new("ImageButton")
+    ResizeHandle.Name = "ResizeHandle"
+    ResizeHandle.Parent = MainContainer
+    ResizeHandle.Size = UDim2.new(0, 15, 0, 15)
+    ResizeHandle.Position = UDim2.new(1, -15, 1, -15)
+    ResizeHandle.BackgroundTransparency = 1
+    ResizeHandle.Image = "rbxassetid://12134015093"
+    ResizeHandle.ImageColor3 = self.Theme.Accent
+    ResizeHandle.ZIndex = 10
+
+    local OutputLog: ScrollingFrame = Instance.new("ScrollingFrame")
+    OutputLog.Name = "Buffer"
+    OutputLog.Parent = MainContainer
+    OutputLog.Position = UDim2.new(0, 10, 0, 10)
+    OutputLog.Size = UDim2.new(1, -20, 1, -55)
+    OutputLog.BackgroundTransparency = 1
+    OutputLog.BorderSizePixel = 0
+    OutputLog.ScrollBarThickness = 2
+    OutputLog.ScrollBarImageColor3 = self.Theme.Accent
+    OutputLog.CanvasSize = UDim2.new(0, 0, 0, 0)
+    OutputLog.AutomaticCanvasSize = Enum.AutomaticSize.Y
     
-    self.State.TextBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            submitCommand()
-        else
-            task.wait(0.1)
-            if self.State.IsEnabled then self:Toggle() end
+    Instance.new("UIListLayout", OutputLog).Padding = UDim.new(0, 2)
+
+    local InputArea: Frame = Instance.new("Frame", MainContainer)
+    InputArea.Position = UDim2.new(0, 10, 1, -35)
+    InputArea.Size = UDim2.new(1, -20, 0, 25)
+    InputArea.BackgroundTransparency = 1
+
+    local Prompt: TextLabel = Instance.new("TextLabel", InputArea)
+    Prompt.Size = UDim2.new(0, 130, 1, 0)
+    Prompt.BackgroundTransparency = 1
+    Prompt.Font = self.Theme.Font
+    Prompt.Text = "zuka@kernel:~$  :"
+    Prompt.TextColor3 = self.Theme.Accent
+    Prompt.TextSize = 15
+    Prompt.TextXAlignment = Enum.TextXAlignment.Left
+
+    local InputField: TextBox = Instance.new("TextBox", InputArea)
+    InputField.Name = "Prompt"
+    InputField.Position = UDim2.new(0, 135, 0, 0)
+    InputField.Size = UDim2.new(1, -140, 1, 0)
+    InputField.BackgroundTransparency = 1
+    InputField.Font = self.Theme.Font
+    InputField.Text = ""
+    InputField.TextColor3 = self.Theme.Text
+    InputField.TextSize = 14
+    InputField.TextXAlignment = Enum.TextXAlignment.Left
+    InputField.ClearTextOnFocus = false
+
+    self.State.UI = CommandBarUI
+    self.State.Container = MainContainer
+    self.State.TextBox = InputField
+    self.State.LogFrame = OutputLog
+
+    local dragging: boolean, dragStart: Vector3, startPos: UDim2
+    MainContainer.InputBegan:Connect(function(input: InputObject)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainContainer.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
         end
     end)
     
-    self.State.TextBox.Focused:Connect(updateSuggestions)
-    
-    self.State.KeybindConnection = UserInputService.InputBegan:Connect(function(input, gpe)
+    UserInputService.InputChanged:Connect(function(input: InputObject)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            local delta: Vector3 = input.Position - dragStart
+            MainContainer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    local resizing: boolean, resizeStartSize: UDim2, resizeStartPos: Vector3
+    ResizeHandle.InputBegan:Connect(function(input: InputObject)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = true
+            resizeStartPos = input.Position
+            resizeStartSize = MainContainer.Size
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then resizing = false end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input: InputObject)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and resizing then
+            local delta: Vector3 = input.Position - resizeStartPos
+            local newWidth: number = math.max(self.State.MinSize.X, resizeStartSize.X.Offset + delta.X)
+            local newHeight: number = math.max(self.State.MinSize.Y, resizeStartSize.Y.Offset + delta.Y)
+            MainContainer.Size = UDim2.new(0, newWidth, 0, newHeight)
+        end
+    end)
+
+    InputField.FocusLost:Connect(function(enter: boolean)
+        if enter then
+            local raw: string = InputField.Text
+            local cmd: string = string.match(raw, "^%s*(.-)%s*$")
+            if cmd ~= "" then
+                self:AddOutput("~$ " .. cmd, self.Theme.Text)
+                if cmd:lower() == "cmds" or cmd:lower() == "help" then
+                    self:ListCommands()
+                else
+                    local wasProcessed: boolean = processCommand(Prefix .. cmd)
+                    if not wasProcessed then
+                        self:AddOutput("ERR: command_not_found: " .. cmd, Color3.fromRGB(255, 80, 80))
+                    end
+                end
+                InputField.Text = ""
+            end
+            InputField:CaptureFocus()
+        end
+    end)
+
+    UserInputService.InputBegan:Connect(function(input: InputObject, gpe: boolean)
         if not gpe and input.KeyCode == self.State.PrefixKey then self:Toggle() end
     end)
+
+    self:AddOutput("KERNEL_V10_STABLE_BUILD", self.Theme.Accent)
+    self:AddOutput("USER_SESSION_ACTIVE: " .. Players.LocalPlayer.Name, self.Theme.Accent)
 end
+
+function DoNotif(text: string, duration: number?): ()
+    NotificationManager.Send(text, duration)
+    if Modules.CommandBar and Modules.CommandBar.AddOutput then
+        Modules.CommandBar:AddOutput("[!] " .. tostring(text), Modules.CommandBar.Theme.Accent)
+    end
+end
+
+
 Modules.UnlockMouse = { State = { Enabled = false, Connection = nil } }
 RegisterCommand({ Name = "UnlockMouse", Aliases = {"unlockcursor", "freemouse", "um"}, Description = "Toggles a persistent loop to unlock the mouse cursor." }, function()
 local State = Modules.UnlockMouse.State
