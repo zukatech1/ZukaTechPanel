@@ -14962,6 +14962,8 @@ RegisterCommand({Name = "dex", Aliases = {}, Description = "Loads Dex"}, functio
 loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit")
 end)
 
+RegisterCommand({Name = "farmer", Aliases = {}, Description = "Attaches to a player like an auto farmer"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Farm.lua", "Loading Player farmer") end)
+
 RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "Makes the pumpkin launcher into a rapid fire beast."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RAPIDFIREPumpkinlauncher.lua", "Loading Modification") end)
 
 RegisterCommand({Name = "zukahub", Aliases = {"zuka"}, Description = "Loads the Zuka Hub"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZukaHub.lua", "Loading Zuka's Hub...") end)
