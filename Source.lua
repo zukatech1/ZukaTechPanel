@@ -1,7 +1,7 @@
 --[[
 made by zuka @OverZuka on roblox
 
-Added AI
+v12 - HAPPY NEW YEAR WOOOOOO
 
 
 Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
@@ -14047,6 +14047,439 @@ RegisterCommand({
 end)
 
 
+Modules.ModulePoisoner = { State = { IsEnabled = false, ActivePatches = {}, SelectedModule = nil, CurrentTable = nil, PathStack = {}, Minimized = false, ViewingCode = false, UI = nil, SidebarButtons = {} }, Config = { ACCENT_COLOR = Color3.fromRGB(0, 255, 170), BG_COLOR = Color3.fromRGB(10, 10, 12), HEADER_COLOR = Color3.fromRGB(15, 15, 18), SECONDARY_COLOR = Color3.fromRGB(18, 18, 22) } }
+
+function Modules.ModulePoisoner:_applyStyle(obj: GuiObject, radius: number) local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, radius or 4) corner.Parent = obj end
+
+function Modules.ModulePoisoner:_setClipboard(txt: string) if setclipboard then setclipboard(txt) end end
+
+function Modules.ModulePoisoner:_applyPatch(tbl: table, key: any, val: any, isFunc: boolean) if not self.State.ActivePatches[tbl] then self.State.ActivePatches[tbl] = {} end
+
+self.State.ActivePatches[tbl][key] = {Value = val, Locked = true, IsFunction = isFunc}
+
+local setRO = setreadonly or (make_writeable and function(t, b) if b then make_writeable(t) else make_readonly(t) end end)
+
+pcall(function()
+    setRO(tbl, false)
+    if isFunc then
+        if val == "TRUE" then
+            rawset(tbl, key, function() return true end)
+        elseif val == "FALSE" then
+            rawset(tbl, key, function() return false end)
+        end
+    else
+        rawset(tbl, key, val)
+    end
+    setRO(tbl, true)
+end)
+end
+
+function Modules.ModulePoisoner:_showSource(target: any) local decompiler = (decompile or decompile_script or function() return "-- [ERROR] Decompiler not supported." end) local ui = self.State.UI
+
+self.State.ViewingCode = true
+ui.Grid.Visible = false
+ui.CodeFrame.Visible = true
+ui.Title.Text = "DECOMPILING: " .. (target.Name or "Closure")
+ui.CodeBox.Text = "-- Generating Source, please wait..."
+
+task.spawn(function()
+    local success, src = pcall(decompiler, target)
+    ui.CodeBox.Text = success and src or "-- [FAILURE] Decompilation error."
+end)
+end
+
+function Modules.ModulePoisoner:_createRow(k: any, v: any, src: table) local ui = self.State.UI local row = Instance.new("Frame", ui.Grid) row.Size = UDim2.new(1, -10, 0, 35) row.BackgroundTransparency = 1
+
+local label = Instance.new("TextLabel", row)
+label.Size = UDim2.new(0.4, 0, 1, 0)
+label.Text = " " .. tostring(k)
+label.TextColor3 = Color3.fromRGB(150, 150, 150)
+label.Font = Enum.Font.Code
+label.TextSize = 9
+label.TextXAlignment = Enum.TextXAlignment.Left
+label.BackgroundTransparency = 1
+label.ClipsDescendants = true
+
+if type(v) == "table" then
+    local diveBtn = Instance.new("TextButton", row)
+    diveBtn.Size = UDim2.new(0, 100, 0, 24)
+    diveBtn.Position = UDim2.fromScale(0.42, 0.15)
+    diveBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    diveBtn.Text = "DIVE >"
+    diveBtn.TextColor3 = self.Config.ACCENT_COLOR
+    diveBtn.Font = Enum.Font.Code
+    diveBtn.TextSize = 8
+    self:_applyStyle(diveBtn, 2)
+    
+    diveBtn.MouseButton1Click:Connect(function()
+        table.insert(self.State.PathStack, src)
+        self:PopulateGrid(v, tostring(k))
+    end)
+elseif type(v) == "function" then
+    local spoofBtn = Instance.new("TextButton", row)
+    spoofBtn.Size = UDim2.new(0, 60, 0, 24)
+    spoofBtn.Position = UDim2.fromScale(0.42, 0.15)
+    spoofBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    spoofBtn.Text = "SPOOF"
+    spoofBtn.TextColor3 = Color3.new(1, 1, 1)
+    spoofBtn.Font = Enum.Font.Code
+    spoofBtn.TextSize = 8
+    self:_applyStyle(spoofBtn, 2)
+    
+    local viewBtn = Instance.new("TextButton", row)
+    viewBtn.Size = UDim2.new(0, 60, 0, 24)
+    viewBtn.Position = UDim2.fromScale(0.55, 0.15)
+    viewBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
+    viewBtn.Text = "VIEW"
+    viewBtn.TextColor3 = Color3.fromRGB(255, 100, 255)
+    viewBtn.Font = Enum.Font.Code
+    viewBtn.TextSize = 8
+    self:_applyStyle(viewBtn, 2)
+    
+    viewBtn.MouseButton1Click:Connect(function() self:_showSource(v) end)
+
+    local modes = {"NORMAL", "TRUE", "FALSE"}
+    local cur = 1
+    spoofBtn.MouseButton1Click:Connect(function()
+        cur = (cur % 3) + 1
+        local mode = modes[cur]
+        spoofBtn.Text = "FORCE " .. mode
+        spoofBtn.BackgroundColor3 = (mode == "TRUE" and Color3.fromRGB(0, 200, 100)) or (mode == "FALSE" and Color3.fromRGB(200, 50, 50)) or Color3.fromRGB(50, 50, 70)
+        if mode == "NORMAL" then
+            if self.State.ActivePatches[src] then self.State.ActivePatches[src][k] = nil end
+        else
+            self:_applyPatch(src, k, mode, true)
+        end
+    end)
+else
+    local box = Instance.new("TextBox", row)
+    box.Size = UDim2.new(0, 100, 0, 24)
+    box.Position = UDim2.fromScale(0.42, 0.15)
+    box.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+    box.Text = tostring(v)
+    box.TextColor3 = self.Config.ACCENT_COLOR
+    box.Font = Enum.Font.Code
+    box.TextSize = 9
+    self:_applyStyle(box, 2)
+    
+    box.FocusLost:Connect(function(enter)
+        if enter then
+            self:_applyPatch(src, k, tonumber(box.Text) or box.Text, false)
+        end
+    end)
+end
+end
+
+function Modules.ModulePoisoner:PopulateGrid(targetTable: table, name: string) local ui = self.State.UI self.State.CurrentTable = targetTable ui.Title.Text = "PATH: " .. (name or "Main")
+
+for _, v in ipairs(ui.Grid:GetChildren()) do
+    if not v:IsA("UIListLayout") then v:Destroy() end
+end
+
+for k, v in pairs(targetTable) do
+    self:_createRow(k, v, targetTable)
+end
+
+local mt = getrawmetatable and getrawmetatable(targetTable)
+if mt and mt.__index and type(mt.__index) == "table" then
+    local ghostLabel = Instance.new("TextLabel", ui.Grid)
+    ghostLabel.Size = UDim2.new(1, 0, 0, 20)
+    ghostLabel.Text = " -- GHOST INDEX -- "
+    ghostLabel.TextColor3 = Color3.fromRGB(255, 0, 255)
+    ghostLabel.BackgroundTransparency = 1
+    ghostLabel.Font = Enum.Font.Code
+    ghostLabel.TextSize = 9
+    for k, v in pairs(mt.__index) do
+        self:_createRow(k, v, mt.__index)
+    end
+end
+end
+
+function Modules.ModulePoisoner:AddModuleToList(mod: ModuleScript) local n = mod.Name:lower() if n:find("chat") or n:find("roblox") then return end
+
+local ui = self.State.UI
+local container = Instance.new("Frame", ui.Sidebar)
+container.Size = UDim2.new(1, -5, 0, 25)
+container.BackgroundTransparency = 1
+
+local b = Instance.new("TextButton", container)
+b.Size = UDim2.new(0.7, 0, 1, 0)
+b.Text = " " .. mod.Name
+b.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+b.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+b.Font = Enum.Font.Code
+b.TextXAlignment = Enum.TextXAlignment.Left
+b.ClipsDescendants = true
+self:_applyStyle(b, 2)
+
+local srcB = Instance.new("TextButton", container)
+srcB.Size = UDim2.new(0.28, 0, 1, 0)
+srcB.Position = UDim2.fromScale(0.72, 0)
+srcB.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+srcB.Text = "SRC"
+srcB.TextColor3 = self.Config.ACCENT_COLOR
+srcB.Font = Enum.Font.Code
+srcB.TextSize = 8
+self:_applyStyle(srcB, 2)
+
+self.State.SidebarButtons[container] = mod.Name
+
+b.MouseButton1Click:Connect(function()
+    self.State.SelectedModule = mod
+    self.State.PathStack = {}
+    local success, result = pcall(require, mod)
+    if success then
+        self:PopulateGrid(result, mod.Name)
+    end
+end)
+
+srcB.MouseButton1Click:Connect(function()
+    self:_showSource(mod)
+end)
+end
+
+function Modules.ModulePoisoner:CreateUI() if self.State.UI then self.State.UI.Main.Visible = true return end
+
+local screenGui = Instance.new("ScreenGui", CoreGui)
+screenGui.Name = "Callum_Poisoner_V1"
+screenGui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", screenGui)
+main.Size = UDim2.fromOffset(850, 550)
+main.Position = UDim2.new(0.5, -425, 0.5, -275)
+main.BackgroundColor3 = self.Config.BG_COLOR
+main.BorderSizePixel = 0
+main.ClipsDescendants = true
+self:_applyStyle(main, 6)
+
+local header = Instance.new("Frame", main)
+header.Size = UDim2.new(1, 0, 0, 35)
+header.BackgroundColor3 = self.Config.HEADER_COLOR
+
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -220, 1, 0)
+title.Position = UDim2.fromOffset(10, 0)
+title.Text = "Overseer";
+title.TextColor3 = self.Config.ACCENT_COLOR
+title.Font = Enum.Font.Code
+title.TextSize = 12
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.BackgroundTransparency = 1
+
+local backBtn = Instance.new("TextButton", header)
+backBtn.Size = UDim2.new(0, 60, 0, 24)
+backBtn.Position = UDim2.new(1, -195, 0.5, -12)
+backBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+backBtn.Text = "< BACK"
+backBtn.TextColor3 = Color3.new(1, 1, 1)
+backBtn.Font = Enum.Font.Code
+backBtn.TextSize = 10
+self:_applyStyle(backBtn, 2)
+
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 0)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Font = Enum.Font.Code
+
+local content = Instance.new("Frame", main)
+content.Size = UDim2.new(1, 0, 1, -35)
+content.Position = UDim2.fromOffset(0, 35)
+content.BackgroundTransparency = 1
+
+local searchInput = Instance.new("TextBox", content)
+searchInput.Size = UDim2.new(0, 230, 0, 30)
+searchInput.Position = UDim2.fromOffset(10, 10)
+searchInput.BackgroundColor3 = self.Config.SECONDARY_COLOR
+searchInput.PlaceholderText = "SEARCH MODULES..."
+searchInput.Text = ""
+searchInput.TextColor3 = self.Config.ACCENT_COLOR
+searchInput.Font = Enum.Font.Code
+searchInput.TextSize = 10
+self:_applyStyle(searchInput, 4)
+
+local sidebar = Instance.new("ScrollingFrame", content)
+sidebar.Size = UDim2.new(0, 230, 1, -60)
+sidebar.Position = UDim2.fromOffset(10, 50)
+sidebar.BackgroundTransparency = 1
+sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
+sidebar.ScrollBarThickness = 2
+local sidebarList = Instance.new("UIListLayout", sidebar)
+sidebarList.Padding = UDim.new(0, 4)
+
+local grid = Instance.new("ScrollingFrame", content)
+grid.Size = UDim2.new(1, -270, 1, -20)
+grid.Position = UDim2.fromOffset(260, 10)
+grid.BackgroundColor3 = self.Config.SECONDARY_COLOR
+grid.AutomaticCanvasSize = Enum.AutomaticSize.Y
+grid.ScrollBarThickness = 2
+self:_applyStyle(grid, 4)
+local gridList = Instance.new("UIListLayout", grid)
+gridList.SortOrder = Enum.SortOrder.LayoutOrder
+
+local codeFrame = Instance.new("Frame", content)
+codeFrame.Size = grid.Size
+codeFrame.Position = grid.Position
+codeFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+codeFrame.Visible = false
+self:_applyStyle(codeFrame, 4)
+
+local codeScroller = Instance.new("ScrollingFrame", codeFrame)
+codeScroller.Size = UDim2.new(1, -20, 1, -60)
+codeScroller.Position = UDim2.fromOffset(10, 10)
+codeScroller.BackgroundTransparency = 1
+codeScroller.ScrollBarThickness = 2
+codeScroller.AutomaticCanvasSize = Enum.AutomaticSize.XY
+
+local codeBox = Instance.new("TextBox", codeScroller)
+codeBox.Size = UDim2.new(1, 0, 1, 0)
+codeBox.BackgroundColor3 = Color3.fromRGB(5, 5, 7)
+codeBox.TextColor3 = Color3.fromRGB(200, 200, 200)
+codeBox.Font = Enum.Font.Code
+codeBox.TextSize = 10
+codeBox.TextXAlignment = Enum.TextXAlignment.Left
+codeBox.TextYAlignment = Enum.TextYAlignment.Top
+codeBox.ClearTextOnFocus = false
+codeBox.TextEditable = false
+codeBox.MultiLine = true
+codeBox.AutomaticSize = Enum.AutomaticSize.XY
+self:_applyStyle(codeBox, 4)
+
+local copyBtn = Instance.new("TextButton", codeFrame)
+copyBtn.Size = UDim2.new(0, 100, 0, 30)
+copyBtn.Position = UDim2.new(1, -110, 1, -40)
+copyBtn.BackgroundColor3 = self.Config.ACCENT_COLOR
+copyBtn.Text = "COPY CODE"
+copyBtn.TextColor3 = Color3.new(0, 0, 0)
+copyBtn.Font = Enum.Font.Code
+copyBtn.TextSize = 10
+self:_applyStyle(copyBtn, 4)
+
+local closeCode = Instance.new("TextButton", codeFrame)
+closeCode.Size = UDim2.new(0, 100, 0, 30)
+closeCode.Position = UDim2.new(0, 10, 1, -40)
+closeCode.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+closeCode.Text = "EXIT SOURCE"
+closeCode.TextColor3 = Color3.new(1, 1, 1)
+closeCode.Font = Enum.Font.Code
+closeCode.TextSize = 10
+self:_applyStyle(closeCode, 4)
+
+self.State.UI = {
+    ScreenGui = screenGui,
+    Main = main,
+    Title = title,
+    Grid = grid,
+    Sidebar = sidebar,
+    CodeFrame = codeFrame,
+    CodeBox = codeBox,
+    Search = searchInput
+}
+
+backBtn.MouseButton1Click:Connect(function()
+    if #self.State.PathStack > 0 then
+        local prev = table.remove(self.State.PathStack)
+        self:PopulateGrid(prev, "Parent")
+    end
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    main.Visible = false
+end)
+
+closeCode.MouseButton1Click:Connect(function()
+    self.State.ViewingCode = false
+    codeFrame.Visible = false
+    grid.Visible = true
+    title.Text = "PATH: " .. (self.State.SelectedModule and self.State.SelectedModule.Name or "Main")
+end)
+
+copyBtn.MouseButton1Click:Connect(function()
+    self:_setClipboard(codeBox.Text)
+    copyBtn.Text = "COPIED!"
+    task.wait(1)
+    copyBtn.Text = "COPY CODE"
+end)
+
+searchInput:GetPropertyChangedSignal("Text"):Connect(function()
+    local filter = searchInput.Text:lower()
+    for container, name in pairs(self.State.SidebarButtons) do
+        container.Visible = name:lower():find(filter) ~= nil
+    end
+end)
+
+local dragging, dragStart, startPos
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+task.spawn(function()
+    local paths = {ReplicatedStorage, Players.LocalPlayer, Workspace}
+    for _, p in ipairs(paths) do
+        for _, m in ipairs(p:GetDescendants()) do
+            if m:IsA("ModuleScript") then
+                self:AddModuleToList(m)
+            end
+        end
+        task.wait()
+    end
+end)
+end
+
+function Modules.ModulePoisoner:Initialize() local module = self
+
+RunService.Heartbeat:Connect(function()
+    for tbl, keys in pairs(module.State.ActivePatches) do
+        for key, data in pairs(keys) do
+            if data.Locked then
+                local setRO = setreadonly or (make_writeable and function(t, b) if b then make_writeable(t) else make_readonly(t) end end)
+                pcall(function()
+                    setRO(tbl, false)
+                    if data.IsFunction then
+                        if data.Value == "TRUE" then
+                            rawset(tbl, key, function() return true end)
+                        elseif data.Value == "FALSE" then
+                            rawset(tbl, key, function() return false end)
+                        end
+                    else
+                        rawset(tbl, key, data.Value)
+                    end
+                    setRO(tbl, true)
+                end)
+            end
+        end
+    end
+end)
+
+RegisterCommand({
+    Name = "poisoner",
+    Aliases = {"overseer", "modulepoison", "mp"},
+    Description = "Opens the high-tier Module Poisoner and Logic Hijacking UI."
+}, function()
+    module:CreateUI()
+end)
+end
+
+
 Modules.CallumAI = {
     State = {
         IsEnabled = true,
@@ -15154,7 +15587,7 @@ RegisterCommand({Name = "extendroot", Aliases = {}, Description = "Bypasses Rayc
 
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
 
-RegisterCommand({Name = "poisoner", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisonerRefactor.lua", "Loading GUI..") end)
+--[[RegisterCommand({Name = "poisoner", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisonerRefactor.lua", "Loading GUI..") end)--]]
 
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
 
