@@ -3,8 +3,8 @@ local RunService: RunService = game:GetService("RunService")
 local UserInputService: UserInputService = game:GetService("UserInputService")
 local TweenService: TweenService = game:GetService("TweenService")
 local Players: Players = game:GetService("Players")
-
-local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer: Player = Players.LocalPlayer
 
 type PatchData = {
     Value: any,
@@ -29,7 +29,35 @@ local State = {
 
 local SidebarButtons = {}
 
+local c_info = clonefunction(debug.info)
+local c_check = clonefunction(checkcaller)
+local c_rawset = clonefunction(rawset)
+
 local decompiler = (decompile or decompile_script or function() return "-- [ERROR] Decompiler unsupported." end)
+
+local function ToggleWriteable(tbl: table, state: boolean): boolean
+    local setRO = setreadonly or (make_writeable and function(t, b) if b then make_readonly(t) else make_writeable(t) end end)
+    if not setRO then return false end
+    local success = pcall(setRO, tbl, state)
+    return success
+end
+
+local function ForceWrite(tbl: table, key: any, val: any): boolean
+    local isRO = false
+    if isreadonly then
+        isRO = isreadonly(tbl)
+    end
+    if isRO then
+        ToggleWriteable(tbl, false)
+    end
+    local success, err = pcall(function()
+        c_rawset(tbl, key, val)
+    end)
+    if isRO then
+        ToggleWriteable(tbl, true)
+    end
+    return success
+end
 
 local ArchitectSuite = {
     GetBestTarget = function(dist: number): Instance?
@@ -45,61 +73,42 @@ local ArchitectSuite = {
         end
         return target
     end,
-
     ProxyRaycast = function(originalFunc: any)
-        return hookfunction(originalFunc, function(...)
+        return hookfunction(originalFunc, newcclosure(function(...)
             local result = originalFunc(...)
             local target = ArchitectSuite.GetBestTarget(20)
-
             if target then
                 if typeof(result) == "Instance" then
                     return target
                 elseif type(result) == "table" or typeof(result) == "RaycastResult" then
-                    local setRO = setreadonly or (make_writeable and function(t, b) if b then make_writeable(t) else make_readonly(t) end end)
-                    
                     if typeof(result) == "RaycastResult" then
                         return result
                     end
-
                     pcall(function()
-                        setRO(result, false)
-                        result.Instance = target
-                        result.Position = target.Position
-                        result.Hit = target
-                        setRO(result, true)
+                        ForceWrite(result, "Instance", target)
+                        ForceWrite(result, "Position", target.Position)
+                        ForceWrite(result, "Hit", target)
                     end)
                 end
             end
             return result
-        end)
+        end))
     end
 }
-
-local function SafeRawSet(tbl: table, key: any, val: any)
-    local setRO = setreadonly or (make_writeable and function(t, b) if b then make_writeable(t) else make_readonly(t) end end)
-    local success, err = pcall(function()
-        setRO(tbl, false)
-        rawset(tbl, key, val)
-        setRO(tbl, true)
-    end)
-    return success
-end
 
 local function ApplyDeepPatch(tbl: table, key: any, val: any, isFunc: boolean)
     if not Registry.ActivePatches[tbl] then
         Registry.ActivePatches[tbl] = {}
     end
-
     if isFunc then
         local spoofValue = val
         local originalFunc = tbl[key]
-        
         if hookfunction then
-            local newClosure = function(...)
+            local newClosure = newcclosure(function(...)
                 if spoofValue == "TRUE" then return true end
                 if spoofValue == "FALSE" then return false end
                 return nil
-            end
+            end)
             Registry.Hooks[originalFunc] = hookfunction(originalFunc, newClosure)
         end
     else
@@ -108,7 +117,7 @@ local function ApplyDeepPatch(tbl: table, key: any, val: any, isFunc: boolean)
             Locked = true,
             IsFunction = false
         }
-        SafeRawSet(tbl, key, val)
+        ForceWrite(tbl, key, val)
     end
 end
 
@@ -117,7 +126,7 @@ RunService.Heartbeat:Connect(function()
         for key, data in pairs(keys) do
             if data.Locked and not data.IsFunction then
                 if tbl[key] ~= data.Value then
-                    SafeRawSet(tbl, key, data.Value)
+                    ForceWrite(tbl, key, data.Value)
                 end
             end
         end
@@ -306,17 +315,14 @@ end
 local function PopulateGrid(targetTable: table, name: string)
     State.CurrentTable = targetTable
     title.Text = "POISONING PATH: " .. (name or "Unknown")
-    
     for _, v in ipairs(grid:GetChildren()) do
         if v:IsA("Frame") then v:Destroy() end
     end
-
     local function CreateRow(k: any, v: any, parent: table)
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, -10, 0, 35)
         row.BackgroundTransparency = 1
         row.Parent = grid
-
         local keyLabel = Instance.new("TextLabel")
         keyLabel.Size = UDim2.new(0.4, 0, 1, 0)
         keyLabel.Position = UDim2.fromOffset(5, 0)
@@ -327,7 +333,6 @@ local function PopulateGrid(targetTable: table, name: string)
         keyLabel.TextXAlignment = Enum.TextXAlignment.Left
         keyLabel.BackgroundTransparency = 1
         keyLabel.Parent = row
-
         if type(v) == "table" then
             local dive = Instance.new("TextButton")
             dive.Size = UDim2.new(0, 70, 0, 22)
@@ -354,7 +359,6 @@ local function PopulateGrid(targetTable: table, name: string)
             hook.TextSize = 8
             applyStyle(hook, 2)
             hook.Parent = row
-
             local view = Instance.new("TextButton")
             view.Size = UDim2.new(0, 70, 0, 22)
             view.Position = UDim2.fromScale(0.55, 0.2)
@@ -365,9 +369,7 @@ local function PopulateGrid(targetTable: table, name: string)
             view.TextSize = 8
             applyStyle(view, 2)
             view.Parent = row
-
             view.MouseButton1Click:Connect(function() ShowSource(v) end)
-
             local modes = {"NORMAL", "TRUE", "FALSE"}
             local cur = 1
             hook.MouseButton1Click:Connect(function()
@@ -376,7 +378,6 @@ local function PopulateGrid(targetTable: table, name: string)
                 hook.Text = "FORCE " .. m
                 ApplyDeepPatch(parent, k, m, true)
             end)
-            
             if debug and debug.getupvalues then
                 local upvBtn = Instance.new("TextButton")
                 upvBtn.Size = UDim2.new(0, 70, 0, 22)
@@ -413,7 +414,6 @@ local function PopulateGrid(targetTable: table, name: string)
             end)
         end
     end
-
     pcall(function()
         for k, v in pairs(targetTable) do
             CreateRow(k, v, targetTable)
@@ -426,7 +426,6 @@ local function AddSidebarItem(obj: any, name: string)
     container.Size = UDim2.new(1, -5, 0, 28)
     container.BackgroundTransparency = 1
     container.Parent = sidebar
-
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -80, 1, 0)
     btn.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
@@ -437,7 +436,6 @@ local function AddSidebarItem(obj: any, name: string)
     btn.TextXAlignment = Enum.TextXAlignment.Left
     applyStyle(btn, 3)
     btn.Parent = container
-
     local payload = Instance.new("TextButton")
     payload.Size = UDim2.new(0, 35, 1, 0)
     payload.Position = UDim2.new(1, -75, 0, 0)
@@ -449,7 +447,6 @@ local function AddSidebarItem(obj: any, name: string)
     payload.Visible = (name:lower():find("melee") or name:lower():find("combat") or name:lower():find("ray")) ~= nil
     applyStyle(payload, 3)
     payload.Parent = container
-
     local src = Instance.new("TextButton")
     src.Size = UDim2.new(0, 35, 1, 0)
     src.Position = UDim2.new(1, -35, 0, 0)
@@ -460,23 +457,20 @@ local function AddSidebarItem(obj: any, name: string)
     src.TextSize = 10
     applyStyle(src, 3)
     src.Parent = container
-
     SidebarButtons[container] = name
-
     btn.MouseButton1Click:Connect(function()
         State.SelectedModule = obj
         State.PathStack = {}
         local success, result = pcall(require, obj)
         if success then PopulateGrid(result, name) else PopulateGrid(obj, name) end
     end)
-
     payload.MouseButton1Click:Connect(function()
         local success, result = pcall(require, obj)
         if success then
             for k, v in pairs(result) do
                 if type(v) == "function" then
                     if k:lower():find("cooldown") then
-                        hookfunction(v, function() return false end)
+                        hookfunction(v, newcclosure(function() return false end))
                     elseif k:lower():find("cast") or k:lower():find("ray") or k:lower():find("hit") then
                         ArchitectSuite.ProxyRaycast(v)
                     end
@@ -487,7 +481,6 @@ local function AddSidebarItem(obj: any, name: string)
             payload.TextColor3 = Color3.fromRGB(0, 255, 0)
         end
     end)
-
     src.MouseButton1Click:Connect(function() ShowSource(obj) end)
 end
 
@@ -501,10 +494,8 @@ task.spawn(function()
             end
         end
     end
-
-    scan(game:GetService("ReplicatedStorage"))
-    scan(Players.LocalPlayer)
-
+    scan(ReplicatedStorage)
+    scan(LocalPlayer)
     if getloadedmodules then
         for _, m in ipairs(getloadedmodules()) do
             if not processed[m] then
@@ -543,7 +534,7 @@ minBtn.MouseButton1Click:Connect(function()
     }):Play()
 end)
 
-local dragging, dragInput, dragStart, startPos
+local dragging, dragStart, startPos
 header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
