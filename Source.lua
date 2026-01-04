@@ -14046,6 +14046,162 @@ RegisterCommand({
     end
 end)
 
+
+Modules.CallumAI = {
+    State = {
+        IsEnabled = true,
+        LastResponse = "",
+        IsProcessing = false
+    },
+    Config = {
+        API_KEY = "",
+        MODEL = "gemini-2.5-flash",
+        ACCENT_COLOR = Color3.fromRGB(0, 255, 200),
+        SCAN_KEYWORDS = {"network", "remote", "data", "store", "inventory", "purchase", "handler", "event", "admin", "combat", "security", "anti", "function"}
+    }
+}
+
+function Modules.CallumAI:_getPanelContext(): string
+    local manifest = "Active Panel Modules:\n"
+    for name, _ in pairs(Modules) do
+        manifest ..= "- " .. tostring(name) .. "\n"
+    end
+    return manifest
+end
+
+function Modules.CallumAI:_scanGameContainers(): string
+    local findings = {}
+    local report = "Game Architecture Scan Report (Workspace & ReplicatedStorage):\n"
+    local targets = {ReplicatedStorage, Workspace, Players}
+
+    for _, container in ipairs(targets) do
+        local success, descendants = pcall(function() return container:GetDescendants() end)
+        if success then
+            for _, obj in ipairs(descendants) do
+                if obj:IsA("ModuleScript") or obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                    local nameLower = obj.Name:lower()
+                    local matchesKeyword = false
+
+                    for _, keyword in ipairs(self.Config.SCAN_KEYWORDS) do
+                        if nameLower:find(keyword) then
+                            matchesKeyword = true
+                            break
+                        end
+                    end
+
+                    if matchesKeyword then
+                        table.insert(findings, {
+                            Path = obj:GetFullName(),
+                            Name = obj.Name,
+                            Class = obj.ClassName
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    if #findings == 0 then
+        report ..= "No suspicious architectural vectors identified via keyword scan."
+    else
+        for i, data in ipairs(findings) do
+            if i > 35 then break end
+            report ..= string.format("[%s] %s | Path: %s\n", data.Class, data.Name, data.Path)
+        end
+    end
+
+    return report
+end
+
+function Modules.CallumAI:FetchResponse(prompt: string, includeScan: boolean): string
+    local requestFunc = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
+    
+    if not requestFunc then
+        return "Error: Executor lacks HTTP capability."
+    end
+
+    local panelContext = self:_getPanelContext()
+    local gameContext = includeScan and self:_scanGameContainers() or "No structural scan requested for this query."
+    
+    local systemInstruction = "You are Callum, a world-class Roblox Scripting Architect and Security Analyst. You are an extension of Zuka's exploit panel. You can view the players folder and create quick scripts to be injected on the spot."
+    local payloadText = string.format("%s\n\n[CONTEXT]\nPanel Modules: %s\nGame Scan: %s\n\nUser Query: %s", systemInstruction, panelContext, gameContext, prompt)
+
+    local success, result = pcall(function()
+        local response = requestFunc({
+            Url = "https://generativelanguage.googleapis.com/v1/models/" .. self.Config.MODEL .. ":generateContent?key=" .. self.Config.API_KEY,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode({
+                contents = {
+                    {
+                        parts = {
+                            { text = payloadText }
+                        }
+                    }
+                }
+            })
+        })
+
+        if response and response.StatusCode == 200 then
+            local data = HttpService:JSONDecode(response.Body)
+            if data.candidates and data.candidates[1] and data.candidates[1].content and data.candidates[1].content.parts[1] then
+                return data.candidates[1].content.parts[1].text
+            end
+            return "Error: Unexpected data structure from Gemini."
+        else
+            warn("CallumAI Uplink Failure:", response and response.Body or "No Response")
+            return "Uplink Error: " .. (response and tostring(response.StatusCode) or "Connection Timeout")
+        end
+    end)
+
+    return success and result or "Critical Failure: " .. tostring(result)
+end
+
+function Modules.CallumAI:Initialize()
+    local module = self
+    
+    RegisterCommand({
+        Name = "callum",
+        Aliases = {"c", "intel", "analyze", "gemini"},
+        Description = "Queries Callum Gemini AI. Use ';callum scan' to analyze Workspace and ReplicatedStorage."
+    }, function(args)
+        local isScan = args[1] and args[1]:lower() == "scan"
+        local prompt = table.concat(args, " ", isScan and 2 or 1)
+        
+        if #prompt == 0 and not isScan then
+            return DoNotif("Target query or scan command required.", 3)
+        end
+        
+        if isScan and #prompt == 0 then
+            prompt = "Analyze the provided game scan results. Identify potential vulnerabilities like insecure Remotes or sensitive Logic Modules and suggest exploitation methods."
+        end
+
+        if module.State.IsProcessing then
+            return DoNotif("Callum is already processing...", 2)
+        end
+        
+        module.State.IsProcessing = true
+        DoNotif(isScan and "Deep-scanning Workspace/ReplicatedStorage and analyzing..." or "Querying Callum Gemini...", 3)
+        
+        task.spawn(function()
+            local reply = module:FetchResponse(prompt, isScan)
+            module.State.LastResponse = reply
+            module.State.IsProcessing = false
+            
+            if Modules.CommandBar and Modules.CommandBar.AddOutput then
+                Modules.CommandBar:AddOutput("<font color='#00FFC8'>[CALLUM]:</font> " .. reply, module.Config.ACCENT_COLOR)
+            else
+                print("--- [Callum Gemini Analysis] ---")
+                print(reply)
+                print("--------------------------------")
+                DoNotif("Analysis Complete. Check Console (F9).", 5)
+            end
+        end)
+    end)
+end
+
 Modules.RaycastVisualBypass = {
     State = {
         IsEnabled = false,
