@@ -1,10 +1,3 @@
---[[
-    ARCHITECT: Callum (Roblox Scripting Architect)
-    PROJECT: ZukaTech Executor (Refactored)
-    VERSION: 13.3.7-EX (Clean Build)
-    DESCRIPTION: A surgical extraction of the RageBot logic, leaving a pure 
-                 environment for code execution and memory research.
-]]
 
 if getgenv().ZukaLuaHub then
     pcall(function() getgenv().ZukaLuaHub:Destroy() end)
