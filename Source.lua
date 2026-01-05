@@ -14324,7 +14324,7 @@ Modules.CallumAI = {
         IsProcessing = false
     },
     Config = {
-        API_KEY = "",
+        API_KEY = "your api here",
         MODEL = "gemini-2.5-flash",
         ACCENT_COLOR = Color3.fromRGB(0, 255, 200),
         SCAN_KEYWORDS = {"network", "remote", "data", "store", "inventory", "purchase", "handler", "event", "admin", "combat", "security", "anti", "function"}
@@ -15589,13 +15589,13 @@ end
 
 
 RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function()
-loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/Universe%20Viewer", "Universe Initialized")
+loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin")
 end)
 
 
---[[RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function()
-loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/WallWalk.lua", "Loaded!")
-end)--]]
+RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function()
+loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!")
+end)
 
 
 RegisterCommand({Name = "dex", Aliases = {}, Description = "Loads Dex"}, function()
@@ -15608,7 +15608,7 @@ RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "Makes the pumpki
 
 RegisterCommand({Name = "zukahub", Aliases = {"zuka"}, Description = "Loads the Zuka Hub"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZukaHub.lua", "Loading Zuka's Hub...") end)
 
-RegisterCommand({Name = "noacid", Aliases = {"antiskid"}, Description = "Stops lag from the acid feature in zgameupd3"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/AcidUpdated.lua", "Loading...") end)
+RegisterCommand({Name = "noacid", Aliases = {"unfuck"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AntiAcidRainLag.lua", "Loading...") end)
 
 RegisterCommand({Name = "stats", Aliases = {}, Description = "Edit and lock your properties."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/statlock.lua", "Loading Stats..") end)
 
@@ -15626,9 +15626,9 @@ RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded
 
 RegisterCommand({Name = "simplespy", Aliases = {"bestspy"}, Description = "Best remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/simplee%20spyyy%20mobilee", "Loading rSpy...") end)
 
-RegisterCommand({Name = "advspy", Aliases = {"ketamine"}, Description = "Best remote spy after simplespy"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RemoteScanner.lua", "Loading Advanced Spy...") end)
+RegisterCommand({Name = "advspy", Aliases = {"ketamine"}, Description = "mid remote spy after simplespy"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RemoteScanner.lua", "Loading Advanced Spy...") end)
 
-RegisterCommand({Name = "sniffer", Aliases = {"sniff"}, Description = "Event tool"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RemoteScannerConsole.lua", "Loading Console...") end)
+RegisterCommand({Name = "lineofsight", Aliases = {}, Description = "Logger for players looking at you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/LineOfSightLogger.lua", "Loading...") end)
 
 RegisterCommand({Name = "nova", Aliases = {"delua"}, Description = "Novas Deobfuscator, Bytecode Grabber"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/NovasDeobfuscator.lua", "Deobfuscator Loaded") end)
 
@@ -15638,7 +15638,7 @@ RegisterCommand({Name = "extendroot", Aliases = {}, Description = "Bypasses Rayc
 
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
 
-RegisterCommand({Name = "advpoisoner", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisonerRefactor.lua", "Loading GUI..") end)
+RegisterCommand({Name = "overs", Aliases = {"pv2"}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ModulePoisoner.lua", "Loading GUI..") end)
 
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
 
@@ -15651,6 +15651,8 @@ RegisterCommand({Name = "tptohp", Aliases = {}, Description = "For https://www.r
 RegisterCommand({Name = "reachfix", Aliases = {"fix"}, Description = "Makes your equipped tool invisible when using reach"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/InvisibleEquippedTool.lua", "Fixed") end)
 
 RegisterCommand({Name = "worldofstands", Aliases = {"wos"}, Description = "For https://www.roblox.com/games/6728870912/World-of-Stands - Removes dash cooldown"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/WOS.lua", "Loading, Wait a sec.") end)
+
+RegisterCommand({Name = "csgo", Aliases = {"phoon"}, Description = "Become a speed demon like phoon."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/phoon.lua", "Loading, Wait a sec.") end)
 
 
 function processCommand(message)
