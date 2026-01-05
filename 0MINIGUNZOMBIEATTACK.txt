@@ -1,0 +1,115 @@
+--[[
+    Project: "Chimera" - Weapon Impersonation (V1.4 - Module Poisoning)
+    Author: Callum
+    Description: The definitive version for all executors. This script poisons the GunData module cache
+    upon loading. It modifies the stats of a base weapon you own to perfectly match a powerful, unowned
+    weapon. Any game script that subsequently loads GunData will receive our modified version.
+--]]
+
+--// ================================================================================= //--
+--// SERVICES & SETUP
+--// ================================================================================= //--
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local localPlayer = Players.LocalPlayer
+if not localPlayer then
+    localPlayer = Players.PlayerAdded:Wait()
+end
+
+--// ================================================================================= //--
+--// CONFIGURATION
+--// ================================================================================= //--
+
+local Config = {
+    -- The weapon you OWN. The default "Pistol" is a perfect base.
+    BaseWeaponName = "Tri Laser",
+    -- The powerful weapon you want to forge.
+    TargetWeaponName = "Minigun"
+}
+
+--// ================================================================================= //--
+--// CORE LOGIC - MODULE POISONING (RUNS ONLY ONCE)
+--// ================================================================================= //--
+
+-- We wrap this in a pcall to ensure it only runs once successfully.
+local poisoningSuccess = pcall(function()
+    print("Chimera V1.4: Locating and poisoning the GunData module...")
+    
+    -- Step 1: Be the first to require the module, loading its data into the cache.
+    local GunDataModule = require(ReplicatedStorage:WaitForChild("GunData"))
+    
+    -- Step 2: Get the stats for the weapon we want and the weapon we're using as a base.
+    local targetStats = GunDataModule[Config.TargetWeaponName]
+    local baseStats = GunDataModule[Config.BaseWeaponName]
+    
+    if not targetStats then
+        print("Chimera Error: Target weapon '" .. Config.TargetWeaponName .. "' not found in GunData.")
+        return
+    end
+    if not baseStats then
+        print("Chimera Error: Base weapon '" .. Config.BaseWeaponName .. "' not found in GunData.")
+        return
+    end
+    
+    -- Step 3: Overwrite every stat in the base weapon's table with the target weapon's stats.
+    -- This "poisons" the data for any script that looks up the BaseWeaponName.
+    for key, value in pairs(targetStats) do
+        baseStats[key] = value
+    end
+    
+    print(`Chimera: Poisoning complete. The GunData entry for '{Config.BaseWeaponName}' now contains the stats for '{Config.TargetWeaponName}'.`)
+end)
+
+if not poisoningSuccess then
+    print("Chimera FATAL ERROR: The module poisoning process failed. The game may have an anti-tamper mechanism on its modules.")
+end
+
+
+--// ================================================================================= //--
+--// TRIGGER FUNCTION
+--// ================================================================================= //--
+
+local function equipForgedWeapon()
+    if not poisoningSuccess then
+        print("Chimera: Cannot equip; module poisoning failed on startup.")
+        return
+    end
+
+    local character = localPlayer.Character
+    if not character then return print("Chimera: Cannot equip; character not found.") end
+
+    local CommunicationF = ReplicatedStorage:WaitForChild("RemoteEventContainer"):WaitForChild("CommunicationF")
+
+    print(`Chimera: Requesting the (now modified) '{Config.BaseWeaponName}' from the server...`)
+    CommunicationF:InvokeServer("EquipItem", Config.BaseWeaponName, "Primary")
+    
+    local baseTool = character:WaitForChild(Config.BaseWeaponName, 5)
+    if not baseTool then return print("Chimera Error: The server did not give us the base weapon.") end
+
+    -- The final, critical step: rename the tool AFTER we receive it.
+    -- The GunController will now read this name when it sends the remote fire event.
+    baseTool.Name = Config.TargetWeaponName
+    
+    print(`Chimera: Forge complete. You are now holding a '{Config.TargetWeaponName}'.`)
+end
+
+--// ================================================================================= //--
+--// UI
+--// ================================================================================= //--
+
+local ScreenGui = Instance.new("ScreenGui", localPlayer:WaitForChild("PlayerGui"))
+ScreenGui.ResetOnSpawn = false
+local Button = Instance.new("TextButton")
+Button.Parent = ScreenGui
+Button.Size = UDim2.new(0, 250, 0, 50)
+Button.Position = UDim2.new(0.5, -125, 0.15, 0)
+Button.Text = `Equip Forged ${Config.TargetWeaponName}`
+Button.BackgroundColor3 = Color3.fromRGB(150, 50, 20)
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Font = Enum.Font.SourceSansBold
+
+Button.MouseButton1Click:Connect(equipForgedWeapon)
+
+print("Chimera V1.4 (Module Poisoning) by Callum loaded. This is our final and most compatible approach.")

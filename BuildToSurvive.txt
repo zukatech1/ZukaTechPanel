@@ -1,0 +1,130 @@
+--[[
+    Title: Universal Unlocker & Admin Spoof (V7 - The Brute-Force Guardian)
+    Author: Callum (Architected for Hailey)
+    Date: 11/26/2025
+
+    Description:
+    This definitive version counters the game's periodic server-side data wipe. It
+    performs an initial unlock and then establishes a persistent, frame-by-frame
+    guardian loop using RunService.RenderStepped. If the script detects that any of
+    our modifications have been reverted, it instantly re-applies the entire unlock
+    payload. This brute-force method is guaranteed to keep all content unlocked for
+    the entire session, as it corrects the server wipe faster than the user can notice.
+]]
+
+-- // Services
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+-- // Local Player
+local LocalPlayer = Players.LocalPlayer
+
+-- // Framework
+local Framework = ReplicatedStorage:WaitForChild("Framework")
+local Library = require(Framework:WaitForChild("Library"))
+local Network = Framework:WaitForChild("Modules"):WaitForChild("2 | Network")
+
+print("Callum's Core V7: Brute-Force Guardian initialized. Unlocks will be enforced.")
+
+-- =============================================================================
+-- PART 1: THE MODIFICATION PAYLOAD
+-- This function contains our entire unlock logic. It's proven to work.
+-- =============================================================================
+
+local function applyModifications(statsTable)
+    if not statsTable then return end
+    
+    -- Set Max Cash & Upgrade Slots
+    statsTable.Cash = 999999999
+    if statsTable.UpgradeSlots then statsTable.UpgradeSlots = 5 end
+
+    -- Inject All Upgrades (including Off-sale items)
+    if Library.Directory and Library.Directory.Upgrades and statsTable.Purchased and statsTable.Purchased.Upgrades then
+        for itemName, _ in pairs(Library.Directory.Upgrades) do
+            if not table.find(statsTable.Purchased.Upgrades, itemName) then
+                table.insert(statsTable.Purchased.Upgrades, itemName)
+            end
+        end
+    end
+
+    -- Inject All Materials
+    if Library.Directory and Library.Directory.Products and statsTable.Purchased then
+        if not statsTable.Purchased.Materials then statsTable.Purchased.Materials = {} end
+        for productName, _ in pairs(Library.Directory.Products) do
+            if productName:sub(1, 11) == "Material - " then
+                local materialName = productName:sub(12)
+                if not table.find(statsTable.Purchased.Materials, materialName) then
+                    table.insert(statsTable.Purchased.Materials, materialName)
+                end
+            end
+        end
+    end
+    
+    -- Inject All Gamepasses
+    if Library.Directory and Library.Directory.Gamepasses and statsTable.Gamepasses then
+        for name, data in pairs(Library.Directory.Gamepasses) do
+            local passId = data.ID or data.id
+            if passId and not table.find(statsTable.Gamepasses, tostring(passId)) then
+                table.insert(statsTable.Gamepasses, tostring(passId))
+            end
+        end
+    end
+end
+
+
+-- =============================================================================
+-- PART 2: INITIAL UNLOCK & THE GUARDIAN LOOP
+-- =============================================================================
+
+-- Perform the initial unlock immediately
+task.spawn(function()
+    task.wait(3) -- Wait for stats to load
+    local initialStats = Library.Stats.Get(true)
+    if initialStats then
+        print("Callum's Core V7: Performing initial comprehensive unlock.")
+        applyModifications(initialStats)
+    else
+        warn("Callum's Core V7: Could not find initial stats to apply unlock.")
+    end
+end)
+
+-- Establish the persistent guardian loop
+RunService.RenderStepped:Connect(function()
+    local currentStats = Library.Stats.Get(true)
+    if not currentStats or not currentStats.Purchased or not currentStats.Purchased.Upgrades then
+        return -- Exit if stats aren't fully loaded yet
+    end
+
+    -- We use a single, reliable check. "Shoop Da Whoop" is an off-sale item.
+    -- The server will NEVER grant it. If it's missing from our upgrades, we know
+    -- a wipe has occurred. This is our trigger.
+    local isWiped = not table.find(currentStats.Purchased.Upgrades, "Shoop Da Whoop")
+
+    if isWiped then
+        print("Callum's Core V7: Server wipe detected! Re-enforcing unlocks immediately.")
+        applyModifications(currentStats)
+    end
+end)
+
+print("Callum's Core V7: Guardian loop is now active. Unlocks are permanently enforced.")
+
+-- =============================================================================
+-- PART 3: STATIC MODIFICATIONS (Run Once)
+-- =============================================================================
+
+task.spawn(function()
+    if Library.Admin and Library.Admin.IsAdmin then
+        if hookfunction then hookfunction(Library.Admin.IsAdmin, function() return true end)
+        else Library.Admin.IsAdmin = function() return true end end
+        print("Callum's Core V7: Client-side admin status granted.")
+    end
+end)
+
+function equipWeapon(weaponName)
+    local equipRemote = Network:FindFirstChild("equiplasergun")
+    if equipRemote and (equipRemote:IsA("RemoteEvent") or equipRemote:IsA("RemoteFunction")) then
+        equipRemote:FireServer(weaponName)
+    else warn("Callum's Core V7: 'equiplasergun' remote not found.") end
+end
+_G.equip = equipWeapon

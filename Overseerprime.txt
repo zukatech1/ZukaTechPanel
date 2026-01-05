@@ -1,0 +1,330 @@
+--[[
+    ARCHITECT: Callum (Architect Prime)
+    SYSTEM: OVERSEER // ARCHITECT PRIME (ULTIMATE EDITION)
+    VERSION: 3.0.0 (The Singularity Patch)
+    
+    INTEGRATION: 
+    - Overseer V26.1 (Surveillance/Metatables)
+    - ZukaTech EX (Internal Execution)
+    - Auto-Architect (Pattern-Based Mass Poisoning)
+]]
+
+--// --- Core Engine Services ---
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+--// --- Security & Hooking Cache ---
+local c_info = clonefunction(debug.info)
+local c_check = clonefunction(checkcaller)
+local c_rawset = clonefunction(rawset)
+local c_getmt = clonefunction(getrawmetatable)
+local decompiler = (decompile or decompile_script or function() return "-- [ERROR] Decompiler Unsupported." end)
+
+--// --- Unified Registry & State ---
+local Registry = {
+    ActivePatches = {}, -- Enforced Values
+    Hooks = {},         -- Function Redirects
+    Modules = {}        -- Scanned Module Map
+}
+
+local State = {
+    CurrentPage = "Browser",
+    SelectedModule = nil,
+    PathStack = {},
+    Minimized = false,
+    AutoArchitectActive = false
+}
+
+local THEME = {
+    Background = Color3.fromRGB(15, 15, 18),
+    Header = Color3.fromRGB(10, 10, 12),
+    Accent = Color3.fromRGB(0, 255, 170), -- Overseer Green
+    AccentMuted = Color3.fromRGB(0, 100, 70),
+    Text = Color3.fromRGB(230, 230, 230),
+    Muted = Color3.fromRGB(140, 140, 150),
+    Table = Color3.fromRGB(20, 20, 24),
+    Meta = Color3.fromRGB(45, 25, 75) -- Purple Meta
+}
+
+--// --- Architectural Suite (Internal APIs) ---
+
+_G.ArchitectSuite = {
+    GetMetatableSafe = function(tbl: table): table?
+        local success, mt = pcall(c_getmt, tbl)
+        return (success and mt) and mt or nil
+    end,
+
+    ForceWrite = function(tbl: table, key: any, val: any)
+        local setRO = setreadonly or (make_writeable and function(t, b) if b then make_readonly(t) else make_writeable(t) end end)
+        local isRO = isreadonly and isreadonly(tbl)
+        if isRO then pcall(setRO, tbl, false) end
+        local success = pcall(c_rawset, tbl, key, val)
+        if isRO then pcall(setRO, tbl, true) end
+        return success
+    end,
+
+    GetBestTarget = function(dist: number): Instance?
+        local target, closest = nil, dist
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local d = (LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                if d < closest then target = p.Character.HumanoidRootPart; closest = d end
+            end
+        end
+        return target
+    end,
+
+    ProxyRaycast = function(originalFunc: any)
+        return hookfunction(originalFunc, newcclosure(function(...)
+            local result = originalFunc(...)
+            local target = _G.ArchitectSuite.GetBestTarget(30)
+            if target then
+                if typeof(result) == "Instance" then return target end
+                if type(result) == "table" or typeof(result) == "RaycastResult" then
+                    _G.ArchitectSuite.ForceWrite(result, "Instance", target)
+                    _G.ArchitectSuite.ForceWrite(result, "Position", target.Position)
+                    _G.ArchitectSuite.ForceWrite(result, "Hit", target)
+                end
+            end
+            return result
+        end))
+    end
+}
+
+local function ApplyDeepPatch(tbl: table, key: any, val: any, isFunc: boolean)
+    if not Registry.ActivePatches[tbl] then Registry.ActivePatches[tbl] = {} end
+    if isFunc then
+        local spoofValue = val
+        local originalFunc = tbl[key]
+        if hookfunction and type(originalFunc) == "function" then
+            local newClosure = newcclosure(function(...)
+                if spoofValue == "TRUE" then return true end
+                if spoofValue == "FALSE" then return false end
+                return nil
+            end)
+            Registry.Hooks[originalFunc] = hookfunction(originalFunc, newClosure)
+        end
+    else
+        Registry.ActivePatches[tbl][key] = { Value = val, Locked = true, IsFunction = false }
+        _G.ArchitectSuite.ForceWrite(tbl, key, val)
+    end
+end
+
+--// --- Automated Payloads (Pattern Matching) ---
+local AutoArchitect = {
+    ["CooldownBypass"] = function(name, tbl)
+        for k, v in pairs(tbl) do
+            if type(v) == "function" and k:lower():find("cooldown") then
+                hookfunction(v, newcclosure(function() return false end))
+            end
+        end
+    end,
+    ["HitRegRedirect"] = function(name, tbl)
+        for k, v in pairs(tbl) do
+            if type(v) == "function" and (k:lower():find("cast") or k:lower():find("hit")) then
+                _G.ArchitectSuite.ProxyRaycast(v)
+            end
+        end
+    end
+}
+
+--// --- UI Construction ---
+
+local screen = Instance.new("ScreenGui", CoreGui)
+screen.Name = "ARCHITECT_PRIME"
+screen.ResetOnSpawn = false
+
+local function makeCorner(obj, r)
+    local c = Instance.new("UICorner", obj); c.CornerRadius = UDim.new(0, r or 6)
+end
+
+local function createStroke(obj, color, trans)
+    local s = Instance.new("UIStroke", obj); s.Color = color; s.Thickness = 1; s.Transparency = trans or 0.8
+end
+
+local Main = Instance.new("Frame", screen)
+Main.Size = UDim2.fromOffset(880, 580)
+Main.Position = UDim2.new(0.5, -440, 0.5, -290)
+Main.BackgroundColor3 = THEME.Background
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+makeCorner(Main, 8)
+createStroke(Main, THEME.Accent, 0.6)
+
+-- Header
+local Header = Instance.new("Frame", Main)
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.BackgroundColor3 = THEME.Header
+local Title = Instance.new("TextLabel", Header)
+Title.Size = UDim2.new(1, -200, 1, 0)
+Title.Position = UDim2.fromOffset(12, 0)
+Title.Text = "ARCHITECT PRIME // OVERSEER ULTIMATE"
+Title.TextColor3 = THEME.Accent; Title.Font = Enum.Font.Code; Title.TextSize = 14; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.BackgroundTransparency = 1
+
+-- Sidebar
+local Sidebar = Instance.new("Frame", Main)
+Sidebar.Size = UDim2.new(0, 180, 1, -50)
+Sidebar.Position = UDim2.fromOffset(10, 50)
+Sidebar.BackgroundColor3 = THEME.Table
+makeCorner(Sidebar, 6)
+
+local SideList = Instance.new("UIListLayout", Sidebar); SideList.Padding = UDim.new(0, 5); SideList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Pages Container
+local Pages = Instance.new("Frame", Main)
+Pages.Size = UDim2.new(1, -210, 1, -50)
+Pages.Position = UDim2.fromOffset(200, 50)
+Pages.BackgroundTransparency = 1
+
+local function createPage(name)
+    local p = Instance.new("Frame", Pages); p.Name = name; p.Size = UDim2.fromScale(1, 1); p.BackgroundTransparency = 1; p.Visible = false
+    return p
+end
+
+local BrowserPage = createPage("Browser")
+local EditorPage = createPage("Editor")
+
+--// --- THE BROWSER (Surveillance) ---
+local ModuleList = Instance.new("ScrollingFrame", BrowserPage)
+ModuleList.Size = UDim2.new(0.35, 0, 1, 0)
+ModuleList.BackgroundTransparency = 1; ModuleList.ScrollBarThickness = 2; ModuleList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Instance.new("UIListLayout", ModuleList).Padding = UDim.new(0, 4)
+
+local TableGrid = Instance.new("ScrollingFrame", BrowserPage)
+TableGrid.Size = UDim2.new(0.63, 0, 1, 0)
+TableGrid.Position = UDim2.fromScale(0.37, 0)
+TableGrid.BackgroundColor3 = THEME.Table; TableGrid.ScrollBarThickness = 2; TableGrid.AutomaticCanvasSize = Enum.AutomaticSize.Y
+makeCorner(TableGrid, 4)
+Instance.new("UIListLayout", TableGrid).Padding = UDim.new(0, 2)
+
+--// --- THE EDITOR (Automation) ---
+local EditorGutter = Instance.new("TextLabel", EditorPage)
+EditorGutter.Size = UDim2.new(0, 40, 1, -50); EditorGutter.BackgroundColor3 = THEME.Header; EditorGutter.TextColor3 = THEME.Muted; EditorGutter.Font = Enum.Font.Code; EditorGutter.TextSize = 12; EditorGutter.TextYAlignment = Enum.TextYAlignment.Top; EditorGutter.Text = "1"
+
+local EditorScroll = Instance.new("ScrollingFrame", EditorPage)
+EditorScroll.Size = UDim2.new(1, -45, 1, -50); EditorScroll.Position = UDim2.fromOffset(45, 0); EditorScroll.BackgroundTransparency = 1; EditorScroll.AutomaticCanvasSize = Enum.AutomaticSize.XY
+
+local EditorBox = Instance.new("TextBox", EditorScroll)
+EditorBox.Size = UDim2.fromScale(1, 1); EditorBox.MultiLine = true; EditorBox.ClearTextOnFocus = false; EditorBox.Font = Enum.Font.Code; EditorBox.TextSize = 14; EditorBox.TextColor3 = THEME.Text; EditorBox.TextXAlignment = Enum.TextXAlignment.Left; EditorBox.TextYAlignment = Enum.TextYAlignment.Top; EditorBox.BackgroundTransparency = 1
+EditorBox.Text = "-- ARCHITECT PAYLOAD EDITOR\n-- ArchitectSuite and ApplyDeepPatch are global.\n"
+
+local EditorBar = Instance.new("Frame", EditorPage)
+EditorBar.Size = UDim2.new(1, 0, 0, 40); EditorBar.Position = UDim2.new(0, 0, 1, -40); EditorBar.BackgroundColor3 = THEME.Header
+
+--// --- Functionality: Page Switching ---
+
+local function switchPage(name)
+    BrowserPage.Visible = (name == "Browser")
+    EditorPage.Visible = (name == "Editor")
+end
+
+local function makeSideBtn(text, page)
+    local b = Instance.new("TextButton", Sidebar)
+    b.Size = UDim2.new(0.9, 0, 0, 35); b.BackgroundColor3 = THEME.Background; b.Text = text; b.TextColor3 = THEME.Text; b.Font = Enum.Font.Code; b.TextSize = 12
+    makeCorner(b, 4); b.MouseButton1Click:Connect(function() switchPage(page) end)
+    return b
+end
+
+makeSideBtn("MODULE BROWSER", "Browser")
+makeSideBtn("ARCHITECT EDITOR", "Editor")
+
+--// --- Functionality: Surveillance Logic ---
+
+local function PopulateGrid(tbl, name)
+    for _, v in ipairs(TableGrid:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+    Title.Text = "SURVEILLANCE: " .. name
+    
+    -- Metatable Explore Row
+    local mt = _G.ArchitectSuite.GetMetatableSafe(tbl)
+    if mt then
+        local row = Instance.new("Frame", TableGrid)
+        row.Size = UDim2.new(1, -10, 0, 30); row.BackgroundColor3 = THEME.Meta; makeCorner(row, 4)
+        local l = Instance.new("TextLabel", row); l.Size = UDim2.new(0.5, 0, 1, 0); l.Text = " [METATABLE]"; l.TextColor3 = Color3.fromRGB(200, 150, 255); l.Font = Enum.Font.Code; l.BackgroundTransparency = 1; l.TextXAlignment = Enum.TextXAlignment.Left
+        local b = Instance.new("TextButton", row); b.Size = UDim2.new(0, 80, 0, 22); b.Position = UDim2.fromScale(0.7, 0.15); b.Text = "EXPLORE"; b.Font = Enum.Font.Code; b.TextSize = 10; b.MouseButton1Click:Connect(function() PopulateGrid(mt, name .. ".__mt") end)
+    end
+
+    for k, v in pairs(tbl) do
+        local row = Instance.new("Frame", TableGrid)
+        row.Size = UDim2.new(1, -10, 0, 30); row.BackgroundTransparency = 1
+        local l = Instance.new("TextLabel", row); l.Size = UDim2.new(0.4, 0, 1, 0); l.Text = " [" .. type(v):upper() .. "] " .. tostring(k); l.TextColor3 = THEME.Muted; l.Font = Enum.Font.Code; l.TextSize = 10; l.BackgroundTransparency = 1; l.TextXAlignment = Enum.TextXAlignment.Left
+        
+        if type(v) == "table" then
+            local b = Instance.new("TextButton", row); b.Size = UDim2.new(0, 60, 0, 22); b.Position = UDim2.fromScale(0.5, 0.15); b.Text = "DIVE"; b.Font = Enum.Font.Code; b.MouseButton1Click:Connect(function() PopulateGrid(v, tostring(k)) end)
+        elseif type(v) == "function" then
+            local b = Instance.new("TextButton", row); b.Size = UDim2.new(0, 60, 0, 22); b.Position = UDim2.fromScale(0.5, 0.15); b.Text = "HOOK"; b.Font = Enum.Font.Code; b.MouseButton1Click:Connect(function() ApplyDeepPatch(tbl, k, "TRUE", true) b.Text = "OK" end)
+            local s = Instance.new("TextButton", row); s.Size = UDim2.new(0, 60, 0, 22); s.Position = UDim2.fromScale(0.75, 0.15); s.Text = "SRC"; s.Font = Enum.Font.Code; s.MouseButton1Click:Connect(function() EditorBox.Text = decompiler(v); switchPage("Editor") end)
+        end
+    end
+end
+
+local function AddModuleItem(m, name)
+    local b = Instance.new("TextButton", ModuleList)
+    b.Size = UDim2.new(1, -10, 0, 28); b.BackgroundColor3 = THEME.Header; b.Text = " " .. name; b.TextColor3 = THEME.Text; b.Font = Enum.Font.Code; b.TextSize = 10; b.TextXAlignment = Enum.TextXAlignment.Left
+    makeCorner(b, 4); b.MouseButton1Click:Connect(function() local s, r = pcall(require, m); PopulateGrid(s and r or m, name) end)
+end
+
+--// --- Functionality: Execution Hub ---
+
+local RunBtn = Instance.new("TextButton", EditorBar)
+RunBtn.Size = UDim2.new(0, 100, 0, 30); RunBtn.Position = UDim2.fromOffset(10, 5); RunBtn.BackgroundColor3 = THEME.Accent; RunBtn.Text = "EXECUTE"; RunBtn.TextColor3 = THEME.Header; RunBtn.Font = Enum.Font.Code; makeCorner(RunBtn, 4)
+RunBtn.MouseButton1Click:Connect(function()
+    local func, err = loadstring(EditorBox.Text)
+    if func then task.spawn(func) else notify("Architect Error", err) end
+end)
+
+local AutoBtn = Instance.new("TextButton", Sidebar)
+AutoBtn.Size = UDim2.new(0.9, 0, 0, 40); AutoBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40); AutoBtn.Text = "AUTO-ARCHITECT"; AutoBtn.TextColor3 = THEME.Text; AutoBtn.Font = Enum.Font.Code; makeCorner(AutoBtn, 4)
+AutoBtn.MouseButton1Click:Connect(function()
+    notify("Architect", "Running Global Payloads...")
+    for m, name in pairs(Registry.Modules) do
+        local s, r = pcall(require, m)
+        if s and type(r) == "table" then
+            for _, payload in pairs(AutoArchitect) do pcall(payload, name, r) end
+        end
+    end
+    notify("Architect", "Global Patching Complete.")
+end)
+
+--// --- Lifecycle Connections ---
+
+RunService.Heartbeat:Connect(function()
+    for tbl, keys in pairs(Registry.ActivePatches) do
+        for key, data in pairs(keys) do
+            if data.Locked and not data.IsFunction then
+                if tbl[key] ~= data.Value then _G.ArchitectSuite.ForceWrite(tbl, key, data.Value) end
+            end
+        end
+    end
+end)
+
+EditorBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local lines = select(2, EditorBox.Text:gsub("\n","")) + 1
+    local lns = {}; for i=1, lines do table.insert(lns, tostring(i)) end
+    EditorGutter.Text = table.concat(lns, "\n")
+end)
+
+-- Scanner Thread
+task.spawn(function()
+    local function scan(root)
+        for _, m in ipairs(root:GetDescendants()) do
+            if m:IsA("ModuleScript") and not Registry.Modules[m] then
+                Registry.Modules[m] = m.Name; AddModuleItem(m, m.Name)
+            end
+        end
+    end
+    scan(ReplicatedStorage); scan(LocalPlayer)
+    if getloadedmodules then for _, m in ipairs(getloadedmodules()) do if not Registry.Modules[m] then Registry.Modules[m] = tostring(m); AddModuleItem(m, tostring(m)) end end end
+end)
+
+-- Dragging logic
+do local d, s, p; Header.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d=true; s=i.Position; p=Main.Position end end)
+UserInputService.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then local delta = i.Position - s; Main.Position = UDim2.new(p.X.Scale, p.X.Offset + delta.X, p.Y.Scale, p.Y.Offset + delta.Y) end end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d=false end end) end
+
+switchPage("Browser")
+notify("Architect Prime", "System Online. Auto-Architect Ready.")
