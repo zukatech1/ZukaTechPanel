@@ -1,6 +1,6 @@
-local Players: Players = game:GetService("Players")
-local RunService: RunService = game:GetService("RunService")
-local Workspace: Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local VELOCITY_POISON: Vector3 = Vector3.new(0, 50, 0)  -- Controlled random velocity
 local TARGET_RADIUS: number = 1000  -- More reasonable simulation radius
@@ -115,22 +115,21 @@ function Attacher:Activate(): nil
             oscillationStep += 1
             local intensity: number = self.State.chaosIntensity
 
-            local offsets: {CFrame} = {
-                CFrame.new(0, math.random(1, 5), 0),
-                CFrame.new(0, math.random(-5, -1), 0),
-                CFrame.new(math.random(-5, 5), 0, math.random(-5, 5)),
-                CFrame.new(math.random(-5, 5), 0, math.random(-5, 5))
-            }
+            -- Offset to position the player near the target's right shoulder, making the aimbot aim upwards
+            local hoverOffset = Vector3.new(math.random(0, 2), math.random(5, 8), math.random(-3, 3))  -- Right shoulder area
 
-            local currentOffset: CFrame = offsets[(oscillationStep % #offsets) + 1]
+            -- We apply a CFrame offset to keep the player slightly behind and above the target's shoulder
+            local currentOffset: CFrame = CFrame.new(hoverOffset)
             local angles: CFrame = CFrame.Angles(
                 math.rad(math.random(0, 360)),
                 math.rad(math.random(0, 360)),
                 math.rad(math.random(0, 360))
             )
 
-            -- Apply random, controlled velocity
-            root.Velocity = Vector3.new(math.random(-100, 100), math.random(-50, 50), math.random(-100, 100))
+            -- Apply random, controlled velocity (not too extreme)
+            root.Velocity = Vector3.new(math.random(-50, 50), math.random(-25, 25), math.random(-50, 50))
+
+            -- Position the player close enough to the target's right shoulder, avoiding direct aim
             root.CFrame = targetRoot.CFrame * currentOffset * angles
         else
             if root then
