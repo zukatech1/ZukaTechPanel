@@ -1,15 +1,4 @@
---[[
-    ARCHITECT: Callum (Roblox Scripting Architect)
-    VERSION: V26.1 (Metatable Surveillance Patch)
-    SECURITY LEVEL: White-Hat / Research
-    
-    CHANGE LOG:
-    - Integrated GetMetatableSafe into ArchitectSuite.
-    - Added [METATABLE] entry in PopulateGrid for deep inheritance scanning.
-    - Enhanced ForceWrite to handle nested read-only states.
-    - Modularized the Patching Engine for high-frequency Heartbeat enforcement.
-]]
-
+-- realbunni.com
 --// --- Services ---
 local CoreGui: CoreGui = game:GetService("CoreGui")
 local RunService: RunService = game:GetService("RunService")
@@ -44,6 +33,51 @@ local State = {
 
 local SidebarButtons = {}
 
+
+local GhostRegistry = {
+    BlockedRemotes = {},
+    SpoofedArguments = {},
+    UI_Hidden = true
+}
+
+local function CloakEnvironment()
+    local mt = getrawmetatable(game)
+    local old_index = mt.__index
+    setreadonly(mt, false)
+    mt.__index = newcclosure(function(t, k)
+        if not checkcaller() and k == "OVERSEER_ARCHITECT_V26_PAYLOADS" then
+            return nil 
+        end
+        return old_index(t, k)
+    end)
+    setreadonly(mt, true)
+end
+
+local function InitiateInterception()
+    local mt = getrawmetatable(game)
+    local old_namecall = mt.__namecall
+    setreadonly(mt, false)
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if (method == "FireServer" or method == "InvokeServer") and GhostRegistry.BlockedRemotes[self.Name] then
+            return nil 
+        end
+        return old_namecall(self, ...)
+    end)
+    setreadonly(mt, true)
+end
+
+local function DeepScan()
+    if not getgc then return end
+    for _, obj in pairs(getgc(true)) do
+        if type(obj) == "function" then
+            local info = c_info(obj, "n")
+            if info:lower():find("anticheat") or info:lower():find("kick") then
+                hookfunction(obj, function() return end)
+            end
+        end
+    end
+end
 --// --- Cloaked Function Cache ---
 local c_info = clonefunction(debug.info)
 local c_check = clonefunction(checkcaller)
@@ -94,6 +128,35 @@ local ArchitectSuite = {
         return target
     end,
 
+    UnshackledGetMetatable = function(tbl: table)
+        -- This bypasses the "Locked" string trap
+        local mt = c_getmt(tbl)
+        if mt then
+            local success, isRO = pcall(isreadonly, mt)
+            if success and isRO then
+                ToggleWriteable(mt, false) -- Force it to be writeable
+            end
+            return mt
+        end
+        return nil
+    end,
+
+    RevealHiddenData = function(tbl: table)
+        local hiddenData = {}
+        -- If the table is blank, we scan the functions for hidden variables
+        for k, v in pairs(tbl) do
+            if type(v) == "function" then
+                local success, upvalues = pcall(debug.getupvalues, v)
+                if success then
+                    for i, uv in pairs(upvalues) do
+                        hiddenData["UPVALUE_" .. tostring(k) .. "_" .. i] = uv
+                    end
+                end
+            end
+        end
+        return hiddenData
+    end,
+
     ProxyRaycast = function(originalFunc: any)
         return hookfunction(originalFunc, newcclosure(function(...)
             local result = originalFunc(...)
@@ -114,8 +177,106 @@ local ArchitectSuite = {
     end
 }
 
---// --- Patching Engine ---
+-- Assigned after the table literal for clean modularity
+ArchitectSuite.HeuristicScan = function()
+    local weaponModules = {}
+    local keywords = {"damage", "firerate", "recoil", "spread", "ammo", "reload", "velocity"}
+    
+    for _, m in ipairs(getloadedmodules()) do
+        local success, result = pcall(require, m)
+        if success and type(result) == "table" then
+            local matches = 0
+            for k, _ in pairs(result) do
+                for _, word in ipairs(keywords) do
+                    if tostring(k):lower():find(word) then
+                        matches = matches + 1
+                    end
+                end
+            end
+            -- If the module has 2+ weapon-related keys, it's likely a gun config
+            if matches >= 2 then
+                table.insert(weaponModules, {Module = m, Data = result, Confidence = matches})
+            end
+        end
+    end
+    return weaponModules
+end
 
+--// --- UI Utilities (MOVED TO TOP TO PREVENT NIL ERRORS) ---
+local function applyStyle(obj: Instance, r: number?)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r or 4)
+    c.Parent = obj
+end
+
+local function createStroke(obj: Instance, color: Color3)
+    local s = Instance.new("UIStroke")
+    s.Color = color
+    s.Thickness = 1
+    s.Transparency = 0.8
+    s.Parent = obj
+end
+
+--// --- UI Refresh: The "Glass" Theme ---
+local function ApplyModernStyle(frame)
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    frame.BackgroundTransparency = 0.2
+    local blur = Instance.new("Frame")
+    blur.Size = UDim2.new(1, 4, 1, 4)
+    blur.Position = UDim2.fromOffset(-2, -2)
+    blur.BackgroundColor3 = Color3.fromRGB(0, 255, 170)
+    blur.BackgroundTransparency = 0.9
+    blur.ZIndex = frame.ZIndex - 1
+    applyStyle(blur, 8) -- Now it knows what applyStyle is
+    blur.Parent = frame
+end
+
+--// --- The "Quick Tweak" Dashboard ---
+local function CreateSurgicalDashboard()
+    local dash = Instance.new("Frame")
+    dash.Size = UDim2.fromOffset(300, 400)
+    dash.Position = UDim2.new(1, -310, 0.5, -200)
+    dash.Parent = screenGui
+    ApplyModernStyle(dash)
+    applyStyle(dash, 8)
+
+    local titleLabel = Instance.new("TextLabel", dash)
+    titleLabel.Size = UDim2.new(1, 0, 0, 30)
+    titleLabel.Text = "SURGICAL CONSOLE // WEAPON TUNER"
+    titleLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
+    titleLabel.Font = Enum.Font.Code
+    titleLabel.TextSize = 10
+    titleLabel.BackgroundTransparency = 1
+
+    local scroll = Instance.new("ScrollingFrame", dash)
+    scroll.Size = UDim2.new(1, -20, 1, -40)
+    scroll.Position = UDim2.fromOffset(10, 35)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 2
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    local layout = Instance.new("UIListLayout", scroll)
+    layout.Padding = UDim.new(0, 5)
+
+    -- Run the scan and populate
+    local guns = ArchitectSuite.HeuristicScan()
+    for _, gun in ipairs(guns) do
+        local btn = Instance.new("TextButton", scroll)
+        btn.Size = UDim2.new(1, 0, 0, 25)
+        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        btn.Text = "MODIFY: " .. gun.Module.Name
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.Code
+        btn.TextSize = 9
+        applyStyle(btn, 4)
+        
+        btn.MouseButton1Click:Connect(function()
+            PopulateGrid(gun.Data, gun.Module.Name) 
+        end)
+    end
+    return dash
+end
+
+--// --- Patching Engine ---
 local function ApplyDeepPatch(tbl: table, key: any, val: any, isFunc: boolean)
     if not Registry.ActivePatches[tbl] then Registry.ActivePatches[tbl] = {} end
     
@@ -148,6 +309,30 @@ RunService.Heartbeat:Connect(function()
                     ForceWrite(tbl, key, data.Value)
                 end
             end
+        end
+    end
+end)
+
+task.spawn(CloakEnvironment)
+task.spawn(InitiateInterception)
+-- task.spawn(DeepScan) -- Optional: Uncomment to auto-disable game anti-cheats
+
+--// --- UI Construction ---
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "OVERSEER_ARCHITECT_V26_PAYLOADS"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
+
+-- [NEW] Bind the Surgical Dashboard to F4
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.F4 then
+        -- Check if it already exists to toggle it
+        local existing = screenGui:FindFirstChild("SurgicalDash")
+        if existing then
+            existing.Visible = not existing.Visible
+        else
+            local dash = CreateSurgicalDashboard() -- We modify the function slightly below to return the object
+            dash.Name = "SurgicalDash"
         end
     end
 end)
