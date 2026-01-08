@@ -1,26 +1,8 @@
 --[[
 made by zuka @OverZuka on roblox
-
-v12 - HAPPY NEW YEAR WOOOOOO
-
-
 Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
 
 
-__________      ____  __.        ___________    _________ .__     
-\____    /__ __|    |/ _|____    \__    ___/___ \_   ___ \|  |__  
-  /     /|  |  \      < \__  \     |    |_/ __ \/    \  \/|  |  \ 
- /     /_|  |  /    |  \ / __ \_   |    |\  ___/\     \___|   Y  \
-/_______ \____/|____|__ (____  /   |____| \___  >\______  /___|  /
-        \/             \/    \/               \/        \/     \/ 
-
-~feel free to use this however but please shout me out, much appreciated.~
-   _____       .___      .__         __________                      .____     
-  /  _  \    __| _/_____ |__| ____   \______   \_____    ____   ____ |    |    
- /  /_\  \  / __ |/     \|  |/    \   |     ___/\__  \  /    \_/ __ \|    |    
-/    |    \/ /_/ |  Y Y  \  |   |  \  |    |     / __ \|   |  \  ___/|    |___ 
-\____|__  /\____ |__|_|  /__|___|  /  |____|    (____  /___|  /\___  >_______ \
-        \/      \/     \/        \/                  \/     \/     \/        \/
 
 
 --]]
@@ -119,47 +101,6 @@ do
     fadeOutTweens[1].Completed:Wait()
     splashGui:Destroy()
 end
-
---[[ ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀⠀⢀⣿⣿⣿⣿⣿⣿⣿⣿⡆⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠀⠀⠀⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠈⣿⣿⣿⣿⣿⣿⠟⠉⠀⠀⠀⠙⢿⣿⣿⣿⣿⣿⣿⣿⡿⠋⠀⠀⠙⢻⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⣠⣄⠀⢻⣿⣿⣿⣿⣿⡿⠀⣠⣄⠀⠀⠀⢻⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿⠀⠀⠀⠀⠰⣿⣿⠀⢸⣿⣿⣿⣿⣿⡇⠀⣿⣿⡇⠀⠀⢸⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣄⠀⠀⠀⠀⠙⠃⠀⣼⣿⣿⣿⣿⣿⣇⠀⠙⠛⠁⠀⠀⣼⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣷⣤⣄⣀⣠⣤⣾⣿⣿⣿⣿⣽⣿⣿⣦⣄⣀⣀⣤⣾⣿⣿⣿⣿⠃⠀⠀⢀⣀⠀⠀
-⠰⡶⠶⠶⠶⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠛⠉⠉⠙⠛⠋⠀
-⠀⠀⢀⣀⣠⣤⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠷⠶⠶⠶⢤⣤⣀⠀
-⠀⠛⠋⠉⠁⠀⣀⣴⡿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣯⣤⣀⡀⠀⠀⠀⠀⠘⠃
-⠀⠀⢀⣤⡶⠟⠉⠁⠀⠀⠉⠛⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠟⠉⠀⠀⠀⠉⠙⠳⠶⣄⡀⠀⠀
-⠀⠀⠙⠁⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠁⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀haha funny cat
-⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷
-
---]]
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-local LocalPlayer = Players.LocalPlayer
 local Utilities = {}
 function Utilities.findPlayer(inputName)
     local input = tostring(inputName):lower()
@@ -2056,7 +1997,6 @@ function Modules.ESP:Toggle(argument)
         end
     end
 end
-
 RegisterCommand({
     Name = "esp",
     Aliases = {},
@@ -2341,7 +2281,6 @@ function Modules.NoClip:_processCharacter(character)
     table.insert(self.State.Connections[character], descAddedConn)
     table.insert(self.State.Connections[character], descRemovingConn)
 end
-
 
 function Modules.NoClip:_cleanup()
     -- Disconnect all active connections
@@ -6617,8 +6556,6 @@ Modules.Attacher = {
     State = {
         isGuiBuilt = false,
         followSpeed = 1,
-        chaosIntensity = 1.2, 
-        velocityPoison = 9e7, 
         selectedPlayerName = "Nearest Player",
         isFollowing = false,
         isAttaching = false,
@@ -6630,157 +6567,222 @@ Modules.Attacher = {
     Services = {}
 }
 
---// --- Core Utility Functions ---
-
-local function setSimRadius()
-    pcall(function()
-        local settings = settings()
-        local lp = game:GetService("Players").LocalPlayer
-        lp.MaximumSimulationRadius = math.huge
-        sethiddenproperty(lp, "SimulationRadius", math.huge)
-    end)
-end
-
-local function toggleNoClip(char, state)
-    if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = not state
-        end
-    end
-end
-
---// Deactivation Logic
+--// Deactivation Logic (Cleanup)
 function Modules.Attacher:Deactivate()
     if not self.State.isGuiBuilt then return end
 
-    for _, conn in pairs(self.State.Connections) do conn:Disconnect() end
+    -- Disconnect all active RunService/input connections
+    for _, conn in pairs(self.State.Connections) do
+        conn:Disconnect()
+    end
     table.clear(self.State.Connections)
 
-    pcall(function()
-        local lp = game:GetService("Players").LocalPlayer
-        local char = lp.Character
-        if char then
-            toggleNoClip(char, false)
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hum then 
-                hum.AutoRotate = true 
-                hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-            end
-            if hrp then
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
-            end
-        end
-        workspace.FallenPartsDestroyHeight = self.State.originalDestroyHeight or -500
-    end)
-
-    if self.State.UI.window then self.State.UI.window.Parent:Destroy() end
+    -- Destroy all UI elements
+    if self.State.UI.window and self.State.UI.window.Parent then
+        self.State.UI.window:Destroy()
+    end
+    if self.State.UI.currentHighlight and self.State.UI.currentHighlight.Parent then
+        self.State.UI.currentHighlight:Destroy()
+    end
+    table.clear(self.State.UI)
+    
     self.State.isGuiBuilt = false
-    DoNotif("Attacher deactivated and physics reset.", 2)
+    DoNotif("Attacher module deactivated.", 2)
 end
 
---// Activation Logic
 function Modules.Attacher:Activate()
     if self.State.isGuiBuilt then return end
     
+    -- Localize self for easier access within functions
     local self = self
-    self.Services.Players = game:GetService("Players")
-    self.Services.RunService = game:GetService("RunService")
+
+    self.Services.Players = self.Services.Players or game:GetService("Players")
+    self.Services.RunService = self.Services.RunService or game:GetService("RunService")
+    self.Services.StarterGui = self.Services.StarterGui or game:GetService("StarterGui")
     local LocalPlayer = self.Services.Players.LocalPlayer
 
-    self.State.originalDestroyHeight = workspace.FallenPartsDestroyHeight
-
-    --// UI Construction
     local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wall%20v3"))()
-    local w = library:CreateWindow("Hellspawn v2")
-    self.State.UI.window = w.Parent
+    local w = library:CreateWindow("Attacher")
+    self.State.UI.window = w
 
-    local mainFolder = w:CreateFolder("Controls")
-    mainFolder:Slider("Intensity", {min = 0.5; max = 4; precise = true;}, function(v) self.State.chaosIntensity = v end)
-    mainFolder:Box("Target User", "string", function(v)
-        for _, p in ipairs(self.Services.Players:GetPlayers()) do
-            if p.Name:lower():find(v:lower()) then self.State.selectedPlayerName = p.Name break end
-        end
-    end)
-    
-    mainFolder:Toggle("Attach (HELLSPAWN)", function(bool) 
-        self.State.isAttaching = bool 
-        if not bool then toggleNoClip(LocalPlayer.Character, false) end
-    end)
-    mainFolder:Button("Fix Void (NaN)", function() workspace.FallenPartsDestroyHeight = 0/0 end)
+    local function notify(title, text, duration)
+        pcall(function()
+            self.Services.StarterGui:SetCore("SendNotification", {
+                Title = title; Text = text; Duration = duration or 3;
+            })
+        end)
+    end
 
-    --// --- THE CORE LOOP (Stability Optimized) ---
-    local oscillationStep = 0
-    
-    -- We use Stepped because it fires BEFORE physics. This is the secret to not being yeeted.
-    self.State.Connections.PhysicsLoop = self.Services.RunService.Stepped:Connect(function()
-        if not self.State.isAttaching then return end
-        
-        local target = (self.State.selectedPlayerName == "Nearest Player" and Modules.Attacher.getNearestPlayer(self)) or self.Services.Players:FindFirstChild(self.State.selectedPlayerName)
-        local char = LocalPlayer.Character
-        
-        if target and target.Character and char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-            local hum = char:FindFirstChildOfClass("Humanoid")
-
-            if hrp and targetHrp and hum then
-                -- 1. Maintain Control
-                setSimRadius()
-                toggleNoClip(char, true) -- CRITICAL: Prevents the physics engine from "bumping" you away
-                hum.AutoRotate = false
-                
-                -- 2. Chaos Calculations
-                oscillationStep = oscillationStep + 1
-                local intensity = self.State.chaosIntensity
-                local offsets = {
-                    CFrame.new(0, intensity, 0),
-                    CFrame.new(0, -intensity, 0),
-                    CFrame.new(intensity * 1.5, 0, -intensity * 1.5),
-                    CFrame.new(-intensity * 1.5, 0, intensity * 1.5)
-                }
-                
-                local currentOffset = offsets[(oscillationStep % #offsets) + 1]
-                local randomRot = CFrame.Angles(math.rad(math.random(0,360)), math.rad(math.random(0,360)), math.rad(math.random(0,360)))
-                
-                -- 3. The "Lock"
-                -- We set CFrame EVERY stepped to override the Velocity's attempt to move us into space
-                hrp.CFrame = targetHrp.CFrame * currentOffset * randomRot
-                
-                -- 4. Poison the Aimbots
-                -- This velocity exists only to trick the aimbot's math; the Stepped CFrame keeps us attached.
-                hrp.Velocity = Vector3.new(self.State.velocityPoison, self.State.velocityPoison, self.State.velocityPoison)
-                hrp.RotVelocity = Vector3.new(self.State.velocityPoison, self.State.velocityPoison, self.State.velocityPoison)
-                
-                -- Ensure we are in a state that doesn't try to "stand up"
-                hum:ChangeState(Enum.HumanoidStateType.Physics)
-            end
-        end
-    end)
-
-    self.State.isGuiBuilt = true
-    DoNotif("Hellspawn v2 Loaded. Toggle 'Attach' to begin.", 2)
-end
-
-function Modules.Attacher.getNearestPlayer(self)
-    local lp = game:GetService("Players").LocalPlayer
-    local char = lp.Character
-    if not (char and char:FindFirstChild("HumanoidRootPart")) then return nil end
-    local closest, dist = nil, math.huge
-    for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-        if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local d = (p.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
-            if d < dist then closest, dist = p, d end
+    local function clearHighlight()
+        if self.State.UI.currentHighlight and self.State.UI.currentHighlight.Parent then
+            self.State.UI.currentHighlight:Destroy()
+            self.State.UI.currentHighlight = nil
         end
     end
-    return closest
+
+    local function applyHighlight(targetPlayer)
+        clearHighlight()
+        if targetPlayer and targetPlayer.Character then
+            local h = Instance.new("Highlight", targetPlayer.Character)
+            h.Name = "TargetHighlight"
+            h.FillColor = Color3.fromRGB(255, 0, 0)
+            h.OutlineColor = Color3.fromRGB(255, 255, 255)
+            h.FillTransparency = 0.45
+            h.Adornee = targetPlayer.Character
+            self.State.UI.currentHighlight = h
+        end
+    end
+
+    local function findPlayerByPartialName(partialName)
+        -- This function remains the same as your previous version
+        local localChar = LocalPlayer.Character
+        if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return nil end
+        local myPos = localChar.HumanoidRootPart.Position
+        local lowerPartialName = partialName:lower()
+        local matches = {}
+        for _, p in ipairs(self.Services.Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                if p.Name:lower():find(lowerPartialName, 1, true) or p.DisplayName:lower():find(lowerPartialName, 1, true) then
+                    table.insert(matches, p)
+                end
+            end
+        end
+        if #matches == 0 then return nil end
+        if #matches == 1 then return matches[1] end
+        local closestPlayer, closestDist = nil, math.huge
+        for _, matchedPlayer in ipairs(matches) do
+            if matchedPlayer.Character and matchedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (matchedPlayer.Character.HumanoidRootPart.Position - myPos).Magnitude
+                if dist < closestDist then
+                    closestDist, closestPlayer = dist, matchedPlayer
+                end
+            end
+        end
+        return closestPlayer
+    end
+    
+    local function updateNearestPlayerButton()
+        if not self.State.UI.nearestPlayerButton then return end
+        if self.State.selectedPlayerName == "Nearest Player" then
+            self.State.UI.nearestPlayerButton.Name = "-> Nearest Player"
+        else
+            self.State.UI.nearestPlayerButton.Name = "Nearest Player"
+        end
+    end
+
+    -- Build the GUI
+    local mainFolder = w:CreateFolder("Follow Settings")
+    mainFolder:Slider("Speed", {min = 0; max = 5; precise = true;}, function(value)
+        self.State.followSpeed = value
+    end)
+    mainFolder:Box("Enter Username", "string", function(value)
+        if value == "" then notify("Input Error", "Please type a valid username.", 3) return end
+        local found = findPlayerByPartialName(value)
+        if found and found ~= LocalPlayer then
+            self.State.selectedPlayerName = found.Name
+            applyHighlight(found)
+            notify("Player Selected", "Targeting " .. found.Name, 2)
+            updateNearestPlayerButton()
+        else
+            self.State.selectedPlayerName = "Nearest Player"
+            updateNearestPlayerButton()
+            notify("Player Not Found", "Could not find player: " .. value, 3)
+        end
+    end)
+    self.State.UI.nearestPlayerButton = mainFolder:Button("-> Nearest Player", function()
+        self.State.selectedPlayerName = "Nearest Player"
+        clearHighlight()
+        notify("Player Selected", "Nearest Player", 2)
+        updateNearestPlayerButton()
+    end)
+    mainFolder:Toggle("Enable Following", function(bool)
+        self.State.isFollowing = bool
+        notify("Following", bool and "Enabled" or "Disabled")
+    end)
+    mainFolder:Toggle("Attach", function(bool)
+        self.State.isAttaching = bool
+        notify("Attach", bool and "Enabled" or "Disabled")
+    end)
+
+    -- Helper functions for the main loop
+    local function getNearestPlayer()
+        local localChar = LocalPlayer.Character
+        if not (localChar and localChar:FindFirstChild("HumanoidRootPart")) then return nil end
+        local myPos = localChar.HumanoidRootPart.Position
+        local closest, dist = nil, math.huge
+        for _, p in ipairs(self.Services.Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local d = (p.Character.HumanoidRootPart.Position - myPos).Magnitude
+                if d < dist then closest, dist = p, d end
+            end
+        end
+        return closest
+    end
+
+    local function getSelectedPlayer()
+        if self.State.selectedPlayerName == "Nearest Player" then
+            local n = getNearestPlayer()
+            if n then applyHighlight(n) else clearHighlight() end
+            return n
+        elseif self.State.selectedPlayerName and self.Services.Players:FindFirstChild(self.State.selectedPlayerName) then
+            local p = self.Services.Players[self.State.selectedPlayerName]
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                return p
+            end
+        end
+        clearHighlight()
+        return nil
+    end
+
+    --// --- Event Connections ---
+    self.State.Connections.RenderStepped = self.Services.RunService.RenderStepped:Connect(function()
+        local target = getSelectedPlayer()
+        if (self.State.isFollowing or self.State.isAttaching) and target then
+            local localChar, targetChar = LocalPlayer.Character, target.Character
+            if localChar and targetChar then
+                local part, targetPart = localChar:FindFirstChild("HumanoidRootPart"), targetChar:FindFirstChild("HumanoidRootPart")
+                if part and targetPart then
+                    local hum = localChar:FindFirstChildOfClass("Humanoid")
+                    if hum then hum.AutoRotate = false end
+
+                    if self.State.isAttaching then
+                        part.CFrame = part.CFrame:Lerp(targetPart.CFrame, self.State.followSpeed)
+                        local thum = targetChar:FindFirstChildOfClass("Humanoid")
+                        if thum and thum.Jump then hum.Jump = true end
+                    elseif self.State.isFollowing then
+                        part.CFrame = part.CFrame:Lerp(CFrame.new(part.Position, targetPart.Position), self.State.followSpeed)
+                        hum:MoveTo(targetPart.Position)
+                    end
+                end
+            end
+        else
+            local c = LocalPlayer.Character
+            if c and c:FindFirstChildOfClass("Humanoid") then c:FindFirstChildOfClass("Humanoid").AutoRotate = true end
+        end
+    end)
+
+    self.State.Connections.KeyDown = LocalPlayer:GetMouse().KeyDown:Connect(function(k)
+        k = k:lower()
+        if k == "x" then
+            self.State.isFollowing = not self.State.isFollowing
+            notify("Following", self.State.isFollowing and "Enabled" or "Disabled")
+        elseif k == "z" then
+            self.State.isAttaching = not self.State.isAttaching
+            notify("Attach", self.State.isAttaching and "Enabled" or "Disabled")
+        end
+    end)
+    
+    self.State.isGuiBuilt = true
+    DoNotif("Attacher module activated.", 2)
 end
 
+--// Main Toggle Function
 function Modules.Attacher:Toggle()
-    if self.State.isGuiBuilt then self:Deactivate() else self:Activate() end
+    if self.State.isGuiBuilt then
+        self:Deactivate()
+    else
+        self:Activate()
+    end
 end
 
 RegisterCommand({
@@ -6799,6 +6801,7 @@ RegisterCommand({
     end
     Modules.Attacher:Toggle()
 end)
+
 
 Modules.StaffSentry = {
     State = {
@@ -9828,83 +9831,476 @@ RegisterCommand({
     end
 end)
 
-Modules.InstantRespawn = {
+Modules.SignalRespawn = {
     State = {
-        IsEnabled = false,
-        CharacterAddedConnection = nil,
-        DiedConnection = nil
+        IsExecuting = false
     },
-    Services = {
-        Players = game:GetService("Players")
-    }
+    Dependencies = {"Players", "Workspace"},
+    Services = {}
 }
 
-function Modules.InstantRespawn:_setupCharacter(character: Model)
-    if self.State.DiedConnection and self.State.DiedConnection.Connected then
-        self.State.DiedConnection:Disconnect()
+--[[
+    Internal Utility: Gathers all tools from both Backpack and Character.
+--]]
+function Modules.SignalRespawn:_getAllTools()
+    local lp = self.Services.Players.LocalPlayer
+    local tools = {}
+    local backpack = lp:FindFirstChildOfClass("Backpack")
+    local char = lp.Character
+
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then table.insert(tools, tool) end
+        end
     end
-    self.State.DiedConnection = nil
+    if char then
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool:IsA("Tool") then table.insert(tools, tool) end
+        end
+    end
+    return tools
+end
 
-    local humanoid = character:WaitForChild("Humanoid", 2)
-    if not humanoid then return end
+--[[
+    Main Execution Logic.
+--]]
+function Modules.SignalRespawn:Execute()
+    if self.State.IsExecuting then return end
+    
+    -- Feature Check: This method requires specific exploit APIs
+    if not replicatesignal then
+        return DoNotif("SignalRespawn: Your executor lacks 'replicatesignal'.", 4)
+    end
 
-    self.State.DiedConnection = humanoid.Died:Connect(function()
-        if self.State.IsEnabled then
-            task.defer(self.Services.Players.LocalPlayer.LoadCharacter, self.Services.Players.LocalPlayer)
+    local lp = self.Services.Players.LocalPlayer
+    local players = self.Services.Players
+    local char = lp.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local cam = self.Services.Workspace.CurrentCamera
+
+    if not hum or not root then
+        return DoNotif("SignalRespawn: Character root not found.", 3)
+    end
+
+    self.State.IsExecuting = true
+    DoNotif("Initiating signal-based respawn...", 1.5)
+
+    -- 1. Trigger the Backend Signal
+    pcall(function()
+        replicatesignal(lp.ConnectDiedSignalBackend)
+    end)
+
+    -- 2. Store current state
+    local savedCFrame = root.CFrame
+    local savedTools = self:_getAllTools()
+
+    -- 3. The Precision Timing Wait
+    -- We wait slightly less than the game's RespawnTime to intercept the character load
+    task.wait(players.RespawnTime - 0.165)
+
+    -- 4. Force Death State
+    pcall(function()
+        hum:ChangeState(Enum.HumanoidStateType.Dead)
+    end)
+
+    -- 5. Wait for the new character to initialize
+    local newChar = lp.CharacterAdded:Wait()
+    local newRoot = newChar:WaitForChild("HumanoidRootPart", 5)
+
+    -- 6. Restore Position and Camera
+    if newRoot then
+        task.wait(0.1) -- Stability buffer
+        newRoot.CFrame = savedCFrame
+        self.Services.Workspace.CurrentCamera = cam
+        DoNotif("Respawn complete. Position restored.", 2)
+    end
+
+    self.State.IsExecuting = false
+end
+
+--// Initialize the module and register the command
+function Modules.SignalRespawn:Initialize()
+    local module = self
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "signalrespawn",
+        Aliases = {"instaspawn"},
+        Description = "Advanced instant respawn using signal replication. Restores position."
+    }, function()
+        module:Execute()
+    end)
+end
+
+Modules.ExternalChatter = {
+    State = {
+        IsEnabled = true
+    },
+    Dependencies = {"TextChatService", "ReplicatedStorage", "Players"},
+    Services = {}
+}
+
+--[[
+    Internal execution logic.
+    Detects ChatVersion and fires the appropriate event/method.
+--]]
+function Modules.ExternalChatter:Say(args)
+    local message = table.concat(args, " ")
+    if not message or message == "" then 
+        return DoNotif("External Chatter: No message provided.", 2) 
+    end
+
+    local textChatService = self.Services.TextChatService
+    local replicatedStorage = self.Services.ReplicatedStorage
+
+    -- Method 1: Modern TextChatService (2023+ games)
+    if textChatService and textChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+        local generalChannel = textChatService.TextChannels:FindFirstChild("RBXGeneral")
+        if generalChannel then
+            pcall(function()
+                generalChannel:SendAsync(message)
+            end)
+            return
+        end
+    end
+
+    -- Method 2: Legacy Chat System (DefaultChatSystemChatEvents)
+    local chatEvents = replicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+    local sayMessageRequest = chatEvents and chatEvents:FindFirstChild("SayMessageRequest")
+
+    if sayMessageRequest and sayMessageRequest:IsA("RemoteEvent") then
+        pcall(function()
+            sayMessageRequest:FireServer(message, "All")
+        end)
+    else
+        -- Method 3: Direct fallback to the old chat method if remotes aren't found
+        local lp = self.Services.Players.LocalPlayer
+        if lp then
+            pcall(lp.Chat, lp, message)
+        end
+    end
+end
+
+--// Initialize the module and register the command
+function Modules.ExternalChatter:Initialize()
+    local module = self
+    
+    -- Load services robustly
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "chat",
+        Aliases = {"message"},
+        Description = "Forces your character to chat. Bypasses some UI mutes."
+    }, function(args)
+        module:Say(args)
+    end)
+end
+
+Modules.StareController = {
+    State = {
+        IsEnabled = false,
+        TargetPlayer = nil,
+        Mode = nil, -- "Direct" or "Nearest"
+        Connection = nil,
+        PrevAutoRotate = true
+    },
+    Dependencies = {"Players", "RunService"},
+    Services = {}
+}
+
+--// --- Private Utilities ---
+
+--[[
+    Calculates the CFrame to face a position while keeping the character upright.
+--]]
+function Modules.StareController:_facePosition(targetPos)
+    local lp = self.Services.Players.LocalPlayer
+    local char = lp.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if root then
+        -- We only care about the direction on the X and Z axes to prevent tilting.
+        local targetLook = Vector3.new(targetPos.X, root.Position.Y, targetPos.Z)
+        if (targetLook - root.Position).Magnitude > 0.01 then
+            root.CFrame = CFrame.lookAt(root.Position, targetLook)
+        end
+    end
+end
+
+function Modules.StareController:_getClosestPlayer()
+    local lp = self.Services.Players.LocalPlayer
+    local char = lp.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+
+    local closest, dist = nil, math.huge
+    for _, p in ipairs(self.Services.Players:GetPlayers()) do
+        if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
+            if d < dist then
+                dist = d
+                closest = p
+            end
+        end
+    end
+    return closest
+end
+
+--// --- Core Logic ---
+
+function Modules.StareController:Disable()
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+
+    local lp = self.Services.Players.LocalPlayer
+    local hum = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.AutoRotate = self.State.PrevAutoRotate
+    end
+
+    self.State.IsEnabled = false
+    self.State.TargetPlayer = nil
+    self.State.Mode = nil
+end
+
+function Modules.StareController:Enable(target, mode)
+    self:Disable() -- Clean existing state
+
+    local lp = self.Services.Players.LocalPlayer
+    local hum = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+
+    self.State.PrevAutoRotate = hum.AutoRotate
+    hum.AutoRotate = false
+    self.State.IsEnabled = true
+    self.State.Mode = mode
+
+    if mode == "Direct" then
+        self.State.TargetPlayer = target
+        self.State.Connection = self.Services.RunService.RenderStepped:Connect(function()
+            if target and target.Parent and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                self:_facePosition(target.Character.HumanoidRootPart.Position)
+            else
+                -- Auto-disable if target leaves or character is destroyed
+                self:Disable()
+                DoNotif("Stare: Target lost. Disabling.", 2)
+            end
+        end)
+        DoNotif("Staring at: " .. target.Name, 2)
+    elseif mode == "Nearest" then
+        self.State.Connection = self.Services.RunService.RenderStepped:Connect(function()
+            local closest = self:_getClosestPlayer()
+            if closest and closest.Character and closest.Character:FindFirstChild("HumanoidRootPart") then
+                self:_facePosition(closest.Character.HumanoidRootPart.Position)
+            end
+        end)
+        DoNotif("Staring at nearest player.", 2)
+    end
+end
+
+--// --- Initialize ---
+
+function Modules.StareController:Initialize()
+    local module = self
+    for _, s in ipairs(module.Dependencies) do module.Services[s] = game:GetService(s) end
+
+    -- Command: Lookat
+    RegisterCommand({
+        Name = "lookat",
+        Aliases = {"stare", "face"},
+        Description = "Forces your character to persistently face a player."
+    }, function(args)
+        local target = Utilities.findPlayer(args[1] or "")
+        if target then
+            module:Enable(target, "Direct")
+        else
+            DoNotif("Stare: Player not found.", 3)
+        end
+    end)
+
+    -- Command: Unlookat
+    RegisterCommand({
+        Name = "unlookat",
+        Aliases = {"unstare", "unface"},
+        Description = "Stops the stare effect and restores movement rotation."
+    }, function()
+        module:Disable()
+        DoNotif("Stare disabled.", 2)
+    end)
+
+    -- Command: StareNearest
+    RegisterCommand({
+        Name = "starenear",
+        Aliases = {"stareclosest", "snear"},
+        Description = "Persistently stare at whoever is closest to you."
+    }, function()
+        module:Enable(nil, "Nearest")
+    end)
+
+    -- Command: UnstareNearest
+    RegisterCommand({
+        Name = "unstarenear",
+        Aliases = {"unstareclosest"},
+        Description = "Stops staring at the closest player."
+    }, function()
+        module:Disable()
+        DoNotif("Nearest Stare disabled.", 2)
+    end)
+end
+
+Modules.ProximityStalker = {
+    State = {
+        IsEnabled = false,
+        IsFollowing = false,
+        TargetPlayer = nil,
+        LastDistances = {},
+        Connections = {} -- [Key] = Connection
+    },
+    Config = {
+        ProximityRadius = 25, -- The 'trigger' distance to start following
+        StopDistance = 5      -- Distance to keep from the target
+    },
+    Dependencies = {"RunService", "Players"},
+    Services = {}
+}
+
+--// --- Private Logic ---
+
+function Modules.ProximityStalker:_cleanup()
+    for key, conn in pairs(self.State.Connections) do
+        conn:Disconnect()
+    end
+    table.clear(self.State.Connections)
+
+    -- Stop current movement
+    local lp = self.Services.Players.LocalPlayer
+    local hum = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum:MoveTo(lp.Character.PrimaryPart and lp.Character.PrimaryPart.Position or Vector3.zero)
+    end
+
+    self.State.LastDistances = {}
+    self.State.IsFollowing = false
+    self.State.TargetPlayer = nil
+    self.State.IsEnabled = false
+end
+
+function Modules.ProximityStalker:_setupFollowLogic(target)
+    local lp = self.Services.Players.LocalPlayer
+    local myHum = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
+    
+    if not myHum then return end
+
+    -- Follow Loop
+    self.State.Connections.FollowLoop = self.Services.RunService.Heartbeat:Connect(function()
+        local tChar = target.Character
+        local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+        local myChar = lp.Character
+        
+        if myChar and tRoot and tChar.Parent then
+            -- Only move if further away than the StopDistance
+            local dist = (tRoot.Position - myChar.PrimaryPart.Position).Magnitude
+            if dist > self.Config.StopDistance then
+                myHum:MoveTo(tRoot.Position)
+            end
+        else
+            -- If target is lost (leaves or char destroyed), restart scanning
+            if self.State.Connections.FollowLoop then
+                self.State.Connections.FollowLoop:Disconnect()
+            end
+            self.State.IsFollowing = false
+            self.State.TargetPlayer = nil
+            DoNotif("Proximity Stalker: Target lost. Resuming scan.", 2)
+        end
+    end)
+
+    -- Death Listener
+    local tHum = target.Character:FindFirstChildOfClass("Humanoid")
+    if tHum then
+        self.State.Connections.TargetDied = tHum.Died:Connect(function()
+            if self.State.Connections.FollowLoop then self.State.Connections.FollowLoop:Disconnect() end
+            self.State.IsFollowing = false
+            self.State.TargetPlayer = nil
+        end)
+    end
+end
+
+--// --- Core Execution ---
+
+function Modules.ProximityStalker:Start()
+    self:_cleanup() -- Ensure fresh start
+    self.State.IsEnabled = true
+    
+    local lp = self.Services.Players.LocalPlayer
+    DoNotif("Proximity Stalker: ACTIVE (Radius: " .. self.Config.ProximityRadius .. ")", 2)
+
+    self.State.Connections.Scanner = self.Services.RunService.Heartbeat:Connect(function()
+        if self.State.IsFollowing or not self.State.IsEnabled then return end
+
+        local myChar = lp.Character
+        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+
+        for _, plr in ipairs(self.Services.Players:GetPlayers()) do
+            if plr ~= lp and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local tRoot = plr.Character.HumanoidRootPart
+                local currentDist = (myRoot.Position - tRoot.Position).Magnitude
+                local lastDist = self.State.LastDistances[plr]
+
+                -- Detection Logic: If they entered the radius and are moving towards us
+                if lastDist and lastDist > self.Config.ProximityRadius and currentDist <= self.Config.ProximityRadius then
+                    self.State.IsFollowing = true
+                    self.State.TargetPlayer = plr
+                    
+                    DoNotif("Stalker: Locked onto " .. plr.Name, 2)
+                    self:_setupFollowLogic(plr)
+                    
+                    -- Dynamic re-hook if they respawn
+                    self.State.Connections.TargetRespawn = plr.CharacterAdded:Connect(function(newChar)
+                        task.wait(0.5)
+                        if self.State.IsEnabled and self.State.TargetPlayer == plr then
+                            self:_setupFollowLogic(plr)
+                        end
+                    end)
+                    
+                    break -- Target locked, stop scanning for this frame
+                end
+
+                self.State.LastDistances[plr] = currentDist
+            end
         end
     end)
 end
 
-function Modules.InstantRespawn:Enable()
-    if self.State.IsEnabled then return end
-    self.State.IsEnabled = true
-    
-    local localPlayer = self.Services.Players.LocalPlayer
-    
-    self.State.CharacterAddedConnection = localPlayer.CharacterAdded:Connect(function(char)
-        self:_setupCharacter(char)
-    end)
-    
-    if localPlayer.Character then
-        self:_setupCharacter(localPlayer.Character)
-    end
-    
-    DoNotif("Instant Respawn: ENABLED.", 2)
-end
+--// --- Initialize ---
 
-function Modules.InstantRespawn:Disable()
-    if not self.State.IsEnabled then return end
-    self.State.IsEnabled = false
-    
-    if self.State.CharacterAddedConnection then
-        self.State.CharacterAddedConnection:Disconnect()
-        self.State.CharacterAddedConnection = nil
-    end
-    
-    if self.State.DiedConnection then
-        self.State.DiedConnection:Disconnect()
-        self.State.DiedConnection = nil
-    end
-    
-    DoNotif("Instant Respawn: DISABLED.", 2)
-end
-
-function Modules.InstantRespawn:Toggle()
-    if self.State.IsEnabled then
-        self:Disable()
-    else
-        self:Enable()
-    end
-end
-
-function Modules.InstantRespawn:Initialize()
+function Modules.ProximityStalker:Initialize()
     local module = self
+    for _, s in ipairs(module.Dependencies) do module.Services[s] = game:GetService(s) end
+
     RegisterCommand({
-        Name = "instrespawn",
-        Aliases = {"fastrespawn", "ir"},
-        Description = "Toggles instant character respawn upon death."
+        Name = "autofollow",
+        Aliases = {"autostalk", "proxfollow", "stalkonapproach"},
+        Description = "Automatically follows any player who walks into your proximity radius."
     }, function()
-        module:Toggle()
+        module:Start()
+    end)
+
+    RegisterCommand({
+        Name = "unautofollow",
+        Aliases = {"stopautostalk", "unproxfollow"},
+        Description = "Disables the proximity stalker and stops current movement."
+    }, function()
+        module:_cleanup()
+        DoNotif("Proximity Stalker: DISABLED", 2)
     end)
 end
 
@@ -9991,7 +10387,7 @@ function Modules.BlockRemote:Initialize(): ()
 
 	RegisterCommand({
 		Name = "unblockremote",
-		Aliases = {"ubr", "unblock"},
+		Aliases = {"ubr"},
 		Description = "Unblocks a remote by its full path."
 	}, function(args)
 		local path = args[1]
@@ -10051,15 +10447,651 @@ end
 function Modules.ForceRespawn:Initialize()
     RegisterCommand({
         Name = "respawn",
-        Aliases = {"re", "rr"},
+        Aliases = {"rr"},
         Description = "Forces your character to respawn. Useful if you are stuck or punished."
     }, function()
         Modules.ForceRespawn:Execute()
     end)
 end
 
-Modules.ForceSpawn = {}
+Modules.ForensicExplorer = {
+    State = {
+        IsLoading = false
+    },
+    Dependencies = {"CoreGui", "Players", "ReplicatedStorage", "Workspace", "LocalPlayer", "StarterGui", "Lighting", "ReplicatedFirst", "RunService"},
+    Services = {}
+}
 
+--[[
+    Internal Utility: Generates a random string to obfuscate the UI name.
+--]]
+function Modules.ForensicExplorer:_generateObfuscatedName()
+    local charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    local length = math.random(10, 20)
+    local result = ""
+    for i = 1, length do
+        local rand = math.random(1, #charset)
+        result = result .. charset:sub(rand, rand)
+    end
+    return result
+end
+
+--[[
+    Internal Utility: Sets up the custom execution environment for Dex's internal scripts.
+--]]
+function Modules.ForensicExplorer:_applyEnvironment(func, scriptInstance)
+    local fenv = {}
+    local realFenv = {script = scriptInstance}
+    local fenvMt = {}
+
+    fenvMt.__index = function(_, key)
+        return realFenv[key] or getfenv()[key]
+    end
+
+    fenvMt.__newindex = function(_, key, value)
+        if realFenv[key] == nil then
+            getfenv()[key] = value
+        else
+            realFenv[key] = value
+        end
+    end
+
+    setmetatable(fenv, fenvMt)
+    setfenv(func, fenv)
+    return func
+end
+
+--[[
+    Main Execution Logic.
+--]]
+function Modules.ForensicExplorer:Load()
+    if self.State.IsLoading then return end
+    self.State.IsLoading = true
+
+    DoNotif("Fetching Dex assets from Roblox...", 2)
+
+    task.spawn(function()
+        local success, dexObjects = pcall(function()
+            return game:GetObjects("rbxassetid://9553291002")
+        end)
+
+        if not success or not dexObjects or #dexObjects == 0 then
+            self.State.IsLoading = false
+            return DoNotif("Failed to fetch Dex. Asset may be down.", 3)
+        end
+
+        local dexUI = dexObjects[1]
+        dexUI.Name = self:_generateObfuscatedName()
+
+        -- UI Protection: Use Zuka's CoreGui pattern
+        -- If your executor has a specific ProtectGUI function, it can be called here.
+        if get_hidden_gui or (syn and syn.protect_gui) then
+            local protect = get_hidden_gui or syn.protect_gui
+            protect(dexUI)
+        end
+        dexUI.Parent = self.Services.CoreGui
+
+        -- Recursive Script Loader
+        local function loadScripts(parent)
+            for _, child in ipairs(parent:GetChildren()) do
+                if child:IsA("LuaSourceContainer") then
+                    task.spawn(function()
+                        local func, err = loadstring(child.Source, "=" .. child:GetFullName())
+                        if func then
+                            self:_applyEnvironment(func, child)()
+                        else
+                            warn("--> [ForensicExplorer] Script Error in " .. child.Name .. ": " .. tostring(err))
+                        end
+                    end)
+                end
+                loadScripts(child)
+            end
+        end
+
+        loadScripts(dexUI)
+        DoNotif("Dex Explorer Loaded. UI Obfuscated.", 2)
+        self.State.IsLoading = false
+    end)
+end
+
+--// Initialize the module and register the command
+function Modules.ForensicExplorer:Initialize()
+    local module = self
+    
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "synapsedex",
+        Aliases = {"sdex", "dexv3", "explorer"},
+        Description = "Loads an advanced instance of the SynapseX Dex Explorer."
+    }, function()
+        module:Load()
+    end)
+end
+
+Modules.CreepSequence = {
+    State = {
+        IsExecuting = false
+    },
+    Dependencies = {"TweenService", "RunService", "Players",},
+    Services = {}
+}
+
+function Modules.CreepSequence:Execute(targetName)
+    if self.State.IsExecuting then return end
+    
+    local target = Utilities.findPlayer(targetName)
+    if not target then
+        return DoNotif("Creep: Target not found.", 3)
+    end
+
+    local lp = self.Services.Players.LocalPlayer
+    local char = lp.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    local tChar = target.Character
+    local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+
+    if not root or not tRoot then
+        return DoNotif("Creep: Character parts missing.", 3)
+    end
+
+    self.State.IsExecuting = true
+    DoNotif("Executing creep sequence on " .. target.Name, 1.5)
+
+
+    root.CFrame = tRoot.CFrame * CFrame.new(0, -10, 4)
+    task.wait()
+
+
+    local noclipConn
+    noclipConn = self.Services.RunService.Stepped:Connect(function()
+        if not char or not self.State.IsExecuting then 
+            noclipConn:Disconnect()
+            return 
+        end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end)
+
+    -- 3. Rising Sequence
+    root.Anchored = true
+    task.wait()
+
+
+    local tweenInfo = TweenInfo.new(1000, Enum.EasingStyle.Linear)
+
+    local risingTween = self.Services.TweenService:Create(root, tweenInfo, {
+        CFrame = CFrame.new(root.Position.X, 10000, root.Position.Z)
+    })
+    
+    risingTween:Play()
+    task.wait(1.5)
+    risingTween:Pause()
+
+
+    root.Anchored = false
+    self.State.IsExecuting = false
+    risingTween:Destroy()
+
+    DoNotif("Sequence Complete.", 1)
+end
+
+function Modules.CreepSequence:Initialize()
+    local module = self
+    
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "creep",
+        Aliases = {"stalkerjump", "underfloor"},
+        Description = "Teleports you behind/under a player and rises through the floor."
+    }, function(args)
+        if #args == 0 then
+            return DoNotif("Usage: ;creep <PlayerName>", 3)
+        end
+        module:Execute(args[1])
+    end)
+end
+
+Modules.NextGenDesync = {
+    State = {
+        IsEnabled = false
+    }
+}
+
+function Modules.NextGenDesync:Toggle()
+    if type(setfflag) ~= "function" then
+        return DoNotif("Architect Error: Executor does not support 'setfflag'.", 3)
+    end
+
+    if not self.State.IsEnabled then
+        -- Enabling Sequence
+        local success, err = pcall(function()
+            setfflag("NextGenReplicatorEnabledWrite4", "false")
+            setfflag("NextGenReplicatorEnabledWrite4", "true")
+        end)
+
+        if success then
+            self.State.IsEnabled = true
+            DoNotif("NextGen Desync: ENABLED. Replicator authority hijacked.", 4)
+        else
+            warn("--> [NextGenDesync] Enable Failed:", err)
+            DoNotif("FFlag Error: Check F9 for details.", 4)
+        end
+    else
+        -- Disabling/Syncing Sequence
+        local success, err = pcall(function()
+            setfflag("NextGenReplicatorEnabledWrite4", "true")
+            setfflag("NextGenReplicatorEnabledWrite4", "false")
+        end)
+
+        if success then
+            self.State.IsEnabled = false
+            DoNotif("NextGen Desync: DISABLED. Re-synced with server.", 3)
+        else
+            warn("--> [NextGenDesync] Disable Failed:", err)
+            DoNotif("FFlag Error: Check F9 for details.", 4)
+        end
+    end
+end
+
+--// Initialize the module and register the command
+function Modules.NextGenDesync:Initialize()
+    local module = self
+    
+    RegisterCommand({
+        Name = "ngdesync",
+        Aliases = {"ngrep", "nextgendesync", "flagdesync"},
+        Description = "Toggles NextGenReplicator desync via FFlags. (Server Authority Bypass)"
+    }, function()
+        module:Toggle()
+    end)
+end
+
+Modules.MirrorMimic = {
+    State = {
+        IsEnabled = false,
+        TargetPlayer = nil,
+        Delay = 0,
+        UID = 0,
+        AnimatePrevDisabled = nil,
+        PrevAutoRotate = true,
+        -- Buffers and Tracking
+        PoseQueue = {},
+        PoseHead = 1,
+        AnimEvents = {},
+        AnimHead = 1,
+        ActiveSlots = {},
+        Connections = {}
+    },
+    Dependencies = {"RunService", "Players", "Workspace"},
+    Services = {}
+}
+
+--// --- Private Logic ---
+
+function Modules.MirrorMimic:_cleanup()
+    local lp = self.Services.Players.LocalPlayer
+    local char = lp.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+    -- 1. Disconnect all Zuka connections
+    for key, conn in pairs(self.State.Connections) do
+        conn:Disconnect()
+    end
+    table.clear(self.State.Connections)
+
+    -- 2. Restore Animations
+    for _, slot in pairs(self.State.ActiveSlots) do
+        if slot.mt then pcall(function() slot.mt:Stop(0) end) end
+    end
+    table.clear(self.State.ActiveSlots)
+
+    if hum then
+        local animator = hum:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, tr in ipairs(animator:GetPlayingAnimationTracks()) do
+                pcall(function() tr:Stop(0) end)
+            end
+        end
+        hum.AutoRotate = self.State.PrevAutoRotate
+    end
+
+    -- 3. Restore Animate Script
+    local animate = char and char:FindFirstChild("Animate")
+    if animate and self.State.AnimatePrevDisabled ~= nil then
+        animate.Disabled = self.State.AnimatePrevDisabled
+    end
+
+    -- 4. Reset Buffers
+    self.State.PoseQueue = {}
+    self.State.PoseHead = 1
+    self.State.AnimEvents = {}
+    self.State.AnimHead = 1
+    self.State.IsEnabled = false
+    self.State.TargetPlayer = nil
+end
+
+function Modules.MirrorMimic:_scheduleAnim(track, kind, extra)
+    local now = os.clock()
+    table.insert(self.State.AnimEvents, {
+        t = now + self.State.Delay,
+        kind = kind,
+        track = track,
+        animId = track.Animation.AnimationId,
+        speed = (type(track.Speed) == "number" and track.Speed) or 1,
+        baseTP = track.TimePosition or 0,
+        looped = track.Looped,
+        data = extra
+    })
+end
+
+--// --- Core Execution ---
+
+function Modules.MirrorMimic:Enable(targetName, delayVal)
+    local target = Utilities.findPlayer(targetName)
+    if not target or not target.Character then
+        return DoNotif("Mimic: Target not found or has no character.", 3)
+    end
+
+    local lp = self.Services.Players.LocalPlayer
+    local myChar = lp.Character
+    local tChar = target.Character
+    local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+    local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
+
+    if not (myHum and tHum) or myHum.RigType ~= tHum.RigType then
+        return DoNotif("Mimic Error: Character rig types do not match.", 3)
+    end
+
+    self:_cleanup() -- Clear previous session
+    
+    self.State.IsEnabled = true
+    self.State.TargetPlayer = target
+    self.State.Delay = tonumber(delayVal) or 0
+    self.State.PrevAutoRotate = myHum.AutoRotate
+    myHum.AutoRotate = false
+
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    local tRoot = tChar:FindFirstChild("HumanoidRootPart")
+    local myAnimator = myHum:FindFirstChildOfClass("Animator") or Instance.new("Animator", myHum)
+    local tAnimator = tHum:FindFirstChildOfClass("Animator")
+
+    -- Disable local animation script
+    local animate = myChar:FindFirstChild("Animate")
+    if animate then
+        self.State.AnimatePrevDisabled = animate.Disabled
+        animate.Disabled = true
+    end
+
+    --// Listeners: Animations
+    self.State.Connections.AnimPlayed = tHum.AnimationPlayed:Connect(function(tt)
+        self:_scheduleAnim(tt, "start")
+        
+        -- Hook speed changes and stops on the target track
+        self.State.Connections["TrackSpd_"..tostring(tt)] = tt:GetPropertyChangedSignal("Speed"):Connect(function()
+            self:_scheduleAnim(tt, "speed")
+        end)
+        self.State.Connections["TrackStop_"..tostring(tt)] = tt.Stopped:Connect(function()
+            self:_scheduleAnim(tt, "stop")
+        end)
+    end)
+
+    --// Listeners: Tools
+    self.State.Connections.ToolEquip = tChar.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            local match = lp.Backpack:FindFirstChild(child.Name)
+            if match then pcall(function() myHum:EquipTool(match) end) end
+        end
+    end)
+
+    --// The Mirror Loop
+    local lastLook = Vector3.new(0,0,-1)
+    self.State.Connections.MainLoop = self.Services.RunService.Heartbeat:Connect(function()
+        if not (tChar.Parent and tRoot.Parent and myChar.Parent) then
+            return self:_cleanup()
+        end
+
+        local now = os.clock()
+        
+        -- 1. Physics & Position Mirroring
+        local lv = tRoot.CFrame.LookVector
+        local flat = Vector3.new(lv.X, 0, lv.Z)
+        if flat.Magnitude >= 1e-4 then lastLook = flat.Unit end
+        
+        table.insert(self.State.PoseQueue, {
+            t = now, 
+            pos = tRoot.Position, 
+            look = lastLook, 
+            vel = tRoot.AssemblyLinearVelocity, 
+            angY = tRoot.AssemblyAngularVelocity.Y
+        })
+
+        local snap
+        while self.State.PoseHead <= #self.State.PoseQueue and self.State.PoseQueue[self.State.PoseHead].t <= (now - self.State.Delay) do
+            snap = self.State.PoseQueue[self.State.PoseHead]
+            self.State.PoseHead = self.State.PoseHead + 1
+        end
+
+        if snap then
+            myRoot.CFrame = CFrame.lookAt(snap.pos, snap.pos + snap.look)
+            myRoot.AssemblyLinearVelocity = snap.vel
+            myRoot.AssemblyAngularVelocity = Vector3.new(0, snap.angY, 0)
+            
+            -- Buffer cleanup
+            if self.State.PoseHead > 64 then
+                local newBuf = {}
+                for i = self.State.PoseHead, #self.State.PoseQueue do table.insert(newBuf, self.State.PoseQueue[i]) end
+                self.State.PoseQueue, self.State.PoseHead = newBuf, 1
+            end
+        end
+
+        -- 2. Animation Event Processing
+        while self.State.AnimHead <= #self.State.AnimEvents and self.State.AnimEvents[self.State.AnimHead].t <= now do
+            local e = self.State.AnimEvents[self.State.AnimHead]
+            self.State.AnimHead = self.State.AnimHead + 1
+
+            if e.kind == "start" and e.animId ~= "" then
+                self.State.UID = self.State.UID + 1
+                local animObj = Instance.new("Animation")
+                animObj.AnimationId = e.animId
+                local mt = myAnimator:LoadAnimation(animObj)
+                
+                pcall(function()
+                    mt:Play(0, 1, 1)
+                    mt:AdjustSpeed(0)
+                    mt.TimePosition = e.baseTP
+                end)
+
+                self.State.ActiveSlots[self.State.UID] = {
+                    mt = mt, 
+                    track = e.track, 
+                    baseTP = e.baseTP, 
+                    segments = {{t = e.t, speed = e.speed}},
+                    looped = e.looped,
+                    alive = true
+                }
+            elseif e.kind == "speed" then
+                for _, s in pairs(self.State.ActiveSlots) do
+                    if s.alive and s.track == e.track then
+                        table.insert(s.segments, {t = e.t, speed = e.speed})
+                    end
+                end
+            elseif e.kind == "stop" then
+                for id, s in pairs(self.State.ActiveSlots) do
+                    if s.alive and s.track == e.track then
+                        pcall(function() s.mt:Stop(0) end)
+                        s.alive = false
+                        self.State.ActiveSlots[id] = nil
+                    end
+                end
+            end
+        end
+
+        -- 3. Precision Animation Sync (Manual Time Stepping)
+        for _, s in pairs(self.State.ActiveSlots) do
+            if s.alive and s.mt then
+                local len = s.mt.Length
+                if len > 0 then
+                    local tp = s.baseTP
+                    for i = 1, #s.segments do
+                        local st = s.segments[i].t
+                        local sp = s.segments[i].speed
+                        local en = (i < #s.segments) and s.segments[i+1].t or now
+                        if en > st then tp = tp + (en - st) * sp end
+                    end
+                    tp = s.looped and (tp % len) or math.clamp(tp, 0, len - 0.03)
+                    pcall(function() s.mt.TimePosition = tp end)
+                end
+            end
+        end
+    end)
+
+    DoNotif("Mirror Active: Mimicking " .. target.Name, 2)
+end
+
+--// Initialize the module and register commands
+function Modules.MirrorMimic:Initialize()
+    local module = self
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "mimic",
+        Aliases = {"mirror", "mclone", "mcopy", "mimi"},
+        Description = "Clones a player's movement and animations."
+    }, function(args)
+        if #args == 0 then return DoNotif("Usage: ;mimic <PlayerName> [delay]", 3) end
+        module:Enable(args[1], args[2] or 0)
+    end)
+
+    RegisterCommand({
+        Name = "unmimic",
+        Aliases = {"mstop", "moff", "stopmimic"},
+        Description = "Stops movement mirroring."
+    }, function()
+        module:_cleanup()
+        DoNotif("Mimic Disabled.", 2)
+    end)
+end
+
+Modules.ServerHopper = {
+    State = {
+        IsSearching = false
+    },
+    Dependencies = {"HttpService", "TeleportService", "Players"},
+    Services = {}
+}
+
+--[[
+    Internal logic: Fetches and sorts servers.
+    Mode: "High" (Fullest servers) or "Low" (Emptiest servers)
+--]]
+function Modules.ServerHopper:Hop(mode)
+    if self.State.IsSearching then return end
+    self.State.IsSearching = true
+
+    local http = self.Services.HttpService
+    local tp = self.Services.TeleportService
+    local placeId = game.PlaceId
+    local jobId = game.JobId
+
+    DoNotif("Searching for a " .. (mode == "High" and "large" or "small") .. " server...", 3)
+
+    task.spawn(function()
+        local success, result = pcall(function()
+            -- Fetch the first 100 public servers
+            -- Note: game:HttpGet is required for cross-domain API calls in most executors
+            return game:HttpGet(string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100", placeId))
+        end)
+
+        if not success or not result then
+            self.State.IsSearching = false
+            return DoNotif("Server Hop Error: Failed to fetch server list.", 3)
+        end
+
+        local data = http:JSONDecode(result)
+        if not data or not data.data then
+            self.State.IsSearching = false
+            return DoNotif("Server Hop Error: Empty API response.", 3)
+        end
+
+        local serverList = data.data
+        local candidates = {}
+
+        -- Filter: Remove current server and full servers
+        for _, server in ipairs(serverList) do
+            if server.id ~= jobId and server.playing < server.maxPlayers then
+                table.insert(candidates, server)
+            end
+        end
+
+        if #candidates == 0 then
+            self.State.IsSearching = false
+            return DoNotif("No valid servers found in this batch.", 3)
+        end
+
+        -- Sort based on mode
+        if mode == "High" then
+            table.sort(candidates, function(a, b) return a.playing > b.playing end)
+        else
+            table.sort(candidates, function(a, b) return a.playing < b.playing end)
+        end
+
+        local target = candidates[1]
+        DoNotif(string.format("Joining server [%d/%d players]...", target.playing, target.maxPlayers), 3)
+        
+        task.wait(0.5)
+        
+        local tpSuccess, tpErr = pcall(function()
+            tp:TeleportToPlaceInstance(placeId, target.id, self.Services.Players.LocalPlayer)
+        end)
+
+        if not tpSuccess then
+            warn("--> [ServerHopper] Teleport Failed:", tpErr)
+            DoNotif("Teleport failed. Check console.", 3)
+        end
+
+        self.State.IsSearching = false
+    end)
+end
+
+--// Initialize the module and register commands
+function Modules.ServerHopper:Initialize()
+    local module = self
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    -- Regular Server Hop (High population)
+    RegisterCommand({
+        Name = "serverhop",
+        Aliases = {"shop", "hop"},
+        Description = "Teleports you to a different, populated server."
+    }, function()
+        module:Hop("High")
+    end)
+
+    -- Small Server Hop (Low population)
+    RegisterCommand({
+        Name = "smallserverhop",
+        Aliases = {"sshop", "smallhop", "minihop"},
+        Description = "Teleports you to a server with the fewest players."
+    }, function()
+        module:Hop("Low")
+    end)
+end
+
+Modules.ForceSpawn = {}
 function Modules.ForceSpawn:Execute()
     local Players = game:GetService("Players")
     local Workspace = game:GetService("Workspace")
@@ -13359,6 +14391,219 @@ RegisterCommand({
     Modules.PositionSpoofer:Toggle()
 end)
 
+Modules.EngineInterceptor = {
+    State = {
+        IsEnabled = false,
+        IsLogging = true,
+        ActiveHooks = {},
+        CapturedLogs = {}, -- [Index] = {Name, Output, RawArgs}
+        UI = nil,
+        SelectedLog = nil
+    },
+    Config = {
+        -- Functions to monitor
+        TargetFunctions = {
+            "debug.getconstants", "getconstants", "debug.getupvalues", "getupvalues",
+            "getsenv", "getreg", "getgc", "getconnections", "firesignal",
+            "fireclickdetector", "fireproximityprompt", "firetouchinterest",
+            "gethiddenproperty", "sethiddenproperty", "hookmetamethod",
+            "setnamecallmethod", "getrawmetatable", "setreadonly", "isreadonly"
+        }
+    },
+    Dependencies = {"CoreGui", "UserInputService", "TweenService", "HttpService", "Players"},
+    Services = {}
+}
+
+--// --- Private Utilities ---
+
+function Modules.EngineInterceptor:_serialize(val)
+    local t = typeof(val)
+    if t == "string" then return string.format("%q", val)
+    elseif t == "table" then
+        local success, res = pcall(function() return self.Services.HttpService:JSONEncode(val) end)
+        return success and res or "{Table: Opaque}"
+    elseif t == "Instance" then return val:GetFullName()
+    elseif t == "function" then
+        local info = debug.getinfo(val)
+        return string.format("function: %s (Line %d)", info.name or "anonymous", info.currentline)
+    end
+    return tostring(val)
+end
+
+function Modules.EngineInterceptor:_logCall(name, args)
+    if not self.State.IsLogging then return end
+    
+    local timestamp = os.date("%H:%M:%S")
+    local outputStr = string.format("[%s] Call detected on: %s\nArguments:\n", timestamp, name)
+    
+    for i, v in ipairs(args) do
+        outputStr = outputStr .. string.format("  [%d] (%s): %s\n", i, typeof(v), self:_serialize(v))
+    end
+
+    local entry = {Name = name, Output = outputStr, Time = timestamp}
+    table.insert(self.State.CapturedLogs, 1, entry) -- Newest first
+
+    if self.State.UI then
+        self:_updateList()
+    end
+end
+
+--// --- UI Management ---
+
+function Modules.EngineInterceptor:_createUI()
+    if self.State.UI then self.State.UI.Main.Visible = true return end
+
+    local sg = Instance.new("ScreenGui", self.Services.CoreGui)
+    sg.Name = "Zuka_FunctionSpy"
+    
+    local main = Instance.new("Frame", sg)
+    main.Size = UDim2.fromOffset(550, 350)
+    main.Position = UDim2.fromScale(0.5, 0.5)
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 6)
+    
+    local header = Instance.new("Frame", main)
+    header.Size = UDim2.new(1, 0, 0, 30)
+    header.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    Instance.new("UICorner", header)
+
+    local title = Instance.new("TextLabel", header)
+    title.Size = UDim2.new(1, -60, 1, 0)
+    title.Position = UDim2.fromOffset(10, 0)
+    title.Text = "ENGINE INTERCEPTOR"
+    title.TextColor3 = Color3.fromRGB(0, 255, 255)
+    title.Font = Enum.Font.Code
+    title.TextXAlignment = "Left"
+    title.BackgroundTransparency = 1
+
+    local close = Instance.new("TextButton", header)
+    close.Size = UDim2.fromOffset(25, 25)
+    close.Position = UDim2.new(1, -30, 0.5, -12)
+    close.Text = "X"; close.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    close.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", close)
+
+    local list = Instance.new("ScrollingFrame", main)
+    list.Size = UDim2.new(0.4, -10, 1, -40)
+    list.Position = UDim2.fromOffset(5, 35)
+    list.BackgroundTransparency = 1
+    list.AutomaticCanvasSize = "Y"
+    list.ScrollBarThickness = 2
+    Instance.new("UIListLayout", list).Padding = UDim.new(0, 2)
+
+    local display = Instance.new("TextBox", main)
+    display.Size = UDim2.new(0.6, -10, 1, -80)
+    display.Position = UDim2.fromScale(0.4, 0.1)
+    display.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    display.TextColor3 = Color3.fromRGB(200, 200, 200)
+    display.Font = Enum.Font.Code
+    display.TextSize = 12
+    display.Text = "Select a log to view details..."
+    display.TextXAlignment = "Left"
+    display.TextYAlignment = "Top"
+    display.ClearTextOnFocus = false
+    display.TextEditable = false
+    Instance.new("UICorner", display)
+
+    local copy = Instance.new("TextButton", main)
+    copy.Size = UDim2.new(0.3, -5, 0, 30)
+    copy.Position = UDim2.new(0.4, 0, 1, -35)
+    copy.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
+    copy.Text = "Copy Log"; copy.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", copy)
+
+    local clear = Instance.new("TextButton", main)
+    clear.Size = UDim2.new(0.3, -5, 0, 30)
+    clear.Position = UDim2.new(0.7, 0, 1, -35)
+    clear.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    clear.Text = "Clear All"; clear.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", clear)
+
+    --// Interactions
+    close.MouseButton1Click:Connect(function() main.Visible = false end)
+    
+    clear.MouseButton1Click:Connect(function()
+        table.clear(self.State.CapturedLogs)
+        display.Text = "Logs cleared."
+        self:_updateList()
+    end)
+
+    copy.MouseButton1Click:Connect(function()
+        if setclipboard then setclipboard(display.Text) end
+    end)
+
+    self.State.UI = {Main = main, List = list, Display = display}
+end
+
+function Modules.EngineInterceptor:_updateList()
+    local list = self.State.UI.List
+    for _, v in ipairs(list:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+
+    for i, entry in ipairs(self.State.CapturedLogs) do
+        local btn = Instance.new("TextButton", list)
+        btn.Size = UDim2.new(1, 0, 0, 25)
+        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        btn.Text = string.format("[%s] %s", entry.Time, entry.Name)
+        btn.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+        btn.Font = Enum.Font.Code
+        btn.TextSize = 10
+        Instance.new("UICorner", btn)
+
+        btn.MouseButton1Click:Connect(function()
+            self.State.UI.Display.Text = entry.Output
+        end)
+    end
+end
+
+--// --- Hooking Engine ---
+
+function Modules.EngineInterceptor:ApplyHooks()
+    if not hookfunction then return DoNotif("Executor does not support hookfunction.", 3) end
+
+    for _, path in ipairs(self.Config.TargetFunctions) do
+        local success, func = pcall(function()
+            local segments = path:split(".")
+            local target = _G
+            if #segments > 1 then
+                target = getrenv()[segments[1]] or _G[segments[1]]
+                return target[segments[2]]
+            end
+            return getrenv()[path] or _G[path]
+        end)
+
+        if success and type(func) == "function" then
+            local old; old = hookfunction(func, newcclosure(function(...)
+                local args = {...}
+                task.spawn(function() self:_logCall(path, args) end)
+                return old(...)
+            end))
+            self.State.ActiveHooks[path] = old
+        end
+    end
+    
+    self.State.IsEnabled = true
+    DoNotif("Engine Interceptor: Active. Monitoring Exploit APIs.", 3)
+end
+
+--// --- Initialize ---
+
+function Modules.EngineInterceptor:Initialize()
+    local module = self
+    for _, s in ipairs(module.Dependencies) do module.Services[s] = game:GetService(s) end
+
+    RegisterCommand({
+        Name = "functionspy",
+        Aliases = {"monitor"},
+        Description = "Monitors and logs calls to sensitive environment functions."
+    }, function()
+        module:_createUI()
+        if not module.State.IsEnabled then
+            module:ApplyHooks()
+        end
+    end)
+end
+
 Modules.SoundNullifier = {
     State = {
         IsEnabled = false,
@@ -14618,6 +15863,600 @@ function Modules.UpvalueSurgeon:Initialize()
     end)
 end
 
+Modules.FolderBringer = {
+    State = {
+        IsEnabled = true
+    },
+    Dependencies = {"Workspace", "Players"},
+    Services = {}
+}
+
+--[[
+    Internal execution logic.
+    Tries to find a folder by name and teleport its contents to the player.
+    Supports: ;bfldr {folderName} OR ;bfldr {folderName} {partName}
+--]]
+function Modules.FolderBringer:Execute(args)
+    if #args == 0 then
+        return DoNotif("Usage: ;bringfolder {folderName} [partName]", 3)
+    end
+
+    local folder, partFilter
+    local workspace = self.Services.Workspace
+    local lp = self.Services.Players.LocalPlayer
+    local char = lp.Character
+    
+    if not char then 
+        return DoNotif("Character not found.", 3) 
+    end
+
+    for i = #args, 1, -1 do
+        local potentialName = table.concat(args, " ", 1, i):lower()
+        local potentialFilter = table.concat(args, " ", i + 1):lower()
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Folder") and obj.Name:lower() == potentialName then
+                folder = obj
+                partFilter = potentialFilter
+                break
+            end
+        end
+        if folder then break end
+    end
+
+    if not folder then
+        return DoNotif("Folder sequence not found in Workspace.", 3)
+    end
+
+    local pivot = char:GetPivot()
+    local bringCount = 0
+
+    -- Securely pivot the parts
+    for _, desc in ipairs(folder:GetDescendants()) do
+        if desc:IsA("BasePart") then
+            local shouldBring = true
+            
+            if partFilter and partFilter ~= "" then
+                local n = desc.Name:lower()
+                shouldBring = (n == partFilter) or (n:find(partFilter, 1, true) ~= nil)
+            end
+
+            if shouldBring then
+                desc:PivotTo(pivot)
+                bringCount = bringCount + 1
+            end
+        end
+    end
+
+    if bringCount > 0 then
+        DoNotif(string.format("Brought %d parts from '%s'.", bringCount, folder.Name), 2)
+    else
+        DoNotif("No matching parts found in the folder.", 2)
+    end
+end
+
+--// Initialize the module and register the command
+function Modules.FolderBringer:Initialize()
+    local module = self
+    
+    -- Load required services using the Zuka pattern
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "bringfolder",
+        Aliases = {"bfldr", "folderbring"},
+        Description = "Teleports all parts (or a specific part) from a Workspace folder to you."
+    }, function(args)
+        module:Execute(args)
+    end)
+end
+
+Modules.QuickExecutor = {
+    State = {
+        IsEnabled = true
+    }
+}
+
+--[[
+    Internal execution logic.
+    Compiles the string arguments and spawns them as a new thread.
+    Usage: ;execute print("Hello World")
+--]]
+function Modules.QuickExecutor:RunCode(args)
+    local code = table.concat(args, " ")
+
+    if not code or code == "" then
+        return DoNotif("Quick Executor: No code provided.", 2)
+    end
+
+    -- Attempt to compile the string
+    local func, compileError = loadstring(code)
+
+    if not func then
+        warn("--> [QuickExecutor] Syntax Error:", compileError)
+        return DoNotif("Syntax Error: Check F9 for details.", 3)
+    end
+
+    -- Use pcall during the spawn to catch runtime errors without halting the module
+    local success, runError = pcall(function()
+        task.spawn(func)
+    end)
+
+    if not success then
+        warn("--> [QuickExecutor] Runtime Error:", runError)
+        DoNotif("Runtime Error occurred. Check F9 console.", 3)
+    else
+        DoNotif("Code executed.", 1)
+    end
+end
+
+--// Initialize the module and register the command
+function Modules.QuickExecutor:Initialize()
+    local module = self
+    
+    RegisterCommand({
+        Name = "loadstring",
+        Aliases = {"ls", "lstring", "loads", "execute", "run"},
+        Description = "Compiles and executes Lua code directly from the command bar."
+    }, function(args)
+        module:RunCode(args)
+    end)
+end
+
+Modules.CommandHistory = {
+    State = {
+        LastCommand = nil,  -- Stores the raw command string
+        PrevCommand = nil   -- Stores the one before that (for when you spam ;re)
+    }
+}
+
+--[[
+    Internal recorder.
+    This logic filters out history commands to prevent an infinite loop.
+--]]
+function Modules.CommandHistory:Record(message)
+    -- Ignore the prefix and get the command name
+    local cmdName = message:sub(#Prefix + 1):match("%S+")
+    if not cmdName then return end
+    cmdName = cmdName:lower()
+
+    -- We don't record the history commands themselves
+    local blacklist = {["lastcommand"] = true, ["lastcmd"] = true, ["re"] = true}
+    
+    if not blacklist[cmdName] then
+        self.State.PrevCommand = self.State.LastCommand
+        self.State.LastCommand = message
+    end
+end
+
+--[[
+    Internal execution logic.
+    Replays the last recorded message through the panel processor.
+--]]
+function Modules.CommandHistory:ExecuteLast()
+    local toRun = self.State.LastCommand
+    
+    if not toRun then
+        return DoNotif("No previous command recorded.", 2)
+    end
+
+    -- Visual feedback in the command bar if available
+    if Modules.CommandBar and Modules.CommandBar.AddOutput then
+        Modules.CommandBar:AddOutput("Replaying: " .. toRun, Modules.CommandBar.Theme.Accent)
+    end
+
+    processCommand(toRun)
+end
+
+--// Initialize the module and register the command
+function Modules.CommandHistory:Initialize()
+    local module = self
+
+
+    local oldProcess = processCommand
+    getgenv().processCommand = function(message)
+        module:Record(message)
+        return oldProcess(message)
+    end
+
+    RegisterCommand({
+        Name = "lastcommand",
+        Aliases = {"lastcmd", "re", "redo"},
+        Description = "Re-runs the last command you successfully executed."
+    }, function()
+        module:ExecuteLast()
+    end)
+end
+
+Modules.CommandLooper = {
+    State = {
+        IsRunning = false,
+        LoopThread = nil,
+        CurrentCommand = nil
+    },
+    Config = {
+        Interval = 1 -- Seconds between executions
+    }
+}
+
+--[[
+    Internal loop logic.
+    Uses task.spawn to ensure the main script never yields.
+--]]
+function Modules.CommandLooper:Start(commandName, args)
+    local cmdFunc = Commands[commandName:lower()]
+    
+    if not cmdFunc then
+        return DoNotif(string.format("Loop Error: Command ';%s' not found.", commandName), 3)
+    end
+
+    -- Safety: Prevent the user from looping the loop command
+    if commandName:lower() == "cmdloop" or commandName:lower() == "commandloop" then
+        return DoNotif("Architect Error: Infinite recursion prevented.", 3)
+    end
+
+    -- Stop any existing loop first
+    self:Stop()
+
+    self.State.IsRunning = true
+    self.State.CurrentCommand = commandName
+    
+    DoNotif(string.format("Looping command ';%s' every %ds.", commandName, self.Config.Interval), 2)
+
+    self.State.LoopThread = task.spawn(function()
+        while self.State.IsRunning do
+            -- Wrap in pcall so an error in the looped command doesn't kill the whole panel
+            local success, err = pcall(cmdFunc, args)
+            if not success then
+                warn("--> [CommandLooper] Error in loop:", err)
+            end
+            task.wait(self.Config.Interval)
+        end
+    end)
+end
+
+--[[
+    Stops the currently active loop and cleans up the thread.
+--]]
+function Modules.CommandLooper:Stop()
+    if not self.State.IsRunning then return end
+
+    self.State.IsRunning = false
+    if self.State.LoopThread then
+        task.cancel(self.State.LoopThread)
+        self.State.LoopThread = nil
+    end
+
+    DoNotif(string.format("Stopped loop for ';%s'.", self.State.CurrentCommand or "unknown"), 2)
+    self.State.CurrentCommand = nil
+end
+
+--// Initialize the module and register the commands
+function Modules.CommandLooper:Initialize()
+    local module = self
+    
+    RegisterCommand({
+        Name = "commandloop",
+        Aliases = {"cmdloop", "cloop"},
+        Description = "Runs a command repeatedly."
+    }, function(args)
+        if #args == 0 then
+            return DoNotif("Usage: ;cmdloop <command> [args]", 3)
+        end
+
+        local cmdTarget = table.remove(args, 1)
+        module:Start(cmdTarget, args)
+    end)
+
+    RegisterCommand({
+        Name = "stoploop",
+        Aliases = {"uncmdloop", "sloop", "stopl", "unloop"},
+        Description = "Stops the currently running command loop."
+    }, function()
+        if not module.State.IsRunning then
+            return DoNotif("No command is currently looping.", 2)
+        end
+        module:Stop()
+    end)
+end
+
+Modules.ChatFilterReseter = {
+    State = {
+        IsEnabled = true
+    },
+    Dependencies = {"Players"},
+    Services = {}
+}
+
+--[[
+    Internal execution logic.
+    Sends /e hi to the chat 3 times to clear the local filter buffer.
+--]]
+function Modules.ChatFilterReseter:Reset()
+    local lp = self.Services.Players.LocalPlayer
+    if not lp then return end
+
+    DoNotif("Resetting chat filter...", 2)
+
+    for i = 1, 3 do
+        pcall(function()
+            lp:Chat("/e hi")
+        end)
+        
+        -- A micro-wait ensures the server registers three distinct events
+        task.wait(0.1)
+    end
+
+    DoNotif("Filter Reset: Complete.", 2)
+end
+
+--// Initialize the module and register the command
+function Modules.ChatFilterReseter:Initialize()
+    local module = self
+
+    -- Load required services
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "resetfilter",
+        Aliases = {"ref", "resetchat", "unfilter"},
+        Description = "Sends emote commands to try and stop Roblox from tagging your messages."
+    }, function()
+        module:Reset()
+    end)
+end
+
+Modules.ToolMasher = {
+    State = {
+        IsExecuting = false
+    },
+    Dependencies = {"Players"},
+    Services = {}
+}
+
+--[[
+    Internal execution logic.
+    Moves all tools to the character, fires Activate(), and resets them.
+--]]
+function Modules.ToolMasher:Mash()
+    if self.State.IsExecuting then return end
+    
+    local lp = self.Services.Players.LocalPlayer
+    local char = lp.Character
+    local backpack = lp:FindFirstChildOfClass("Backpack")
+
+    if not char or not backpack then
+        return DoNotif("Tool Masher: Character or Backpack missing.", 3)
+    end
+
+    self.State.IsExecuting = true
+    local toolBuffer = {}
+
+    -- 1. Collect and Equip all tools from backpack
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            table.insert(toolBuffer, tool)
+            tool.Parent = char
+        end
+    end
+
+    -- 2. Include tools already equipped
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") and not table.find(toolBuffer, tool) then
+            table.insert(toolBuffer, tool)
+        end
+    end
+
+    if #toolBuffer == 0 then
+        self.State.IsExecuting = false
+        return DoNotif("No tools found to mash.", 2)
+    end
+
+    -- A micro-wait allows the engine to register the tools as 'Equipped'
+    task.wait(0.1)
+
+    -- 3. Activate all tools
+    local successCount = 0
+    for _, tool in ipairs(toolBuffer) do
+        pcall(function()
+            tool:Activate()
+            successCount = successCount + 1
+        end)
+    end
+
+    -- 4. Clean up: Move tools back to backpack to prevent clutter
+    task.wait(0.1)
+    for _, tool in ipairs(toolBuffer) do
+        pcall(function()
+            tool.Parent = backpack
+        end)
+    end
+
+    DoNotif(string.format("Mashed %d tools successfully.", successCount), 2)
+    self.State.IsExecuting = false
+end
+
+--// Initialize the module and register the command
+function Modules.ToolMasher:Initialize()
+    local module = self
+    
+    -- Load services
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "usetools",
+        Aliases = {"uset", "mash", "useall"},
+        Description = "Equips every tool you own, uses them once, and puts them back."
+    }, function()
+        module:Mash()
+    end)
+end
+
+Modules.InvisDeleter = {
+    State = {
+        IsScanning = false
+    },
+    Dependencies = {"Workspace"},
+    Services = {}
+}
+
+--[[
+    Internal execution logic.
+    Filters: BasePart, Transparency >= 1, CanCollide == true.
+--]]
+function Modules.InvisDeleter:Purge()
+    if self.State.IsScanning then 
+        return DoNotif("Purge already in progress...", 2) 
+    end
+
+    local workspace = self.Services.Workspace
+    local count = 0
+    
+    self.State.IsScanning = true
+    DoNotif("Scanning for invisible walls...", 2)
+
+    -- Run in a separate thread to prevent UI hang
+    task.spawn(function()
+        local descendants = workspace:GetDescendants()
+        
+        for i, part in ipairs(descendants) do
+            -- Performance check: Yield every 500 objects to prevent frame drops
+            if i % 500 == 0 then task.wait() end
+
+            if part:IsA("BasePart") then
+
+                if part.Transparency >= 1 and part.CanCollide then
+                    
+                    -- Safety: Never delete parts belonging to your own character
+                    local char = game:GetService("Players").LocalPlayer.Character
+                    if not (char and part:IsDescendantOf(char)) then
+                        pcall(function()
+                            part:Destroy()
+                            count = count + 1
+                        end)
+                    end
+                end
+            end
+        end
+
+        self.State.IsScanning = false
+        DoNotif(string.format("Purge complete. Destroyed %d parts.", count), 3)
+    end)
+end
+
+--// Initialize the module and register the command
+function Modules.InvisDeleter:Initialize()
+    local module = self
+    
+    -- Load Workspace service
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "deleteinvisparts",
+        Aliases = {"deleteinvisibleparts", "dip", "delinvis", "unblock"},
+        Description = "Removes all invisible parts that have collisions enabled (Invisible Walls)."
+    }, function()
+        module:Purge()
+    end)
+end
+
+Modules.KickShield = {
+    State = {
+        IsEnabled = false,
+        Mode = "FakeSuccess", -- Options: "FakeSuccess" or "Error"
+        OriginalNamecall = nil
+    },
+    Dependencies = {"Players"},
+    Services = {}
+}
+
+--[[
+    Internal Hooking Logic.
+    Uses a metatable hook to intercept the :Kick() method.
+--]]
+function Modules.KickShield:ApplyHook()
+    local success, mt = pcall(getrawmetatable, game)
+    if not success or not mt then
+        return DoNotif("KickShield: Metatable access denied.", 3)
+    end
+
+    if self.State.OriginalNamecall then return end -- Already hooked
+
+    self.State.OriginalNamecall = mt.__namecall
+    local original = self.State.OriginalNamecall
+    local lp = self.Services.Players.LocalPlayer
+
+    setreadonly(mt, false)
+    mt.__namecall = newcclosure(function(selfArg, ...)
+        local method = getnamecallmethod()
+        
+        if selfArg == lp and (method == "Kick" or method == "kick") then
+            local currentMode = Modules.KickShield.State.Mode
+            
+            warn("--> [KickShield] Intercepted Kick Attempt. Mode: " .. currentMode)
+            
+            if currentMode == "Error" then
+                -- This kills the calling script entirely by throwing a Lua error.
+                error("Critical Engine Failure: Memory Address 0x000F is Read-Only.")
+                return nil
+            else
+                -- FakeSuccess: The script thinks it kicked you, but nothing happens.
+                return nil
+            end
+        end
+        
+        return original(selfArg, ...)
+    end)
+    setreadonly(mt, true)
+    
+    self.State.IsEnabled = true
+    DoNotif("KickShield: Active [Mode: " .. self.State.Mode .. "]", 2)
+end
+
+--[[
+    Internal execution logic for command processing.
+--]]
+function Modules.KickShield:Toggle(modeArg)
+    local m = tostring(modeArg):lower()
+
+    if m == "error" or m == "fail" or m == "crash" then
+        self.State.Mode = "Error"
+    elseif m == "success" or m == "ok" or m == "fake" or m == "nil" then
+        self.State.Mode = "FakeSuccess"
+    end
+
+    if not self.State.IsEnabled then
+        self:ApplyHook()
+    else
+        DoNotif("KickShield: Updated Mode to " .. self.State.Mode, 2)
+    end
+end
+
+--// Initialize the module and register the command
+function Modules.KickShield:Initialize()
+    local module = self
+    
+    -- Load Players service
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+
+    RegisterCommand({
+        Name = "kickshield",
+        Aliases = {"ks", "shield", "bypasskickv2"},
+        Description = "Prevents kicks. Modes: ;shield error (crashes script) or ;shield fake (spoofs success)."
+    }, function(args)
+        module:Toggle(args[1] or "fake")
+    end)
+end
 
 Modules.RaycastVisualBypass = {
     State = {
@@ -15571,7 +17410,7 @@ RegisterCommand({Name = "extendroot", Aliases = {}, Description = "Bypasses Rayc
 
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
 
-RegisterCommand({Name = "overs", Aliases = {"pv2"}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt" "Loading GUI..") end)
+RegisterCommand({Name = "updatedoverseer", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt", "Loading GUI..") end)
 
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
 
@@ -15735,55 +17574,3 @@ else
 LocalPlayer.Chatted:Connect(processCommand)
 end
 DoNotif("We're So back. The Best Underground Panel.", 3)
-
-
---[[⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣤⣤⣤⣴⣦⣶⣤⣤⣀⣀⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣾⠿⠿⣶⣦⣄⡀⠀⢀⣠⣴⣶⠿⠿⠛⠋⠉⠉⠉⠉⠀⠀⠈⠉⠛⠋⠉⠉⠙⠻⣷⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣿⠏⠀⣠⣄⡀⠈⠙⣿⡾⠟⠋⠁⢀⣀⡤⠶⠖⠛⠛⠲⠞⠋⠉⠛⠛⠒⠲⢿⣷⣦⣄⠀⠉⠻⣷⣶⣤⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣴⣶⡶⠾⠾⠿⠃⢀⣼⣿⣻⣿⡏⠀⠉⣀⣤⠶⠞⠉⢁⠠⠀⠄⡒⠀⠄⠂⠌⢀⠡⠐⠀⠀⠀⠈⠙⢿⣿⣦⣀⠀⠀⠈⠙⠻⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⡿⠟⠃⠀⣀⣀⡀⠀⠀⣼⡿⣧⣿⣿⠇⢀⡼⠛⠀⠀⡀⠘⢀⠀⠄⢠⠃⠠⢀⠘⠀⠄⠀⠄⡀⠀⠀⠀⠀⠀⠸⢿⣿⣧⡀⠛⢧⡀⠘⢿⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⡿⠋⠀⡠⠞⠋⠀⠀⠀⢀⣾⣿⣽⣿⣿⡿⣿⠋⠀⠄⠂⢁⠠⠈⡀⠄⢈⡏⢀⠐⠠⠀⡁⠂⢁⠠⠀⠀⠀⠀⢀⠀⡀⠈⠹⣟⣿⣦⠀⢻⡄⠈⢿⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡟⠀⣠⠞⠀⡀⠀⠀⠀⠀⣾⣿⣳⣿⡿⢃⡾⠁⠀⠀⠂⢈⠀⢄⠞⠀⡐⣘⠀⠄⠂⠠⠁⡀⠌⠀⠀⠀⠀⠀⠀⠀⠁⠀⠐⡀⠙⣿⣿⠀⡀⢿⠀⠈⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡟⠀⢰⢏⣾⣿⣶⣎⣠⣤⣼⣿⣿⣿⡿⠁⣼⠃⠀⠀⠀⠀⠀⣀⡞⠀⡐⠀⣷⠀⠀⢈⠀⠐⠀⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢂⠠⠀⠸⡟⢀⠐⣸⡇⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⠃⢀⣿⣾⣿⣿⣿⣿⣿⣿⢿⣿⣿⣿⢃⢰⡇⠀⠀⠀⠀⠀⠀⡼⠀⠀⠄⠂⣽⣄⠀⠀⠀⢀⠀⠙⠧⣄⠀⠠⠀⠄⢀⠠⠐⠀⡀⢧⡐⠀⢂⠰⢸⡇⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣄⣀⣼⡟⠀⣸⣟⣿⣽⣿⣟⠻⢿⣿⣼⣿⣿⣿⢊⣼⢡⠀⠀⠀⠀⠀⣸⠇⠀⠀⠐⢀⡇⠸⣦⡀⢈⠀⠀⠀⣇⠈⠛⣦⣐⠈⠀⠄⠂⡐⠀⡀⢧⠐⡀⢎⣹⠇⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣿⣿⣿⠿⡷⡟⠿⢋⠿⢿⡿⠛⠀⢀⣼⠟⢸⣿⣿⢥⡟⣿⠀⠀⠀⠀⣰⠏⠀⡀⠄⠀⣸⠁⠀⡼⣿⣦⡀⠡⠀⠹⡄⠀⠀⠽⢷⣌⠀⠂⠄⠂⡀⠘⡄⠸⣄⢻⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣧⣛⠴⣩⠝⡊⠅⠀⠀⠀⣠⣿⠟⠀⣼⣿⣿⡎⣽⣿⠀⠀⠠⣱⠏⠀⢂⢠⠀⢠⣿⣀⡀⠀⠜⣿⣷⣦⡐⠀⢻⡄⠀⠀⣹⣿⣷⣅⠐⠠⢀⠁⡸⢐⠬⣻⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⢀⣠⣶⡿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠗⡌⠀⠀⠀⣠⣾⣿⠋⠀⢸⡇⠀⢸⣷⣾⣿⠇⠀⢡⡟⠀⠌⠀⡎⠀⣼⠋⠈⠉⠓⠲⢿⣿⣿⣿⣄⠈⣧⠀⠚⠁⠺⣹⢿⣷⡆⡄⢂⡘⡇⢎⣽⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⣠⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣭⣛⢩⠁⠀⠀⠀⣠⣾⣿⡟⠁⠀⣰⣾⡇⠀⠈⣿⣿⣿⠁⢨⡿⠁⠐⠠⢁⡇⢐⣿⠀⠀⣄⠀⠀⠈⢻⣿⣿⣿⣇⢾⡇⠀⠀⣀⣼⣿⣿⣿⣷⢆⡜⣹⢂⣿⡄⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣟⢿⣿⣷⣄⠀⢀⣴⣿⡿⠋⠀⣰⣴⣿⣿⣻⡶⢤⣼⣿⡿⢀⣿⠃⢀⠁⠂⢸⣧⢨⣿⣿⣶⣦⣄⠀⠀⠀⠻⣿⣿⣿⣿⡇⢠⣾⣿⣿⡽⢿⣿⣿⣿⡜⣳⠐⣾⡇⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣟⣛⠻⢿⣷⣝⢿⣿⣧⣾⣿⠟⠁⠀⠀⣿⣿⣿⣋⣼⣷⡛⡟⠿⣿⣼⣟⠀⠤⠈⢀⣿⣿⣸⣿⣿⡟⣻⠝⢧⠀⠀⠀⠈⠻⣿⣿⢷⣿⣿⣿⣼⡇⠈⣿⣿⣿⣞⠱⠈⣾⡇⠀⢻⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⢸⣿⣿⣿⣿⣿⢿⣿⣿⣿⣿⣿⣷⣤⠙⣿⣧⢿⣿⣿⠃⠀⡀⠀⠀⣿⡟⣿⣧⣿⣿⣿⣼⢲⡌⡽⣿⣤⠀⢂⢰⣿⣿⣿⠿⡿⠛⣿⠄⠀⠀⠀⠀⠀⠀⠈⠹⠎⢯⣙⠉⣸⠃⠸⢫⣿⣿⣯⠆⠁⢾⡇⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⢸⣿⣿⣿⣿⡏⣼⣿⣿⣿⣿⣿⣿⣿⣇⠸⣿⣾⣿⡇⠀⠠⠆⣠⣼⣿⢀⣿⣿⣿⣿⣿⣿⣿⣼⠡⠎⠻⣿⣤⣼⡗⠻⠻⠦⣤⠴⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠛⠁⠀⠀⣾⠘⣿⠛⡇⢈⢚⡇⠀⢸⣯⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⢸⣿⣿⣿⣿⡅⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⣿⣿⣿⡇⠀⢸⣿⣿⢿⣧⣼⣿⣿⣿⣿⣿⣿⣿⣿⣧⠉⠋⠙⠙⢻⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⡁⠠⠁⠂⡸⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⢸⣿⣿⡽⣿⣧⠹⣿⣿⣿⣿⣿⣿⣿⠏⣼⣿⣽⣿⡇⣰⠏⢸⣿⣾⣿⣿⣿⣿⣿⣿⣿⣿⡿⢛⠷⠈⠀⠀⠀⠀⠹⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⢤⣿⡇⠐⠀⡁⠄⢁⠰⣿⠀⠈⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠘⢿⣿⣿⣿⣿⣷⣬⣙⡛⠿⣻⣿⣫⣾⣿⣏⣿⣿⡶⠋⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁⠃⠀⠀⠀⠀⠀⠀⢠⣿⣟⣳⣄⠀⠀⠀⠀⠀⠠⣴⣶⣶⣶⣾⠗⠀⠀⠀⣴⣿⣿⣿⠀⠂⠠⠐⢀⠐⣿⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠻⣿⣼⣿⣿⣿⣿⣿⣿⣿⣿⢿⣿⣿⣿⢿⠏⠀⣴⢿⡝⠁⠈⠉⠙⢿⣿⣿⣿⣿⣟⠀⠀⠀⠀⠀⠀⠀⣀⣼⣯⣿⡟⠻⣷⣄⡀⠀⠀⠀⠈⠉⠉⠉⠁⠀⢀⣴⣾⣿⣿⣿⣿⡇⠀⡁⠐⡀⠂⣽⡇⠀⢿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠐⣿⡧⣿⡿⢿⣻⣯⡿⣿⣯⣿⣾⢧⡟⠃⢠⣼⡟⡎⠀⠉⠉⠙⠛⠳⡞⣿⣿⣿⡇⠀⢀⣤⣤⣀⠀⣴⣿⡿⠟⠉⠙⢦⣽⣿⠿⢦⣤⣀⠀⠀⠀⠀⣰⠛⢻⣿⣿⣿⣿⣿⣿⣷⠀⠄⢁⠠⠐⡸⡇⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⣿⣷⣉⣿⣿⣿⣿⣿⣶⡝⣷⢿⣾⠃⣠⣾⣿⢇⡟⢀⡀⠐⠀⠀⠀⣇⢸⣿⣿⠇⠐⠋⠀⠀⢘⣿⡿⠋⠀⣠⡆⠀⣾⡟⣿⣿⣾⣿⣿⣿⣷⣾⣿⢿⡇⢸⣿⣿⣿⣿⣿⣿⡿⠀⢈⠀⠄⠂⠱⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⣿⣿⣿⣟⣿⣿⣿⣿⣿⣿⢸⣿⣿⢠⣿⣿⣿⢸⣷⡸⢿⣦⣄⠀⣰⣇⣾⣿⣿⠂⠈⡀⠀⠀⣸⠋⠀⣠⣾⠟⠀⢠⡟⠻⠿⠛⠋⠀⠉⠉⠙⠿⠿⣦⡁⢿⣿⣿⣿⣿⣿⣿⡇⠀⢂⠀⠂⠌⠐⣿⠀⠘⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⣽⣿⣿⣿⢹⣿⣿⣿⣿⡿⣸⣿⣏⣾⣿⣿⡯⣾⡿⠷⢮⣽⣿⣶⣿⠿⠻⡉⠟⣶⣀⠑⠤⠀⡿⠲⣶⡿⠋⠀⣀⠾⠁⠀⠀⠀⠀⠀⠀⠀⢰⡤⠴⠟⢧⡌⠻⢿⣿⣿⣿⣿⠃⠀⠌⠐⡀⠄⠐⣻⡀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠠⣿⣿⣯⠻⣷⣍⣛⣛⢻⣴⣿⠟⣱⣿⣿⣿⣿⡿⠁⠀⠀⠀⠀⠀⠀⠠⣅⣜⠠⠙⣿⣶⣄⣼⢧⡀⠈⠀⣀⣾⣟⣓⠂⠄⠀⠀⠀⠀⠀⠀⠘⠷⣤⣀⢨⡿⢷⣤⡈⠛⠛⠉⠋⠻⠶⣶⣦⣄⠂⢹⡇⠀⢿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⢻⣿⣿⣷⣮⣙⡛⢛⢻⣻⣥⣿⣿⣿⣿⠟⠛⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠁⣠⣿⣿⣿⣿⡄⠙⣄⠚⠉⠁⠀⠉⠙⣆⠈⠐⠠⠀⠀⠀⠀⠀⠈⢷⡄⠘⢦⡉⠉⠳⢦⡙⢦⠀⠀⠀⠉⠺⡛⢶⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⢁⠠⢠⠀⡄⢠⠀⠠⢀⠀⠀⠀⠀⠀⢀⡞⠙⣿⣿⣿⣿⡄⠹⡆⠀⠀⠀⠀⠀⢯⡁⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⡄⢀⠳⣤⠀⠀⠁⠈⠳⡀⠀⠀⠀⠈⢢⡻⡄⠸⣿⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣤⢃⠦⣡⠒⠤⠘⠠⠀⠀⠀⠀⣀⣤⠟⠁⢸⣿⣿⣿⣿⣿⡀⢹⡄⠀⠀⠀⠀⠩⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢻⣆⠀⡈⠳⣄⠀⠀⠀⠙⢦⡀⡀⠀⠀⠙⣇⠀⠈⢻⡿⢿⣦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠿⠶⠿⠾⠷⠷⠶⠾⠟⠛⠉⠁⠀⡘⣿⣿⣿⣿⣿⣿⡇⠘⣧⠀⠀⠀⠀⢸⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣧⡀⠐⠘⢷⣄⠉⠦⠿⣇⠁⠀⠀⠀⠈⠳⢦⣀⣧⡀⠈⠻⣷⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡼⢅⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠐⣼⣿⣿⣿⣿⣿⣿⡿⢀⣿⠀⠀⠀⠀⢠⡁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠹⣷⡈⢀⠂⠙⢿⡶⠶⠿⠶⢦⡀⠀⠀⠀⠀⠀⠙⣿⣦⠀⠙⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠈⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣈⠰⢠⢂⠠⢀⡀⠀⠀⠀⠀⠀⢀⣡⣿⣿⣿⣿⣿⣿⣿⡇⢸⡇⠀⠀⠀⠀⢸⡇⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⡆⠠⠁⡈⠱⡆⠀⠀⠲⣕⡀⠀⠀⠀⠀⢀⡟⣿⣷⡀⠈⠻⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢦⡙⡆⢬⡑⢢⠠⣉⣄⣠⡴⠞⠋⣿⣿⣿⣿⣿⣿⣿⡟⠀⡾⠀⠀⠀⠀⠀⣼⠄⢰⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠹⣿⡀⠐⡀⠁⠹⡄⠀⠀⠘⢿⡄⠀⠀⣠⡾⢁⣿⣿⣿⣦⡀⠨⠻⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠈⣿⠛⣿⣿⣿⣿⡟⡟⠛⠛⠛⠿⠛⠿⠛⠛⠟⠛⠉⠁⠠⣄⣾⣿⣿⣿⣿⣿⣿⡟⠁⣼⠁⠀⠀⠀⠀⢸⡏⠀⣾⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠠⢀⠁⠂⢿⠀⠀⠀⠀⣿⣦⡾⢋⣴⣿⣿⣿⣿⣿⣿⣦⡀⠈⠻⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⢸⣿⠀⣘⣿⣿⣿⣿⡱⠡⠌⢂⣄⡀⠀⠄⢂⡀⠀⠀⠄⣱⣾⣿⣿⣿⣿⣿⡿⠋⣠⢾⡇⠀⠀⠀⠀⢠⣞⢁⣸⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠐⡀⠈⠄⡘⣇⠀⠀⠀⣿⣷⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⡀⠈⢻⣧⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⢸⡏⠀⢹⣿⣿⣿⣿⣇⠻⣌⠲⣌⠷⢬⠐⠠⢀⠂⣀⣴⣿⣿⣿⣿⠿⠛⢁⣤⠞⠁⠈⣿⣄⠀⠀⢀⣾⠇⣼⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠐⡀⠡⠀⠄⢿⠀⠀⠀⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀⠈⣿⡆⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⡿⠈⠻⣿⡿⢿⢷⣾⣿⣾⣽⣦⣭⣶⠟⠛⠛⠛⠛⢉⣉⣠⡴⠞⠋⠀⣠⣶⡀⠘⢿⣦⣶⡿⠋⠚⠛⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀  ⢨⡗⠠⠐⠀⠡⠀⢼⡆⠀⠀⢹⣿⡏⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⢰⣿⠁⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⢰⣿⠀⢰⡇⠠⢀⠀⢀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣿⣿⣿⣾⠛⠛⠉⠁⣀⣤⣶⠿⠛⠻⣿⡀⠸⣿⡿⡖   you⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⢀⠂⢁⠂⢁⠀⣧⠸⣿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⠀⣼⡏⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⣸⡏⠀⣸⠀⠠⠀⠌⠀⠠⠈⢀⠐⠀⠂⠀⠈⠉⢉⣿⣿⣿⠀⢰⣾⠿⠛⠉⠀⠀⠀⠀⢿⣧⠀⢸⣷⣷⠀⠠⠀⠀⠀are⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀⠘⣇⠀⡐⠠⠐⠀⢂⢻⠀⠀⢸⣿⣿⣿⠟⣻⣿⣿⣿⣻⡟⣿⣿⡟⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⣿⡇⠀⣿⠀⡀⢁⠂⠈⠀⠄⠂⠀⠌⠀⠁⠀⠀⣾⣿⣿⣿⠀⠈⣿⠄⠀⠀⠀⠀⠀⠀⠩⣿⣆⠀⢻⣿⡆⠀⠀⠀loved⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠠⠐⡀⠡⢀⢸⡆⢸⣿⣿⣥⣿⣿⣿⣿⣿⣿⡿⠈⣿⠀⢠⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⢀⣿⠀⢰⡇⠀⠄⡀⠂⢁⠀⠂⢀⠐⠀⣈⣤⣄⣾⣿⣿⣿⣿⡄⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠸⣿⡄⠈⢿⣧⠤⠀⠀⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀  ⠀⠀⣿⠀⠡⠐⢀⠐⡀⠈⣷⠀⢸⣿⣿⣿⣿⣿⣿⣿⡿⡿⠁⣰⠇⠀⣾⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⣸⡟⠀⢸⠃⢀⠂⠠⠐⠀⡀⠌⠀⠀⠄⣾⣿⣿⣿⢿⣿⣿⣿⡇⠀⢻⡇⠀⠀⠀⠀⠀⠀⠀⠀⢻⣷⡀⠘⣿⣆⠀⢀⠠⠐⠂⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀⠀⠀⠀⣿⡅⠂⢈⠠⠀⠄⡁⠸⡆⢸⣿⣿⣿⣿⣿⣿⡿⢱⣇⣀⡟⠀⣼⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⣿⡇⠀⡿⠀⠠⠀⡁⢀⠂⠀⠠⠐⠈⠀⣿⣿⣿⣯⣿⣿⣿⣿⡇⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⣧⠀⢹⣿⡄⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀ ⠀⠀⣿⡇⠀⢂⠠⠈⡀⠄⠁⢿⣻⣿⣿⣿⣿⣿⡿⢠⣟⣼⡿⠁⢰⣿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⢠⣿⠀⢰⡇⠀⡁⠠⠐⠀⠀⠀⠂⠀⠄⣠⣿⣿⣿⣟⣿⣿⣿⣿⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⡄⠀⢻⣧⠀⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀⣻⣇⠈⡀⠄⠂⡀⠂⢁⠘⣿⣿⣿⣿⣿⣿⣥⡟⡴⣼⠃⢀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⢸⣿⠀⢸⡇⠀⡄⠐⢠⠀⠁⠀⡄⣴⣾⣿⣿⣿⣿⣿⢻⣿⣿⣿⣿⠀⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⡄⠈⣿⡆⠀⢠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀⠀⢹⣿⠀⡄⠂⠁⢠⠈⢠⠀⢹⣿⣿⣿⢻⣿⣾⢳⢳⡏⠀⣼⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⢀⣾⡇⠀⣾⣄⣀⣄⣐⣀⣀⣀⣠⣾⣿⣿⣿⣿⣿⣷⣿⣿⣿⣿⣿⣿⡀⢸⣿⣠⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣧⠀⣹⣿⣤⣀⣀⣀⣀⣀⣀⣀⡀⠀⠀⠀⠀⠀⣀⣀⣸⣿⣀⣠⣔⣈⣤⣐⣀⣈⣀⣈⣹⣿⣿⣾⣷⣏⣾⠁⣠⣿⡃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠈⠀⠈⠁⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠈⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
- --]]
