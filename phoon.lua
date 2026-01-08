@@ -30,7 +30,7 @@ local cfg = {
     maxAirSpeed = 20,
     runSpeed = 23,
     jumpPower = 26,
-    gravity = 80,
+    gravity = 90,
     friction = 6,
     stopSpeed = 5,
 }
