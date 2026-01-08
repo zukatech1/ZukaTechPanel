@@ -8,8 +8,8 @@ local function PatchModule()
         weaponTable.FireRate = 0.001
         weaponTable.Auto = true
         weaponTable.ShotgunEnabled = true
-        weaponTable.BulletPerShot = 100
-        weaponTable.ExplosionRadius = 100
+        weaponTable.BulletPerShot = 2
+        weaponTable.ExplosionRadius = 900
         weaponTable.ExplosionSoundVolume = 10
         weaponTable.ReloadTime = 0
         weaponTable.TacticalReloadTime = 0
@@ -245,7 +245,7 @@ local v1: table = {
     ["SelfDamageRedution"] = 1,
     ["ReduceSelfDamageOnAirOnly"] = true,
     ["CustomExplosion"] = false,
-    ["ExplosionKnockback"] = true,
+    ["ExplosionKnockback"] = false,
     ["ExplosionKnockbackPower"] = 500,
     ["ExplosionKnockbackMultiplierOnPlayer"] = 10,
     ["ExplosionKnockbackMultiplierOnTarget"] = 10,
@@ -253,7 +253,7 @@ local v1: table = {
     ["ExplosionCraterSize"] = 10,
     ["ExplosionCraterVisibleTime"] = 10,
     ["ExplosionCraterFadeTime"] = 2,
-    ["ProjectileType"] = "Pumpkin",
+    ["ProjectileType"] = "Normal",
     ["BulletSpeed"] = 2500,
     ["TravelType"] = "Distance",
     ["Range"] = 20000,
@@ -297,4 +297,5 @@ local v1: table = {
     ["AnimationKeyframes"] = {},
     ["VMAnimationKeyframes"] = {}
 }
+
 return v1
