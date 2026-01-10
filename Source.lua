@@ -9963,7 +9963,7 @@ RegisterCommand({ Name = "ghost", Aliases = {"desyncv4"}, Description = "Desyncs
     Modules.NetworkGhost:Toggle()
 end)
 
-Modules.HookCentral = {
+--[[Modules.HookCentral = {
     State = {
         Hooks = {},
         OriginalNamecall = nil,
@@ -9996,7 +9996,7 @@ end
 
 function Modules.HookCentral:AddHook(id, type, checkFunc, callback)
     self.State.Hooks[id] = {Type = type, Check = checkFunc, Callback = callback}
-end
+end--]]
 
 Modules.SignalRespawn = {
     State = {
@@ -13458,80 +13458,6 @@ function Modules.AvatarEditor:Initialize()
     end)
 end
 
-
-Modules.BunnyHop = {
-    State = {
-        IsEnabled = false,
-        IsJumping = false,
-        Connection = nil
-    },
-    Services = {
-        Players = game:GetService("Players"),
-        UserInputService = game:GetService("UserInputService"),
-        RunService = game:GetService("RunService")
-    }
-}
-
-function Modules.BunnyHop:OnStepped()
-    if not self.State.IsEnabled or not self.State.IsJumping then return end
-    
-    local character = self.Services.Players.LocalPlayer.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    
-    if humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
-        humanoid.Jump = true
-    end
-end
-
-function Modules.BunnyHop:Enable()
-    if self.State.IsEnabled then return end
-    self.State.IsEnabled = true
-    
-    self.State.Connection = self.Services.RunService.Stepped:Connect(function() self:OnStepped() end)
-
-    DoNotif("BunnyHop: ENABLED", 2)
-end
-
-function Modules.BunnyHop:Disable()
-    if not self.State.IsEnabled then return end
-    self.State.IsEnabled = false
-    
-    if self.State.Connection then
-        self.State.Connection:Disconnect()
-        self.State.Connection = nil
-    end
-
-    DoNotif("BunnyHop: DISABLED", 2)
-end
-
-function Modules.BunnyHop:Initialize()
-    local module = self
-    
-    module.Services.UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed and input.KeyCode == Enum.KeyCode.Space then
-            module.State.IsJumping = true
-        end
-    end)
-    
-    module.Services.UserInputService.InputEnded:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.Space then
-            module.State.IsJumping = false
-        end
-    end)
-    
-    RegisterCommand({
-        Name = "bhop",
-        Aliases = {"bunnyhop"},
-        Description = "Toggles automatic jumping while holding the spacebar."
-    }, function()
-        if module.State.IsEnabled then
-            module:Disable()
-        else
-            module:Enable()
-        end
-    end)
-end
-
 Modules.Chams = {
     State = {
         IsEnabled = false,
@@ -15817,6 +15743,191 @@ function Modules.CallumAI:Initialize()
     end)
 end
 
+Modules.SourceBhop = {
+    State = {
+        IsEnabled = false,
+        Velocity = Vector3.zero,
+        SpaceHeld = false,
+        UI = nil,
+        Connections = {}
+    },
+    Config = {
+        GroundAccel = 45,
+        AirAccel = 3500,
+        MaxAirSpeed = 15,
+        RunSpeed = 24,
+        JumpPower = 28,
+        Gravity = 100,
+        Friction = 7,
+        StopSpeed = 5
+    },
+    Theme = {
+        Main = Color3.fromRGB(15, 15, 18),
+        Accent = Color3.fromRGB(0, 255, 180),
+        Text = Color3.fromRGB(230, 230, 235),
+        Button = Color3.fromRGB(25, 25, 30)
+    }
+}
+
+function Modules.SourceBhop:_createUI(): ()
+    if self.State.UI then self.State.UI.Enabled = true return end
+    
+    local sg = Instance.new("ScreenGui", CoreGui)
+    sg.Name = "Zuka_Bhop_v2"
+    sg.ResetOnSpawn = false
+    self.State.UI = sg
+    
+    local main = Instance.new("Frame", sg)
+    main.Size = UDim2.fromOffset(180, 80)
+    main.Position = UDim2.new(0, 40, 0.5, -40)
+    main.BackgroundColor3 = self.Theme.Main
+    main.BorderSizePixel = 0
+    local corner = Instance.new("UICorner", main)
+    corner.CornerRadius = UDim.new(0, 4)
+    
+    local stroke = Instance.new("UIStroke", main)
+    stroke.Color = self.Theme.Accent
+    stroke.Thickness = 1
+    stroke.Transparency = 0.4
+    
+    local title = Instance.new("TextLabel", main)
+    title.Size = UDim2.new(1, 0, 0, 25)
+    title.Text = "BHOP"
+    title.TextColor3 = self.Theme.Accent
+    title.Font = Enum.Font.Code
+    title.TextSize = 12
+    title.BackgroundTransparency = 1
+    
+    local toggle = Instance.new("TextButton", main)
+    toggle.Size = UDim2.new(0.9, 0, 0, 35)
+    toggle.Position = UDim2.new(0.05, 0, 0.4, 0)
+    toggle.BackgroundColor3 = self.Theme.Button
+    toggle.Text = "SYSTEM: OFF"
+    toggle.TextColor3 = self.Theme.Text
+    toggle.Font = Enum.Font.Code
+    toggle.TextSize = 13
+    local bCorner = Instance.new("UICorner", toggle)
+    bCorner.CornerRadius = UDim.new(0, 4)
+    
+    toggle.MouseButton1Click:Connect(function()
+        self.State.IsEnabled = not self.State.IsEnabled
+        toggle.Text = self.State.IsEnabled and "SYSTEM: ON" or "SYSTEM: OFF"
+        toggle.TextColor3 = self.State.IsEnabled and self.Theme.Accent or self.Theme.Text
+        if not self.State.IsEnabled then self.State.Velocity = Vector3.zero end
+    end)
+    
+    local dragging, dragStart, startPos
+    main.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging, dragStart, startPos = true, input.Position, main.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+end
+
+function Modules.SourceBhop:Process(dt: number): ()
+    if not self.State.IsEnabled then return end
+    
+    local character = Players.LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    
+    if not (humanoid and hrp and humanoid.Health > 0) then return end
+    
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {character}
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    local groundCheck = Workspace:Raycast(hrp.Position, Vector3.new(0, -3.8, 0), rayParams)
+    local isGrounded = groundCheck and groundCheck.Instance and groundCheck.Instance.CanCollide
+    
+    local cam = Workspace.CurrentCamera
+    local look = cam.CFrame.LookVector
+    local right = cam.CFrame.RightVector
+    local moveInput = Vector3.zero
+    
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveInput += Vector3.new(look.X, 0, look.Z).Unit end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveInput -= Vector3.new(look.X, 0, look.Z).Unit end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveInput -= Vector3.new(right.X, 0, right.Z).Unit end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveInput += Vector3.new(right.X, 0, right.Z).Unit end
+    
+    if moveInput.Magnitude > 0 then moveInput = moveInput.Unit end
+    
+    if isGrounded then
+        local speed = self.State.Velocity.Magnitude
+        if speed > 0.1 then
+            local drop = math.max(speed, self.Config.StopSpeed) * self.Config.Friction * dt
+            self.State.Velocity *= math.max(speed - drop, 0) / speed
+        else
+            self.State.Velocity = Vector3.zero
+        end
+        
+        local wishDir = moveInput
+        local curSpeed = self.State.Velocity:Dot(wishDir)
+        local addSpeed = self.Config.RunSpeed - curSpeed
+        if addSpeed > 0 then
+            local acc = math.min(self.Config.GroundAccel * dt * self.Config.RunSpeed, addSpeed)
+            self.State.Velocity += wishDir * acc
+        end
+        
+        if self.State.SpaceHeld then
+            self.State.Velocity = Vector3.new(self.State.Velocity.X, self.Config.JumpPower, self.State.Velocity.Z)
+        else
+            self.State.Velocity = Vector3.new(self.State.Velocity.X, 0, self.State.Velocity.Z)
+        end
+    else
+        local wishDir = moveInput
+        local wishSpeed = self.Config.MaxAirSpeed
+        local curSpeed = self.State.Velocity:Dot(wishDir)
+        local addSpeed = wishSpeed - curSpeed
+        if addSpeed > 0 then
+            local acc = math.min(self.Config.AirAccel * dt * wishSpeed, addSpeed)
+            self.State.Velocity += wishDir * acc
+        end
+        self.State.Velocity += Vector3.new(0, -self.Config.Gravity * dt, 0)
+    end
+    
+    hrp.AssemblyLinearVelocity = self.State.Velocity
+end
+
+function Modules.SourceBhop:Initialize(): ()
+    local module = self
+    
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if not gpe and input.KeyCode == Enum.KeyCode.Space then
+            module.State.SpaceHeld = true
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.Space then
+            module.State.SpaceHeld = false
+        end
+    end)
+    
+    RunService.Heartbeat:Connect(function(dt)
+        module:Process(dt)
+    end)
+    
+    RegisterCommand({
+        Name = "bhop",
+        Aliases = {"sourcemove", "bhopengine"},
+        Description = "Enables Source Engine momentum and BunnyHopping."
+    }, function()
+        module:_createUI()
+    end)
+end
+
 Modules.VoidFling = {
     State = {
         IsFlinging = false
@@ -17553,7 +17664,7 @@ function Modules.InterstellarInteraction:Toggle(): ()
 end
 
 RegisterCommand({
-    Name = "interstellar",
+    Name = "fireallclickprompt",
     Aliases = {"massfire", "autofireall"},
     Description = "Automatically triggers every Prompt and ClickDetector in the game regardless of distance."
 }, function()
@@ -17693,7 +17804,7 @@ RegisterCommand({
     Modules.ClassicSwordAnim:Toggle()
 end)
 
-Modules.InstanceInterceptor = {
+--[[Modules.InstanceInterceptor = {
     State = {
         IsEnabled = false,
         OriginalNew = nil,
@@ -17774,7 +17885,7 @@ function Modules.InstanceInterceptor:Initialize(): ()
             DoNotif("'" .. name .. "' was not on the blacklist.", 2)
         end
     end)
-end
+end--]]
 
 local function loadstringCmd(url, notif)
     pcall(function()
@@ -17848,7 +17959,7 @@ RegisterCommand({Name = "reachfix", Aliases = {"fix"}, Description = "Makes your
 
 RegisterCommand({Name = "worldofstands", Aliases = {"wos"}, Description = "For https://www.roblox.com/games/6728870912/World-of-Stands - Removes dash cooldown"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/WOS.lua", "Loading, Wait a sec.") end)
 
-RegisterCommand({Name = "csgo", Aliases = {"phoon"}, Description = "Become a speed demon like phoon."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/phoon.lua", "Loading, Wait a sec.") end)
+RegisterCommand({Name = "zfucker", Aliases = {}, Description = "zfucker for the zl series."}, function() loadstringCmd("https://raw.githubusercontent.com/osukfcdays/zlfucker/refs/heads/main/main.luau", "Loading, Wait a sec.") end)
 
 
 function processCommand(message)
