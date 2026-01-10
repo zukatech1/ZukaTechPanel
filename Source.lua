@@ -2,6 +2,7 @@
 made by zuka @OverZuka on roblox
 Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
 --]]
+
 local HttpService = game:GetService("HttpService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local TweenService = game:GetService("TweenService")
@@ -21,7 +22,7 @@ local PathService = game:GetService("PathfindingService")
 local MarketplaceService = game:GetService("MarketplaceService")
 do
     local THEME = {
-    Title = "fUCK ROBLOX",
+    Title = "We Lit",
     Subtitle = "Made by @OverZuka - We're so back...",
     IconAssetId = "rbxassetid://7243158473",
     BackgroundColor = Color3.fromRGB(20, 20, 25),
@@ -3317,6 +3318,8 @@ Modules.AdvancedFling = {
     }
 }
 
+-- NOTE: The original findFlingTargets function is retained as it is more comprehensive
+-- and already integrated with the command system's argument parsing.
 local function findFlingTargets(targetName)
     local targets = {}
     local localPlayer = Players.LocalPlayer
@@ -3385,12 +3388,14 @@ function Modules.AdvancedFling:Execute(targetPlayer)
     
     self.State.IsFlinging = true
     
+    -- Store original state for restoration
     local originalPosition = localRootPart.CFrame
     local originalCameraSubject = Workspace.CurrentCamera.CameraSubject
     local originalDestroyHeight = Workspace.FallenPartsDestroyHeight
 
     task.spawn(function()
         local success, err = pcall(function()
+            --// --- START: New "SkidFling" Logic Integration ---
 
             local TCharacter = targetPlayer.Character
             local THumanoid = TCharacter and TCharacter:FindFirstChildOfClass("Humanoid")
@@ -3417,7 +3422,7 @@ function Modules.AdvancedFling:Execute(targetPlayer)
             end
 
             if not TCharacter:FindFirstChildWhichIsA("BasePart") then
-                return
+                return -- Target has no parts, abort.
             end
 
             local function FPos(BasePart, Pos, Ang)
@@ -3481,8 +3486,13 @@ function Modules.AdvancedFling:Execute(targetPlayer)
             else
                 return DoNotif("Fling failed: Target is missing critical parts.", 3)
             end
+            
             SFBasePart(primaryFlingPart)
+
+            --// --- END: New "SkidFling" Logic Integration ---
         end)
+
+        -- This unified cleanup block will run regardless of success or failure.
         pcall(function()
             localHumanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
             Workspace.CurrentCamera.CameraSubject = localCharacter
@@ -3528,7 +3538,7 @@ RegisterCommand({ Name = "fling", Aliases = {"fl"}, Description = "Fling a playe
     for _, targetPlayer in ipairs(targets) do
         if targetPlayer ~= LocalPlayer then
             Modules.AdvancedFling:Execute(targetPlayer)
-            task.wait(0.1)
+            task.wait(0.1) -- Stagger for multiple targets
         end
     end
 end)
@@ -3629,6 +3639,8 @@ Modules.AntiReset = {
         CharacterConnections = {}
     }
 }
+
+--- Enables the anti-reset system.
 function Modules.AntiReset:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
@@ -3646,6 +3658,7 @@ function Modules.AntiReset:Enable()
 
         local isResetting = false
 
+        -- [VECTOR 1] Health-Based Reset Protection
         self.State.CharacterConnections.HealthChanged = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
             if humanoid.Health <= 0 and not isResetting then
                 isResetting = true
@@ -3654,6 +3667,7 @@ function Modules.AntiReset:Enable()
             end
         end)
 
+        -- [VECTOR 2] Void Reset Protection
         local lastSafePosition = hrp.Position
         local fallenPartsHeight = Workspace.FallenPartsDestroyHeight
 
@@ -3677,6 +3691,8 @@ function Modules.AntiReset:Enable()
     
     DoNotif("Anti-Reset: ENABLED.", 2)
 end
+
+--- Disables the anti-reset system and cleans up all resources.
 function Modules.AntiReset:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
@@ -3688,6 +3704,8 @@ function Modules.AntiReset:Disable()
 
     DoNotif("Anti-Reset: DISABLED.", 2)
 end
+
+--- Toggles the anti-reset state.
 function Modules.AntiReset:Toggle()
     if self.State.IsEnabled then
         self:Disable()
@@ -3695,18 +3713,21 @@ function Modules.AntiReset:Toggle()
         self:Enable()
     end
 end
+
+
 --[[
 
 READ THIS TO KNOW HOW TO USE THE COMMAND BELOW, THIS WORKS FOR ANY GAME. A BUILT IN REMOTE FIRE AND EQUIPPER
 
-use dex to find the paths, after you found said path copy and paste it into the commandbar. below is an example
+use dex to find the paths,, after you found said path copy and paste it into the commandbar. below is an example
 
-how to: setpath "game:GetService("ReplicatedStorage").Remotes.Shop.EquipWeapon" and then ,forceequip Shovel
-use settype "event" or settype "function" for the type you want to fire,
+how to: ,setpath "game:GetService("ReplicatedStorage").Remotes.Shop.EquipWeapon" and then ,forceequip Shovel
+use .settype "event" or settype "function" for the type you want to fire,
 
 hell yeah this is an example that works for zombie game upd3, this can work for any game with low security, you'd be surprised how easy they can be to come across.
 
 --]]
+
 Modules.ForceEquip = {
     State = {
         IsRemoteFunction = false,
@@ -3736,6 +3757,8 @@ function Modules.ForceEquip:_getInstanceFromPath(path)
     end
     return current
 end
+
+-- [Internal] The original execution logic for force equipping a single weapon.
 function Modules.ForceEquip:Execute(weaponName)
     if not self.State.RemotePath then
         return DoNotif("Error: Remote path has not been set. Use ;setremotepath first.", 3)
@@ -3743,8 +3766,13 @@ function Modules.ForceEquip:Execute(weaponName)
     if not weaponName then
         return DoNotif("Usage: ;forceequip <WeaponName>", 3)
     end
+
+    -- For simplicity, this function now just calls the new generic one.
     self:ExecuteWithArgs({weaponName})
 end
+
+--- [NEW] Executes a fire/invoke on the configured remote with a variable number of arguments.
+-- @param customArgs <table> An array of arguments to be sent.
 function Modules.ForceEquip:ExecuteWithArgs(customArgs)
     if not self.State.RemotePath then
         return DoNotif("Error: Remote path has not been set. Use ;setremotepath first.", 3)
@@ -3754,6 +3782,8 @@ function Modules.ForceEquip:ExecuteWithArgs(customArgs)
     if not remote then
         return DoNotif("Error: Remote not found at path: " .. self.State.RemotePath, 4)
     end
+
+    -- Argument processing: Converts strings to their likely intended types.
     local fireArgs = {}
     for _, argStr in ipairs(customArgs or {}) do
         if tonumber(argStr) then
@@ -3769,6 +3799,7 @@ function Modules.ForceEquip:ExecuteWithArgs(customArgs)
         end
     end
 
+    -- Validate that the found remote matches the configured type.
     if self.State.IsRemoteFunction and not remote:IsA("RemoteFunction") then
         return DoNotif("Config Error: Remote is not a RemoteFunction. Use ;setremotetype.", 3)
     elseif not self.State.IsRemoteFunction and not remote:IsA("RemoteEvent") then
@@ -3796,6 +3827,7 @@ function Modules.ForceEquip:ExecuteWithArgs(customArgs)
 end
 
 
+-- Initializes the module and registers its commands.
 function Modules.ForceEquip:Initialize()
     local module = self
     module.Services = {}
@@ -3811,6 +3843,7 @@ function Modules.ForceEquip:Initialize()
         module:Execute(args[1])
     end)
 
+    -- [NEW] Command for firing the same remote path with custom arguments.
     RegisterCommand({
         Name = "firepath",
         Aliases = {"fpath", "fire"},
@@ -3849,17 +3882,21 @@ function Modules.ForceEquip:Initialize()
     end)
 end
 
+
+
+
 Modules.NpcEsp = {
     State = {
         IsEnabled = false,
         Connections = {},
-        TrackedNpcs = {}
+        TrackedNpcs = {} -- Key: Model, Value: {Highlight, Billboard, Humanoid, RootPart}
     },
     Dependencies = {"Players", "RunService", "Workspace"}
 }
 
+-- [Internal] Creates and manages the visual elements for a single NPC.
 function Modules.NpcEsp:_createEspForNpc(npcModel)
-    if self.State.TrackedNpcs[npcModel] then return end
+    if self.State.TrackedNpcs[npcModel] then return end -- Already tracking
 
     local humanoid = npcModel:FindFirstChildOfClass("Humanoid")
     local rootPart = npcModel:FindFirstChild("HumanoidRootPart") or npcModel.PrimaryPart
@@ -4367,12 +4404,14 @@ function Modules.TriggerRemoteTouch:TriggerAll()
         self.State.IsExecuting = false
     end)
 end
+
 function Modules.TriggerRemoteTouch:TriggerSingle(keyword)
     if not keyword then return DoNotif("Usage: ;touch single <keyword>", 3) end
     if self.State.IsExecuting then return DoNotif("An operation is already in progress.", 2) end
     if #self.State.FoundParts == 0 then
         return DoNotif("No parts found. Run ';touch scan' first.", 3)
     end
+
     local lowerKeyword = keyword:lower()
     for _, part in ipairs(self.State.FoundParts) do
         if part:GetFullName():lower():find(lowerKeyword, 1, true) then
@@ -4380,8 +4419,10 @@ function Modules.TriggerRemoteTouch:TriggerSingle(keyword)
             return
         end
     end
+
     DoNotif("No scanned part found matching '" .. keyword .. "'.", 3)
 end
+
 function Modules.TriggerRemoteTouch:Initialize()
     local module = self
     RegisterCommand({
@@ -4406,12 +4447,15 @@ Modules.ScriptHunter = {
         IsScanning = false
     }
 }
+
 function Modules.ScriptHunter:Execute(keywords)
     local self = Modules.ScriptHunter
     if self.State.IsScanning then return DoNotif("A script scan is already in progress.", 2) end
     if not keywords or #keywords == 0 then return DoNotif("Usage: ;huntscript <keyword1> [keyword2] ...", 3) end
+
     self.State.IsScanning = true
     DoNotif("Beginning script hunt for keywords: " .. table.concat(keywords, ", "), 3)
+
     task.spawn(function()
         local findings = {}
         local scriptsScanned = 0
@@ -4438,6 +4482,7 @@ function Modules.ScriptHunter:Execute(keywords)
 
         if #findings > 0 then
             DoNotif("Scan complete. Found " .. #findings .. " matching script(s). Results printed to console (F9).", 4)
+            -- ARCHITECT'S NOTE: Corrected the malformed multi-line print statements.
             print("--- [Zuka's ScriptHunter Report] ---")
             for _, path in ipairs(findings) do
                 print("  [!] Match Found: " .. path)
@@ -4449,6 +4494,7 @@ function Modules.ScriptHunter:Execute(keywords)
         self.State.IsScanning = false
     end)
 end
+
 function Modules.ScriptHunter:Initialize()
     local module = self
     RegisterCommand({
@@ -4459,7 +4505,9 @@ function Modules.ScriptHunter:Initialize()
         module:Execute(args)
     end)
 end
+
 local ContextActionService = game:GetService("ContextActionService")
+
 Modules.AdvancedAirwalk = {
     State = {
         IsEnabled = false,
@@ -4477,10 +4525,11 @@ Modules.AdvancedAirwalk = {
     Config = {
         VerticalSpeed = 1.75,
         Keybinds = {
-            Increase = Enum.KeyCode.RightControl,
-            Decrease = Enum.KeyCode.Space
+            Increase = Enum.KeyCode.Space, -- Or Enum.KeyCode.E
+            Decrease = Enum.KeyCode.LeftControl -- Or Enum.KeyCode.Q
         }
     },
+    -- Forward-declare services for robustness
     Services = {
         RunService = game:GetService("RunService"),
         UserInputService = game:GetService("UserInputService"),
@@ -4489,30 +4538,42 @@ Modules.AdvancedAirwalk = {
         CoreGui = game:GetService("CoreGui")
     }
 }
+
+
 function Modules.AdvancedAirwalk:Disable()
     if not self.State.IsEnabled then
         return
     end
+
+    -- Disconnect the main render loop first
     if self.State.RenderConnection then
         self.State.RenderConnection:Disconnect()
         self.State.RenderConnection = nil
     end
+
+    -- Destroy the invisible airwalk part
     if self.State.AirwalkPart and self.State.AirwalkPart.Parent then
         self.State.AirwalkPart:Destroy()
     end
     self.State.AirwalkPart = nil
+
+    -- Disconnect all input and event connections
     for key, conn in pairs(self.State.Connections) do
         if conn then
             conn:Disconnect()
         end
         self.State.Connections[key] = nil
     end
+
+    -- Destroy all GUI elements
     for key, gui in pairs(self.State.GUIs) do
         if gui and gui.Parent then
             gui:Destroy()
         end
         self.State.GUIs[key] = nil
     end
+
+    -- Reset state variables
     self.State.IsEnabled = false
     self.State.IsTyping = false
     self.State.Increase = false
@@ -4521,6 +4582,8 @@ function Modules.AdvancedAirwalk:Disable()
 
     DoNotif("Advanced Airwalk: OFF", 2)
 end
+
+
 function Modules.AdvancedAirwalk:Enable()
     if self.State.IsEnabled then
         self:Disable()
@@ -4549,6 +4612,7 @@ function Modules.AdvancedAirwalk:Enable()
         stroke.Color = Color3.fromRGB(255, 255, 255)
         stroke.Thickness = 1.5
 
+        -- Event connections for press and release
         button.MouseButton1Down:Connect(callbackDown)
         button.MouseButton1Up:Connect(callbackUp)
         button.TouchTap:Connect(callbackDown) -- Handle quick taps
@@ -4556,11 +4620,15 @@ function Modules.AdvancedAirwalk:Enable()
 
         return button
     end
+
+    --// Setup Input Handling (Platform-Specific)
     if isMobile then
         local mobileGui = Instance.new("ScreenGui", self.Services.CoreGui)
         mobileGui.Name = "AdvancedAirwalkMobileControls"
         mobileGui.ResetOnSpawn = false
         self.State.GUIs.MobileControls = mobileGui
+
+        -- Create UP and DOWN buttons
         createMobileButton(mobileGui, "UP", UDim2.new(0.9, 0, 0.55, 0),
             function() self.State.Increase = true end,
             function() self.State.Increase = false end)
@@ -4569,6 +4637,7 @@ function Modules.AdvancedAirwalk:Enable()
             function() self.State.Decrease = true end,
             function() self.State.Decrease = false end)
     else
+        -- Desktop input handling
         self.State.Connections.Focused = uis.TextBoxFocused:Connect(function() self.State.IsTyping = true end)
         self.State.Connections.Released = uis.TextBoxFocusReleased:Connect(function() self.State.IsTyping = false end)
 
@@ -4583,6 +4652,8 @@ function Modules.AdvancedAirwalk:Enable()
             if input.KeyCode == self.Config.Keybinds.Decrease then self.State.Decrease = false end
         end)
     end
+
+    --// Create the physical Airwalk Part
     local awPart = Instance.new("Part")
     awPart.Name = "Zuka_AirwalkPart"
     awPart.Size = Vector3.new(8, 1.5, 8) -- Wider base for stability
@@ -4592,17 +4663,22 @@ function Modules.AdvancedAirwalk:Enable()
     awPart.CanQuery = false -- Important for performance
     awPart.Parent = self.Services.Workspace
     self.State.AirwalkPart = awPart
+
+    --// Main Render Loop
     self.State.RenderConnection = self.Services.RunService.RenderStepped:Connect(function()
         if not (self.State.IsEnabled and self.State.AirwalkPart and self.State.AirwalkPart.Parent) then
+            -- Failsafe in case part is destroyed externally
             self:Disable()
             return
         end
+
         local success, char, root, hum = pcall(function()
             local c = localPlayer.Character
             return c, c and c:FindFirstChild("HumanoidRootPart"), c and c:FindFirstChildOfClass("Humanoid")
         end)
 
         if not (success and char and root and hum and hum.Health > 0) then
+            -- Hide the part if the character is missing or dead
             self.State.AirwalkPart.CanCollide = false
             return
         end
@@ -4618,16 +4694,21 @@ function Modules.AdvancedAirwalk:Enable()
         end
         local baseOffset = feetFromRoot + (self.State.AirwalkPart.Size.Y * 0.5)
 
+        -- Determine vertical movement from input state
         local delta = 0
         if self.State.Increase then delta = -self.Config.VerticalSpeed end
         if self.State.Decrease then delta = self.Config.VerticalSpeed end
         
+        -- Update the offset smoothly
         self.State.Offset = self.State.Offset + delta
         
+        -- Apply the new position to the airwalk part
         local newY = root.Position.Y - baseOffset - self.State.Offset
         self.State.AirwalkPart.CFrame = CFrame.new(root.Position.X, newY, root.Position.Z)
     end)
 end
+
+--// --- Command Registration ---
 RegisterCommand({
     Name = "airwalk",
     Aliases = {"float", "aw"},
@@ -4640,6 +4721,7 @@ RegisterCommand({
         Modules.AdvancedAirwalk:Enable()
     end
 end)
+
 RegisterCommand({
     Name = "unairwalk",
     Aliases = {"unfloat", "unaw"},
@@ -4741,7 +4823,232 @@ function Modules.AntiDestroy:Initialize(): ()
     end)
 end
 
+Modules.Blackhole = {
+    State = {
+        IsEnabled = false,
+        IsForceActive = false,
+        TargetCFrame = CFrame.new(),
+        BlackholePart = nil,      -- The invisible anchor part in the workspace
+        BlackholeAttachment = nil, -- The specific point movers are attracted to
+        Connections = {},
+        UI = {}
+    },
+    Config = {
+        ForceResponsiveness = 200,
+        TorqueMagnitude = 100000,
+        MoveKey = Enum.KeyCode.E,
+        -- A unique name to identify physics objects created by this script for easy cleanup.
+        MoverName = "Zuka_BlackholeMover"
+    },
+    Dependencies = {"RunService", "UserInputService", "Players", "Workspace", "CoreGui"},
+    Services = {}
+}
 
+
+function Modules.Blackhole:_cleanupForces()
+    for _, descendant in ipairs(self.Services.Workspace:GetDescendants()) do
+        if descendant.Name == self.Config.MoverName and descendant:IsA("Instance") then
+            -- This also implicitly destroys the AlignPosition and Torque as they are parented to the attachment.
+            descendant:Destroy()
+        end
+        -- Restore collision for parts we might have modified
+        if descendant:IsA("BasePart") and not descendant.CanCollide then
+            pcall(function() descendant.CanCollide = true end)
+        end
+    end
+end
+
+---
+-- [Private] Applies the black hole physics forces to a given part if eligible.
+--
+function Modules.Blackhole:_applyForce(part)
+    -- Only apply forces if the black hole is active and the part is a valid target.
+    if not self.State.IsForceActive or not (part and part:IsA("BasePart")) then return end
+    if part.Anchored or part:FindFirstAncestorOfClass("Humanoid") then return end
+    
+    -- Failsafe to prevent movers from being added to our own character parts.
+    if part:IsDescendantOf(self.Services.Players.LocalPlayer.Character) then return end
+
+    -- Clean up any existing physics movers to ensure ours takes priority.
+    for _, child in ipairs(part:GetChildren()) do
+        if child:IsA("BodyMover") or child:IsA("RocketPropulsion") then
+            child:Destroy()
+        end
+        if child.Name == self.Config.MoverName then
+            child:Destroy()
+        end
+    end
+    
+    part.CanCollide = false
+    
+    -- Create and configure the new physics movers.
+    local attachment = Instance.new("Attachment", part)
+    attachment.Name = self.Config.MoverName -- Tag our instances for cleanup
+    
+    local align = Instance.new("AlignPosition", attachment)
+    align.Attachment0 = attachment
+    align.Attachment1 = self.State.BlackholeAttachment
+    align.MaxForce = 1e9
+    align.MaxVelocity = math.huge
+    align.Responsiveness = self.Config.ForceResponsiveness
+    
+    local torque = Instance.new("Torque", attachment)
+    torque.Attachment0 = attachment
+    torque.Torque = Vector3.new(self.Config.TorqueMagnitude, self.Config.TorqueMagnitude, self.Config.TorqueMagnitude)
+end
+
+
+function Modules.Blackhole:Disable()
+    if not self.State.IsEnabled then return end
+
+    -- Disconnect all event listeners
+    for _, conn in pairs(self.State.Connections) do
+        conn:Disconnect()
+    end
+    table.clear(self.State.Connections)
+
+    -- Restore simulation radii to default behavior
+    pcall(function()
+        for _, plr in ipairs(self.Services.Players:GetPlayers()) do
+            plr.MaximumSimulationRadius = -1 -- -1 resets to default
+        end
+    end)
+    
+    self:_cleanupForces()
+
+    -- Destroy the core black hole part and the UI
+    if self.State.BlackholePart and self.State.BlackholePart.Parent then
+        self.State.BlackholePart:Destroy()
+    end
+    if self.State.UI.ScreenGui and self.State.UI.ScreenGui.Parent then
+        self.State.UI.ScreenGui:Destroy()
+    end
+
+    -- Reset state
+    self.State = {
+        IsEnabled = false,
+        IsForceActive = false,
+        TargetCFrame = CFrame.new(),
+        Connections = {},
+        UI = {}
+    }
+    DoNotif("Blackhole destroyed.", 2)
+end
+
+
+function Modules.Blackhole:Enable()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+    
+    local localPlayer = self.Services.Players.LocalPlayer
+
+    -- Create the central black hole part and attachment
+    local bhPart = Instance.new("Part")
+    bhPart.Name = "Zuka_BlackholeCore"
+    bhPart.Anchored = true
+    bhPart.CanCollide = false
+    bhPart.Transparency = 1
+    bhPart.Size = Vector3.one
+    self.State.BlackholePart = bhPart
+    
+    self.State.BlackholeAttachment = Instance.new("Attachment", bhPart)
+    
+    local mouse = localPlayer:GetMouse()
+    self.State.TargetCFrame = mouse.Hit + Vector3.new(0, 5, 0)
+    bhPart.Parent = self.Services.Workspace
+
+
+    self.State.Connections.SimRadius = self.Services.RunService.Heartbeat:Connect(function()
+        pcall(function()
+            for _, plr in ipairs(self.Services.Players:GetPlayers()) do
+                if plr ~= localPlayer then plr.MaximumSimulationRadius = 0 end
+            end
+            localPlayer.MaximumSimulationRadius = 1e9
+        end)
+    end)
+
+    self.State.Connections.PositionUpdate = self.Services.RunService.RenderStepped:Connect(function()
+        if self.State.BlackholeAttachment then
+            self.State.BlackholeAttachment.WorldCFrame = self.State.TargetCFrame
+        end
+    end)
+
+    self.State.Connections.DescendantAdded = self.Services.Workspace.DescendantAdded:Connect(function(desc)
+        self:_applyForce(desc)
+    end)
+
+    self.State.Connections.Input = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
+        if not gpe and input.KeyCode == self.Config.MoveKey then
+            self.State.TargetCFrame = mouse.Hit + Vector3.new(0, 5, 0)
+        end
+    end)
+
+    
+    local screenGui = Instance.new("ScreenGui", self.Services.CoreGui)
+    screenGui.Name = "BlackholeControlGUI"
+    screenGui.ResetOnSpawn = false
+    self.State.UI.ScreenGui = screenGui
+
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Name = "ToggleButton"
+    toggleBtn.Text = "Enable Blackhole"
+    toggleBtn.AnchorPoint = Vector2.new(0.5, 1)
+    toggleBtn.Size = UDim2.fromOffset(160, 40)
+    toggleBtn.Position = UDim2.new(0.5, 0, 0.93, 0)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+    toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+    toggleBtn.Font = Enum.Font.SourceSansBold
+    toggleBtn.TextSize = 18
+    toggleBtn.Parent = screenGui
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0.25, 0)
+
+    local moveBtn = toggleBtn:Clone()
+    moveBtn.Name = "MoveButton"
+    moveBtn.Text = "Move Blackhole (E)"
+    moveBtn.Position = UDim2.new(0.5, 0, 0.99, 0)
+    moveBtn.BackgroundColor3 = Color3.fromRGB(51, 51, 51)
+    moveBtn.Parent = screenGui
+
+    -- UI Event Handlers
+    toggleBtn.MouseButton1Click:Connect(function()
+        self.State.IsForceActive = not self.State.IsForceActive
+        toggleBtn.Text = self.State.IsForceActive and "Disable Blackhole" or "Enable Blackhole"
+        
+        if self.State.IsForceActive then
+            DoNotif("Blackhole force enabled", 2)
+            for _,v in ipairs(self.Services.Workspace:GetDescendants()) do self:_applyForce(v) end
+        else
+            self:_cleanupForces()
+            DoNotif("Blackhole force disabled", 2)
+        end
+    end)
+
+    moveBtn.MouseButton1Click:Connect(function()
+        self.State.TargetCFrame = mouse.Hit + Vector3.new(0, 5, 0)
+    end)
+    
+    DoNotif("Blackhole created. Tap button or press E to move.", 3)
+end
+
+
+function Modules.Blackhole:Initialize()
+    local module = self
+    for _, service in ipairs(self.Dependencies) do
+        module.Services[service] = game:GetService(service)
+    end
+
+    RegisterCommand({
+        Name = "blackhole",
+        Aliases = {"bhole"},
+        Description = "Toggles a client-sided black hole that pulls all unanchored parts."
+    }, function()
+        if module.State.IsEnabled then
+            module:Disable()
+        else
+            module:Enable()
+        end
+    end)
+end
 
 
 Modules.PathfinderFollow = {
@@ -4757,9 +5064,13 @@ Modules.PathfinderFollow = {
         LastTargetPos = Vector3.new()
     },
     Config = {
+        -- How often (in seconds) the path is allowed to be recalculated.
         RECALCULATION_INTERVAL = 0.5,
+        -- How far the player or target must move to trigger a path recalculation.
         RECALCULATION_DISTANCE = 3,
+        -- How close we need to get to a waypoint to advance to the next one.
         WAYPOINT_PROXIMITY = 4,
+        -- Parameters for the pathfinding algorithm.
         PATH_PARAMS = {
             AgentRadius = 3,
             AgentHeight = 6,
@@ -4769,23 +5080,31 @@ Modules.PathfinderFollow = {
     Dependencies = {"PathfindingService", "RunService", "Players"},
     Services = {}
 }
+
+
 function Modules.PathfinderFollow:_onHeartbeat()
     if not (self.State.IsEnabled and self.State.TargetPlayer and self.State.TargetPlayer.Parent) then
         self:Disable()
         return
     end
+
+    -- 1. Get all necessary character components safely.
     local localPlayer = self.Services.Players.LocalPlayer
     local localChar = localPlayer.Character
     local localHrp = localChar and localChar:FindFirstChild("HumanoidRootPart")
     local localHum = localChar and localChar:FindFirstChildOfClass("Humanoid")
+    
     local targetChar = self.State.TargetPlayer.Character
     local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+
     if not (localHrp and localHum and targetHrp and localHum.Health > 0) then
-        return
+        return -- Do nothing if characters are not in a valid state.
     end
+
     local sourcePos = localHrp.Position
     local targetPos = targetHrp.Position
 
+    -- 2. Check if the path needs to be recalculated.
     local timeSinceRecalc = os.clock() - self.State.LastPathRecalculation
     local sourceMoved = (sourcePos - self.State.LastSourcePos).Magnitude > self.Config.RECALCULATION_DISTANCE
     local targetMoved = (targetPos - self.State.LastTargetPos).Magnitude > self.Config.RECALCULATION_DISTANCE
@@ -4823,6 +5142,10 @@ function Modules.PathfinderFollow:_onHeartbeat()
         end
     end
 end
+
+---
+-- Disables the pathfinding loop and cleans up all state.
+--
 function Modules.PathfinderFollow:Disable()
     if not self.State.IsEnabled then return end
 
@@ -4831,6 +5154,7 @@ function Modules.PathfinderFollow:Disable()
         self.State.FollowConnection = nil
     end
 
+    -- Stop the character's current movement
     pcall(function()
         local char = self.Services.Players.LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -4844,19 +5168,33 @@ function Modules.PathfinderFollow:Disable()
     self.State.TargetPlayer = nil
     self.State.Path = nil
 end
+
+---
+-- Enables pathfinding to follow a specified target player.
+-- @param targetPlayer <Player> The player object to follow.
+--
 function Modules.PathfinderFollow:Enable(targetPlayer)
     if not targetPlayer or targetPlayer == self.Services.Players.LocalPlayer then
         DoNotif("Invalid target for pathfinding.", 3)
         return
     end
-    self:Disable()
+
+    self:Disable() -- Ensure a clean state before starting a new follow.
+
     self.State.IsEnabled = true
     self.State.TargetPlayer = targetPlayer
     self.State.Path = self.Services.PathfindingService:CreatePath(self.Config.PATH_PARAMS)
-    self.State.LastPathRecalculation = 0
+    self.State.LastPathRecalculation = 0 -- Force initial calculation.
+
+    -- Connect the main logic loop.
     self.State.FollowConnection = self.Services.RunService.Heartbeat:Connect(function() self:_onHeartbeat() end)
+
     DoNotif("Pathfinder following: " .. targetPlayer.Name, 2)
 end
+
+---
+-- Initializes the module and registers its commands.
+--
 function Modules.PathfinderFollow:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -4887,6 +5225,7 @@ Modules.CharacterMorph = {
     State = {
         IsMorphed = false,
         OriginalDescription = nil,
+        -- Connection to disconnect CharacterAdded event after reverting
         CharacterAddedConnection = nil
     },
     Dependencies = {"Players"},
@@ -4897,6 +5236,7 @@ Modules.CharacterMorph = {
 function Modules.CharacterMorph:_resolveDescription(target)
     local targetId = tonumber(target)
     
+    -- If the target is not a valid number, assume it's a username and get the ID.
     if not targetId then
         local success, idFromName = pcall(function()
             return self.Services.Players:GetUserIdFromNameAsync(target)
@@ -4908,6 +5248,7 @@ function Modules.CharacterMorph:_resolveDescription(target)
         targetId = idFromName
     end
 
+    -- Now, fetch the HumanoidDescription using the resolved UserId.
     DoNotif("Loading avatar for ID: " .. targetId, 1.5)
     local success, description = pcall(function()
         return self.Services.Players:GetHumanoidDescriptionFromUserId(targetId)
@@ -4926,6 +5267,7 @@ function Modules.CharacterMorph:_applyAndRespawn(description)
     local localPlayer = self.Services.Players.LocalPlayer
     if not description then return end
 
+    -- Disconnect any previous post-respawn event to prevent conflicts.
     if self.State.CharacterAddedConnection then
         self.State.CharacterAddedConnection:Disconnect()
         self.State.CharacterAddedConnection = nil
@@ -4944,6 +5286,10 @@ function Modules.CharacterMorph:_applyAndRespawn(description)
     localPlayer:LoadCharacter()
 end
 
+---
+-- Morphs the player's character into the target's appearance.
+-- @param target <string> The username or UserId of the target.
+--
 function Modules.CharacterMorph:Morph(target)
     if not target then
         DoNotif("Usage: ;char <username/userid>", 3)
@@ -4972,6 +5318,9 @@ function Modules.CharacterMorph:Morph(target)
     end)
 end
 
+---
+-- Reverts the player's character to their original appearance.
+--
 function Modules.CharacterMorph:Revert()
     if not self.State.IsMorphed then
         DoNotif("You are not currently morphed.", 2)
@@ -4996,6 +5345,9 @@ function Modules.CharacterMorph:Revert()
     end
 end
 
+---
+-- Initializes the module and registers its commands.
+--
 function Modules.CharacterMorph:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -5786,8 +6138,10 @@ function Modules.AnimationSpeed:Enable(speed)
         local animator = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChildOfClass("AnimationController")
         if not animator then return end
 
+        -- Use a pcall to prevent a single broken animation track from erroring the whole loop.
         local success, err = pcall(function()
             for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                -- Only adjust speed if it's not already at the target, to be efficient.
                 if track.Speed ~= self.State.TargetSpeed then
                     track:AdjustSpeed(self.State.TargetSpeed)
                 end
@@ -5796,6 +6150,7 @@ function Modules.AnimationSpeed:Enable(speed)
         
         if not success then
             warn("[AnimationSpeed] Error during loop:", err)
+            -- Automatically disable the module if a persistent error occurs.
             self:Disable()
         end
     end)
@@ -5803,6 +6158,9 @@ function Modules.AnimationSpeed:Enable(speed)
     DoNotif("Animation speed set to " .. targetSpeed, 2)
 end
 
+---
+-- Initializes the module and registers its commands.
+--
 function Modules.AnimationSpeed:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -6120,6 +6478,7 @@ Modules.Spider = {
     }
 }
 
+--- Enables the Spider module, welding the character to the ceiling.
 function Modules.Spider:Enable()
     if self.State.IsEnabled then return end
 
@@ -6207,6 +6566,7 @@ Modules.Attacher = {
     Services = {}
 }
 
+--// Deactivation Logic (Cleanup)
 function Modules.Attacher:Deactivate()
     if not self.State.isGuiBuilt then return end
 
@@ -7456,114 +7816,7 @@ function Modules.R6Enforcer:Initialize()
     end)
 end
 
-local Players: Players = game:GetService("Players")
-local RunService: RunService = game:GetService("RunService")
 
-local KICK_METHODS: {string} = {"kick", "kick"}
-
-Modules.ClientAntiKick = {
-    State = {
-        IsEnabled = false,
-        OriginalNamecall = nil,
-        OriginalIndex = nil,
-        OriginalDebug = nil
-    }
-}
-
-function Modules.ClientAntiKick:Enable(): ()
-    if self.State.IsEnabled then return end
-    
-    local localPlayer = Players.LocalPlayer
-    if not localPlayer then
-        -- Wait briefly if the player isn't loaded yet
-        localPlayer = Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
-    end
-
-    -- Safely get the native Kick function from a dummy to avoid indexing LP
-    local realKick
-    local success_kick, _ = pcall(function()
-        realKick = game.Kick
-    end)
-
-    local success_mt, mt = pcall(getrawmetatable, game)
-    if not success_mt or not mt then
-        return DoNotif("Anti-Kick: Metatable access denied.", 5)
-    end
-
-    self.State.OriginalNamecall = mt.__namecall
-    self.State.OriginalIndex = mt.__index
-    self.State.OriginalDebug = debug.info
-
-    local originalNamecall = self.State.OriginalNamecall
-    local originalIndex = self.State.OriginalIndex
-    local originalDebug = self.State.OriginalDebug
-
-    setreadonly(mt, false)
-
-    --// Vector 1: Standard Namecall Hook
-    mt.__namecall = newcclosure(function(selfArg, ...)
-        local method = getnamecallmethod()
-        if selfArg == localPlayer and (method == "Kick" or method == "kick") then
-            warn("--> [Anti-Kick] Blocked Namecall Kick.")
-            return nil
-        end
-        return originalNamecall(selfArg, ...)
-    end)
-
-    --// Vector 2: Index Hook (Spoofs the function itself)
-    mt.__index = newcclosure(function(selfArg, key)
-        if selfArg == localPlayer and (tostring(key):lower() == "kick") then
-            return newcclosure(function() 
-                warn("--> [Anti-Kick] Blocked Indexed Kick Call.")
-            end)
-        end
-        return originalIndex(selfArg, key)
-    end)
-
-    setreadonly(mt, true)
-
-    --// Vector 3: Debug Spoofing (Critical for Adonis Error 207)
-    --// If Adonis checks debug.info(player.Kick, "s"), we return the native result.
-    if hookfunction then
-        pcall(function()
-            hookfunction(debug.info, newcclosure(function(f, mask)
-                if f == localPlayer.Kick or f == realKick then
-                    return originalDebug(realKick, mask)
-                end
-                return originalDebug(f, mask)
-            end))
-        end)
-    end
-
-    self.State.IsEnabled = true
-    DoNotif("Anti-Kick: ADONIS BYPASS ACTIVE", 3)
-end
-
-function Modules.ClientAntiKick:Disable(): ()
-    if not self.State.IsEnabled then return end
-    
-    local success, mt = pcall(getrawmetatable, game)
-    if success and mt then
-        setreadonly(mt, false)
-        mt.__namecall = self.State.OriginalNamecall
-        mt.__index = self.State.OriginalIndex
-        setreadonly(mt, true)
-    end
-    
-    self.State.IsEnabled = false
-    DoNotif("Anti-Kick: DISABLED", 2)
-end
-
-function Modules.ClientAntiKick:Initialize(): ()
-    local module = self
-    RegisterCommand({
-        Name = "antikick",
-        Aliases = {"clientantikick", "nokick"},
-        Description = "Highly robust anti-kick that spoofs debug info to bypass Adonis."
-    }, function()
-        module:Enable()
-    end)
-end
 
 Modules.AntiPlayerPhysics = {
     State = {
@@ -8115,72 +8368,7 @@ end)
 end
 
 
-Modules.GamepassSpoofer = {
-    State = {
-        IsEnabled = false,
-        OriginalNamecall = nil
-    }
-}
 
-function Modules.GamepassSpoofer:Enable(): ()
-    if self.State.IsEnabled then return end
-    if not (getrawmetatable and getnamecallmethod and newcclosure) then
-        return DoNotif("Executor does not support __namecall hooks.", 5)
-    end
-
-    local gameMetatable = getrawmetatable(game)
-    if not gameMetatable then return DoNotif("Failed to acquire game metatable.", 4) end
-
-    self.State.OriginalNamecall = gameMetatable.__namecall
-    local original_nc = self.State.OriginalNamecall
-
-    setreadonly(gameMetatable, false)
-    gameMetatable.__namecall = newcclosure(function(...)
-        local selfArg = select(1, ...)
-        local method = getnamecallmethod()
-
-        -- Intercept the specific call we want to spoof.
-        if method == "UserOwnsGamePassAsync" and selfArg:IsA("MarketplaceService") then
-
-            warn("--> [GamepassSpoofer] Intercepted and spoofed UserOwnsGamePassAsync call.")
-            return true
-        end
-
-        -- If it's not our target, pass the call to the original handler to avoid breaking the game.
-        return original_nc(...)
-    end)
-    
-    setreadonly(gameMetatable, true)
-    self.State.IsEnabled = true
-    DoNotif("Gamepass Spoofer: ENABLED. Client-side checks will now be bypassed.", 3)
-end
-
-function Modules.GamepassSpoofer:Disable(): ()
-    if not self.State.IsEnabled then return end
-    
-    if self.State.OriginalNamecall then
-        pcall(function()
-            local gameMetatable = getrawmetatable(game)
-            setreadonly(gameMetatable, false)
-            gameMetatable.__namecall = self.State.OriginalNamecall
-            setreadonly(gameMetatable, true)
-        end)
-    end
-    
-    self.State.OriginalNamecall = nil
-    self.State.IsEnabled = false
-    DoNotif("Gamepass Spoofer: DISABLED. Engine restored.", 2)
-end
-
-function Modules.GamepassSpoofer:Initialize(): ()
-    RegisterCommand({
-        Name = "spoofgamepass",
-        Aliases = {"fakepass", "gp"},
-        Description = "Toggles a client-side gamepass spoofer to bypass local checks."
-    }, function()
-        if self.State.IsEnabled then self:Disable() else self:Enable() end
-    end)
-end
 
 Modules.TeleporterScanner = {
 	State = {
@@ -9354,7 +9542,263 @@ RegisterCommand({
 	Modules.TweenClickTP:Toggle()
 end)
 
+Modules.UniversalESP = {
+    State = {
+        ActiveFolders = {}
+    },
+    Config = {
+        FILL_COLOR = Color3.fromRGB(147, 112, 219),
+        OUTLINE_COLOR = Color3.fromRGB(255, 255, 255),
+        FILL_TRANSPARENCY = 0.5,
+        OUTLINE_TRANSPARENCY = 0
+    }
+}
 
+function Modules.UniversalESP:_resolvePath(path: string): Instance?
+    local current: Instance = game
+    for component in string.gmatch(path, "[^%.]+") do
+        if string.find(component, ":GetService") then
+            local serviceName = component:match("'(.-)'") or component:match('"(.-)"')
+            current = serviceName and game:GetService(serviceName) or current
+        else
+            current = current and current:FindFirstChild(component)
+        end
+    end
+    return current
+end
+
+function Modules.UniversalESP:_highlight(instance: Instance, storage: table): ()
+    if not (instance:IsA("BasePart") or instance:IsA("Model")) then return end
+    if storage[instance] then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "Zuka_Universal_ESP"
+    highlight.Adornee = instance
+    highlight.FillColor = self.Config.FILL_COLOR
+    highlight.OutlineColor = self.Config.OUTLINE_COLOR
+    highlight.FillTransparency = self.Config.FILL_TRANSPARENCY
+    highlight.OutlineTransparency = self.Config.OUTLINE_TRANSPARENCY
+    highlight.Parent = instance
+    
+    storage[instance] = highlight
+end
+
+function Modules.UniversalESP:Disable(folder: Instance): ()
+    local data = self.State.ActiveFolders[folder]
+    if not data then return end
+
+    data.Added:Disconnect()
+    data.Removed:Disconnect()
+
+    for item, highlight in pairs(data.Highlights) do
+        pcall(function() highlight:Destroy() end)
+    end
+
+    self.State.ActiveFolders[folder] = nil
+    DoNotif("Folder ESP disabled for: " .. folder.Name, 2)
+end
+
+function Modules.UniversalESP:Enable(folder: Instance): ()
+    if self.State.ActiveFolders[folder] then return end
+
+    local data = {
+        Highlights = {},
+        Added = nil,
+        Removed = nil
+    }
+
+    local function scan()
+        for _: number, child: Instance in ipairs(folder:GetChildren()) do
+            self:_highlight(child, data.Highlights)
+        end
+    end
+
+    data.Added = folder.ChildAdded:Connect(function(child)
+        task.defer(function() self:_highlight(child, data.Highlights) end)
+    end)
+
+    data.Removed = folder.ChildRemoved:Connect(function(child)
+        if data.Highlights[child] then
+            pcall(function() data.Highlights[child]:Destroy() end)
+            data.Highlights[child] = nil
+        end
+    end)
+
+    self.State.ActiveFolders[folder] = data
+    scan()
+    DoNotif("Folder ESP enabled for: " .. folder.Name, 2)
+end
+
+function Modules.UniversalESP:Initialize(): ()
+    local module = self
+    RegisterCommand({
+        Name = "espfolder",
+        Aliases = {"fesp", "highf"},
+        Description = "Highlights every object in a specified folder/path. Usage: ;fesp Workspace.Map.Drops"
+    }, function(args: {string})
+        local path = args[1]
+        if not path then return DoNotif("Usage: ;fesp <Path>", 3) end
+
+        local folder = module:_resolvePath(path)
+        if not folder then return DoNotif("Error: Invalid path or folder not found.", 3) end
+
+        if module.State.ActiveFolders[folder] then
+            module:Disable(folder)
+        else
+            module:Enable(folder)
+        end
+    end)
+end
+
+Modules.FolderAimbot = {
+    State = {
+        IsEnabled = false,
+        IsAiming = false,
+        TargetFolder = nil,
+        Connection = nil,
+        InputBegan = nil,
+        InputEnded = nil
+    },
+    Config = {
+        FOV = 200,
+        SMOOTHING = 0.25,
+        AIM_KEY = Enum.UserInputType.MouseButton2
+    }
+}
+
+function Modules.FolderAimbot:_resolvePath(path: string): Instance?
+    local current: Instance = game
+    for component in string.gmatch(path, "[^%.]+") do
+        if string.find(component, ":GetService") then
+            local serviceName = component:match("'(.-)'") or component:match('"(.-)"')
+            current = serviceName and game:GetService(serviceName) or current
+        else
+            current = current and current:FindFirstChild(component)
+        end
+    end
+    return current
+end
+
+function Modules.FolderAimbot:_getTargetPos(model: Model): Vector3?
+    local priority = {"Head", "HumanoidRootPart", "Torso", "UpperTorso"}
+    for _, name in ipairs(priority) do
+        local part = model:FindFirstChild(name)
+        if part and part:IsA("BasePart") then
+            return part.Position
+        end
+    end
+    return model.PrimaryPart and model.PrimaryPart.Position
+end
+
+function Modules.FolderAimbot:GetClosestTarget(): Model?
+    local folder = self.State.TargetFolder
+    if not folder then return nil end
+
+    local closestTarget = nil
+    local shortestDist = self.Config.FOV
+    local mousePos = UserInputService:GetMouseLocation()
+
+    for _, child in ipairs(folder:GetChildren()) do
+        if child:IsA("Model") then
+            local pos = self:_getTargetPos(child)
+            if pos then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(pos)
+                if onScreen then
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        closestTarget = child
+                    end
+                end
+            end
+        end
+    end
+    return closestTarget
+end
+
+function Modules.FolderAimbot:Enable(folder: Instance, fov: number?): ()
+    self:Disable()
+    
+    self.State.IsEnabled = true
+    self.State.TargetFolder = folder
+    if fov then self.Config.FOV = fov end
+
+    self.State.InputBegan = UserInputService.InputBegan:Connect(function(input, gpe)
+        if not gpe and input.UserInputType == self.Config.AIM_KEY then
+            self.State.IsAiming = true
+        end
+    end)
+
+    self.State.InputEnded = UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == self.Config.AIM_KEY then
+            self.State.IsAiming = false
+        end
+    end)
+
+    self.State.Connection = RunService.RenderStepped:Connect(function()
+        if not self.State.IsAiming then return end
+        
+        local target = self:GetClosestTarget()
+        if target then
+            local pos = self:_getTargetPos(target)
+            if pos then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(pos)
+                if onScreen then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    local deltaX = (screenPos.X - mousePos.X) * self.Config.SMOOTHING
+                    local deltaY = (screenPos.Y - mousePos.Y) * self.Config.SMOOTHING
+                    
+                    if mousemoverel then
+                        mousemoverel(deltaX, deltaY)
+                    end
+                end
+            end
+        end
+    end)
+
+    DoNotif("Folder Aimbot: ENABLED for " .. folder.Name, 2)
+end
+
+function Modules.FolderAimbot:Disable(): ()
+    self.State.IsEnabled = false
+    self.State.IsAiming = false
+    
+    if self.State.Connection then self.State.Connection:Disconnect() end
+    if self.State.InputBegan then self.State.InputBegan:Disconnect() end
+    if self.State.InputEnded then self.State.InputEnded:Disconnect() end
+    
+    self.State.Connection = nil
+    self.State.InputBegan = nil
+    self.State.InputEnded = nil
+    self.State.TargetFolder = nil
+end
+
+function Modules.FolderAimbot:Initialize(): ()
+    local module = self
+    RegisterCommand({
+        Name = "faim",
+        Aliases = {"folderamt", "targetfolder"},
+        Description = "Aimbot for all models in a folder. Usage: ;faim Workspace.Zombies 300"
+    }, function(args: {string})
+        local path = args[1]
+        local fov = tonumber(args[2])
+
+        if not path then 
+            if module.State.IsEnabled then
+                module:Disable()
+                return DoNotif("Folder Aimbot: DISABLED", 2)
+            end
+            return DoNotif("Usage: ;faim <Path> [FOV]", 3)
+        end
+
+        local folder = module:_resolvePath(path)
+        if folder then
+            module:Enable(folder, fov)
+        else
+            DoNotif("Error: Invalid path.", 3)
+        end
+    end)
+end
 
 Modules.RespawnOnPlayer = {
     State = {
@@ -9470,17 +9914,98 @@ RegisterCommand({
     end
 end)
 
+Modules.VariableSniper = { State = { IsScanning = false } }
+
+function Modules.VariableSniper:Search(varName, newValue)
+    local foundCount = 0
+    for _, obj in ipairs(getgc(true)) do
+        if type(obj) == "table" and rawget(obj, varName) ~= nil then
+            rawset(obj, varName, newValue)
+            foundCount = foundCount + 1
+        end
+    end
+    DoNotif("Sniper: Patched " .. foundCount .. " instances of '" .. varName .. "'", 3)
+end
+
+RegisterCommand({
+    Name = "snipe",
+    Aliases = {"patchvar", "memedit"},
+    Description = "Scans memory for a variable name and overwrites its value. ;snipe isAdmin true"
+}, function(args)
+    local var = args[1]
+    local val = args[2]
+    if val == "true" then val = true elseif val == "false" then val = false end
+    Modules.VariableSniper:Search(var, val)
+end)
+
+Modules.NetworkGhost = {
+    State = { IsEnabled = false, Offset = Vector3.new(0, 1000, 0) }
+}
+
+function Modules.NetworkGhost:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    local lp = game:GetService("Players").LocalPlayer
+    local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+    
+    if self.State.IsEnabled then
+        Modules.HookCentral:AddHook("GhostBypass", "Namecall", 
+            function(selfArg, method) return selfArg == hrp and (method == "CFrame" or method == "Position") end,
+            function() return hrp.CFrame - self.State.Offset end
+        )
+        DoNotif("Network Ghost: ACTIVE (Identity Desynced)", 3)
+    else
+        Modules.HookCentral.State.Hooks["GhostBypass"] = nil
+        DoNotif("Network Ghost: DISABLED", 2)
+    end
+end
+
+RegisterCommand({ Name = "ghost", Aliases = {"desyncv4"}, Description = "Desyncs server-side physics from your local position." }, function()
+    Modules.NetworkGhost:Toggle()
+end)
+
+Modules.HookCentral = {
+    State = {
+        Hooks = {},
+        OriginalNamecall = nil,
+        OriginalIndex = nil,
+        OriginalNewIndex = nil
+    }
+}
+
+function Modules.HookCentral:Initialize()
+    local mt = getrawmetatable(game)
+    self.State.OriginalNamecall = mt.__namecall
+    self.State.OriginalIndex = mt.__index
+    self.State.OriginalNewIndex = mt.__newindex
+    
+    setreadonly(mt, false)
+    
+    mt.__namecall = newcclosure(function(selfArg, ...)
+        local method = getnamecallmethod()
+        for _, hook in pairs(Modules.HookCentral.State.Hooks) do
+            if hook.Type == "Namecall" and hook.Check(selfArg, method, ...) then
+                return hook.Callback(selfArg, ...)
+            end
+        end
+        return Modules.HookCentral.State.OriginalNamecall(selfArg, ...)
+    end)
+    
+    setreadonly(mt, true)
+    DoNotif("Hook Central: Engine Initialized", 2)
+end
+
+function Modules.HookCentral:AddHook(id, type, checkFunc, callback)
+    self.State.Hooks[id] = {Type = type, Check = checkFunc, Callback = callback}
+end
+
 Modules.SignalRespawn = {
     State = {
         IsExecuting = false
     },
-    Dependencies = {"Players", "Workspace"},
+    Dependencies = {"Players", "Workspace", "ReplicateSignal"},
     Services = {}
 }
 
---[[
-    Internal Utility: Gathers all tools from both Backpack and Character.
---]]
 function Modules.SignalRespawn:_getAllTools()
     local lp = self.Services.Players.LocalPlayer
     local tools = {}
@@ -13976,59 +14501,6 @@ RegisterCommand({
     Modules.ToolSpy:Scan()
 end)
 
-Modules.PositionSpoofer = {
-    State = {
-        IsEnabled = false,
-        SafeCFrame = CFrame.new(),
-        OriginalNamecall = nil,
-        OriginalIndex = nil
-    }
-}
-
-function Modules.PositionSpoofer:Toggle(): ()
-    if not (getrawmetatable and setreadonly and newcclosure) then
-        return DoNotif("Executor does not support metatable manipulation.", 4)
-    end
-
-    local mt = getrawmetatable(game)
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    
-    self.State.IsEnabled = not self.State.IsEnabled
-
-    if self.State.IsEnabled then
-        if root then self.State.SafeCFrame = root.CFrame end
-        
-        self.State.OriginalIndex = mt.__index
-        setreadonly(mt, false)
-
-        mt.__index = newcclosure(function(selfArg, key)
-            if self.State.IsEnabled and root and selfArg == root then
-                if key == "CFrame" then
-                    return self.State.SafeCFrame
-                elseif key == "Position" then
-                    return self.State.SafeCFrame.Position
-                end
-            end
-            return self.State.OriginalIndex(selfArg, key)
-        end)
-
-        setreadonly(mt, true)
-        DoNotif("Position Spoofer: ENABLED (Bypassing client-side position checks)", 3)
-    else
-        setreadonly(mt, false)
-        mt.__index = self.State.OriginalIndex
-        setreadonly(mt, true)
-        DoNotif("Position Spoofer: DISABLED", 2)
-    end
-end
-
-RegisterCommand({
-    Name = "spoofpos",
-    Aliases = {"anticheatpos", "fakecframe"},
-    Description = "Spoofs your HumanoidRootPart position to local scripts to bypass teleport detection."
-}, function()
-    Modules.PositionSpoofer:Toggle()
-end)
 
 Modules.EngineInterceptor = {
     State = {
@@ -15134,115 +15606,152 @@ end)
 end
 
 
+local HttpService: HttpService = game:GetService("HttpService")
+local RunService: RunService = game:GetService("RunService")
+local Players: Players = game:GetService("Players")
+local ReplicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedFirst: ReplicatedFirst = game:GetService("ReplicatedFirst")
+local Workspace: Workspace = game:GetService("Workspace")
+local LocalPlayer: Player = Players.LocalPlayer
+
 Modules.CallumAI = {
     State = {
         IsEnabled = true,
         LastResponse = "",
-        IsProcessing = false
+        LastGeneratedCode = "",
+        IsProcessing = false,
+        ExplorationBuffer = {}
     },
     Config = {
         API_KEY = "",
         MODEL = "gemini-2.5-flash",
         ACCENT_COLOR = Color3.fromRGB(0, 255, 200),
-        SCAN_KEYWORDS = {"network", "remote", "data", "store", "inventory", "purchase", "handler", "event", "admin", "combat", "security", "anti", "function"}
+        SCAN_KEYWORDS = {"network", "remote", "data", "store", "inventory", "purchase", "handler", "event", "admin", "combat", "security", "anti", "function", "state", "check", "weapon", "skill", "mana", "stamina", "health", "damage"},
+        MAX_CONTEXT_LINES = 150
     }
 }
 
 function Modules.CallumAI:_getPanelContext(): string
-    local manifest = "Active Panel Modules:\n"
-    for name, _ in pairs(Modules) do
+    local manifest: string = "Exploit Panel Capability Manifest:\n"
+    for name: string, _ in pairs(Modules) do
         manifest ..= "- " .. tostring(name) .. "\n"
     end
     return manifest
 end
 
-function Modules.CallumAI:_scanGameContainers(): string
-    local findings = {}
-    local report = "Game Architecture Scan Report (Workspace & ReplicatedStorage):\n"
-    local targets = {ReplicatedStorage, Workspace, Players}
+function Modules.CallumAI:_extractCode(text: string): string?
+    return text:match("```lua\n?(.-)```") or text:match("```\n?(.-)```")
+end
 
-    for _, container in ipairs(targets) do
-        local success, descendants = pcall(function() return container:GetDescendants() end)
-        if success then
-            for _, obj in ipairs(descendants) do
-                if obj:IsA("ModuleScript") or obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                    local nameLower = obj.Name:lower()
-                    local matchesKeyword = false
-
-                    for _, keyword in ipairs(self.Config.SCAN_KEYWORDS) do
-                        if nameLower:find(keyword) then
-                            matchesKeyword = true
-                            break
-                        end
-                    end
-
-                    if matchesKeyword then
-                        table.insert(findings, {
-                            Path = obj:GetFullName(),
-                            Name = obj.Name,
-                            Class = obj.ClassName
-                        })
-                    end
-                end
+function Modules.CallumAI:_decompileScript(scriptInstance: Instance): string
+    local decompiler: any = (decompile or decompile_script or function() return nil end)
+    local success: boolean, result: any = pcall(decompiler, scriptInstance)
+    
+    if success and typeof(result) == "string" then
+        local lines: {string} = result:split("\n")
+        if #lines > self.Config.MAX_CONTEXT_LINES then
+            local truncated: {string} = {}
+            for i: number = 1, self.Config.MAX_CONTEXT_LINES do
+                table.insert(truncated, lines[i])
             end
+            return table.concat(truncated, "\n") .. "\n-- [TRUNCATED DUE TO SIZE]"
+        end
+        return result
+    end
+    return "Decompilation failed or not supported by executor."
+end
+
+function Modules.CallumAI:_getInstanceFromPath(path: string): Instance?
+    local current: Instance = game
+    for component: string in string.gmatch(path, "[^%.]+") do
+        if not current then return nil end
+        if string.find(component, ":GetService") then
+            local serviceName: string? = component:match("'(.-)'") or component:match('"(.-)"')
+            current = serviceName and game:GetService(serviceName) or nil
+        else
+            current = current:FindFirstChild(component)
         end
     end
+    return current
+end
 
-    if #findings == 0 then
-        report ..= "No suspicious architectural vectors identified via keyword scan."
-    else
-        for i, data in ipairs(findings) do
-            if i > 35 then break end
-            report ..= string.format("[%s] %s | Path: %s\n", data.Class, data.Name, data.Path)
+function Modules.CallumAI:_getHierarchyMap(parent: Instance, depth: number): string
+    local map: string = ""
+    local indent: string = string.rep("  ", depth)
+    local children: {Instance} = parent:GetChildren()
+    
+    for i: number, child: Instance in ipairs(children) do
+        if i > 25 then 
+            map ..= indent .. "... (" .. (#children - 25) .. " more items)\n"
+            break 
+        end
+        map ..= string.format("%s%s [%s]\n", indent, child.Name, child.ClassName)
+        if depth < 2 and (child:IsA("Folder") or child:IsA("Model")) then
+            map ..= self:_getHierarchyMap(child, depth + 1)
         end
     end
+    return map
+end
 
+function Modules.CallumAI:_scanGameContainers(): string
+    local report: string = "--- FORENSIC HIERARCHY ANALYSIS ---\n"
+    local targets: {Instance} = {ReplicatedStorage, Workspace, ReplicatedFirst}
+    
+    for _, container: Instance in ipairs(targets) do
+        report ..= "[" .. container.Name .. "]\n"
+        report ..= self:_getHierarchyMap(container, 1)
+    end
+    
     return report
 end
 
-function Modules.CallumAI:FetchResponse(prompt: string, includeScan: boolean): string
-    local requestFunc = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
+function Modules.CallumAI:FetchResponse(prompt: string, options: {Scan: boolean, Decompile: string?, Poison: string?}): string
+    local requestFunc: any = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
     
     if not requestFunc then
         return "Error: Executor lacks HTTP capability."
     end
-
-    local panelContext = self:_getPanelContext()
-    local gameContext = includeScan and self:_scanGameContainers() or "No structural scan requested for this query."
     
-    local systemInstruction = "You are Callum, a world-class Roblox Scripting Architect and Security Analyst. You are an extension of Zuka's exploit panel. You can view the players folder and create quick scripts to be injected on the spot."
-    local payloadText = string.format("%s\n\n[CONTEXT]\nPanel Modules: %s\nGame Scan: %s\n\nUser Query: %s", systemInstruction, panelContext, gameContext, prompt)
+    local gameContext: string = options.Scan and self:_scanGameContainers() or "No hierarchy scan requested."
+    local scriptContext: string = ""
+    
+    if options.Decompile then
+        local target: Instance? = self:_getInstanceFromPath(options.Decompile)
+        if target and (target:IsA("LocalScript") or target:IsA("ModuleScript")) then
+            scriptContext = "\n[DECOMPILED SOURCE: " .. target:GetFullName() .. "]\n" .. self:_decompileScript(target)
+        else
+            scriptContext = "\nTarget script for decompilation not found or invalid type."
+        end
+    end
 
+    local systemInstruction: string = [[
+        Identity: Callum, elite security researcher and black-hat architect.
+        Context: You have internal access to the game engine hierarchy and script sources.
+        Behavior: Analyze the provided hierarchy and source code to find insecure remotes, logic flaws, or hardcoded constants.
+        Output: Provide high-efficiency injection scripts. Use metatable hooks, constant overrides, or remote manipulation.
+        Formatting: Code must be in ```lua blocks. Keep reasoning brief and technical.
+    ]]
+    
+    local payload: string = string.format("%s\n\n[MANIFEST]\n%s\n\n[GAME VIEW]\n%s%s\n\nUser Query: %s", 
+        systemInstruction, self:_getPanelContext(), gameContext, scriptContext, prompt)
+    
     local success, result = pcall(function()
         local response = requestFunc({
             Url = "https://generativelanguage.googleapis.com/v1/models/" .. self.Config.MODEL .. ":generateContent?key=" .. self.Config.API_KEY,
             Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
+            Headers = {["Content-Type"] = "application/json"},
             Body = HttpService:JSONEncode({
-                contents = {
-                    {
-                        parts = {
-                            { text = payloadText }
-                        }
-                    }
-                }
+                contents = {{parts = {{text = payload}}}}
             })
         })
-
+        
         if response and response.StatusCode == 200 then
             local data = HttpService:JSONDecode(response.Body)
-            if data.candidates and data.candidates[1] and data.candidates[1].content and data.candidates[1].content.parts[1] then
-                return data.candidates[1].content.parts[1].text
-            end
-            return "Error: Unexpected data structure from Gemini."
-        else
-            warn("CallumAI Uplink Failure:", response and response.Body or "No Response")
-            return "Uplink Error: " .. (response and tostring(response.StatusCode) or "Connection Timeout")
+            return data.candidates[1].content.parts[1].text
         end
+        return "Uplink Error: " .. (response and tostring(response.StatusCode) or "Timeout")
     end)
-
+    
     return success and result or "Critical Failure: " .. tostring(result)
 end
 
@@ -15251,43 +15760,191 @@ function Modules.CallumAI:Initialize()
     
     RegisterCommand({
         Name = "callum",
-        Aliases = {"c", "intel", "analyze", "gemini"},
-        Description = "Queries Callum Gemini AI. Use ';callum scan' to analyze Workspace and ReplicatedStorage."
-    }, function(args)
-        local isScan = args[1] and args[1]:lower() == "scan"
-        local prompt = table.concat(args, " ", isScan and 2 or 1)
-        
-        if #prompt == 0 and not isScan then
-            return DoNotif("Target query or scan command required.", 3)
-        end
-        
-        if isScan and #prompt == 0 then
-            prompt = "Analyze the provided game scan results. Identify potential vulnerabilities like insecure Remotes or sensitive Logic Modules and suggest exploitation methods."
-        end
-
+        Aliases = {"c", "ai"},
+        Description = "Interface with Callum AI. Subcommands: scan, decompile, poison, run."
+    }, function(args: {string})
         if module.State.IsProcessing then
             return DoNotif("Callum is already processing...", 2)
         end
         
+        local sub: string = args[1] and args[1]:lower() or ""
+        local isScan: boolean = (sub == "scan")
+        local isDecompile: boolean = (sub == "decompile" or sub == "dec")
+        local isRun: boolean = (sub == "run" or sub == "execute")
+        local isPoison: boolean = (sub == "poison")
+        
+        local targetPath: string? = (isDecompile or isPoison or isRun) and args[2] or nil
+        local promptStart: number = (isScan or isRun or isDecompile) and 2 or (isPoison and 3 or 1)
+        local prompt: string = table.concat(args, " ", promptStart)
+        
+        if #prompt == 0 and not (isScan or isDecompile) then
+            return DoNotif("Usage: ;callum <subcommand> <path/prompt>", 3)
+        end
+        
+        if isDecompile and #prompt == 0 then
+            prompt = "Analyze this script for logic vulnerabilities and suggest a bypass."
+        end
+
         module.State.IsProcessing = true
-        DoNotif(isScan and "Deep-scanning Workspace/ReplicatedStorage and analyzing..." or "Querying Callum Gemini...", 3)
+        DoNotif("Callum is accessing game environment...", 3)
         
         task.spawn(function()
-            local reply = module:FetchResponse(prompt, isScan)
+            local reply: string = module:FetchResponse(prompt, {
+                Scan = isScan or isDecompile or isPoison,
+                Decompile = isDecompile and targetPath or nil,
+                Poison = isPoison and targetPath or nil
+            })
+            
             module.State.LastResponse = reply
             module.State.IsProcessing = false
             
+            local code: string? = module:_extractCode(reply)
+            if code then module.State.LastGeneratedCode = code end
+            
             if Modules.CommandBar and Modules.CommandBar.AddOutput then
                 Modules.CommandBar:AddOutput("<font color='#00FFC8'>[CALLUM]:</font> " .. reply, module.Config.ACCENT_COLOR)
+                if isRun and code then
+                    local func = loadstring(code)
+                    if func then task.spawn(func) end
+                end
             else
-                print("--- [Callum Gemini Analysis] ---")
+                print("--- [Callum AI Analysis] ---")
                 print(reply)
-                print("--------------------------------")
-                DoNotif("Analysis Complete. Check Console (F9).", 5)
+                print("----------------------------")
+                DoNotif("Analysis Complete. Results in F9.", 5)
             end
         end)
     end)
 end
+
+Modules.VoidFling = {
+    State = {
+        IsFlinging = false
+    }
+}
+
+function Modules.VoidFling:Execute(target: Player): ()
+    if self.State.IsFlinging then return end
+    local character: Model? = LocalPlayer.Character
+    local hrp: BasePart? = character and character:FindFirstChild("HumanoidRootPart")
+    local targetHrp: BasePart? = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+    
+    if not (hrp and targetHrp) then return end
+    
+    self.State.IsFlinging = true
+    local originalCFrame: CFrame = hrp.CFrame
+    local originalHeight: number = Workspace.FallenPartsDestroyHeight
+    
+    task.spawn(function()
+        pcall(function()
+            Workspace.FallenPartsDestroyHeight = 0/0
+            local connection: RBXScriptConnection
+            connection = RunService.Stepped:Connect(function()
+                if not self.State.IsFlinging then 
+                    connection:Disconnect()
+                    return 
+                end
+                hrp.CanCollide = false
+                hrp.Velocity = Vector3.new(0, 1e7, 0)
+                hrp.CFrame = targetHrp.CFrame
+            end)
+            
+            task.wait(0.5)
+            self.State.IsFlinging = false
+            Workspace.FallenPartsDestroyHeight = originalHeight
+            hrp.Velocity = Vector3.zero
+            hrp.CFrame = originalCFrame
+        end)
+    end)
+end
+
+RegisterCommand({
+    Name = "vfling",
+    Aliases = {"voidfling", "killfling"},
+    Description = "Sends a target to the void using NaN height manipulation."
+}, function(args: {string})
+    local target: Player? = Utilities.findPlayer(args[1] or "")
+    if target and target ~= LocalPlayer then
+        Modules.VoidFling:Execute(target)
+    else
+        DoNotif("Invalid target for VoidFling.", 3)
+    end
+end)
+
+Modules.NetworkSaturator = {
+    State = {
+        Active = false
+    }
+}
+
+function Modules.NetworkSaturator:Start(): ()
+    self.State.Active = true
+    task.spawn(function()
+        while self.State.Active do
+            for _: number, obj: Instance in ipairs(game:GetDescendants()) do
+                if obj:IsA("RemoteEvent") then
+                    pcall(obj.FireServer, obj, math.huge, "Zuka_Saturate", string.rep("0", 100))
+                end
+            end
+            task.wait(0.1)
+        end
+    end)
+    DoNotif("Network Saturation: ACTIVE", 2)
+end
+
+RegisterCommand({
+    Name = "netsat",
+    Aliases = {"lagserver", "remotenuke"},
+    Description = "Saturates discoverable remotes with high-density data payloads."
+}, function()
+    if Modules.NetworkSaturator.State.Active then
+        Modules.NetworkSaturator.State.Active = false
+        DoNotif("Network Saturation: DISABLED", 2)
+    else
+        Modules.NetworkSaturator:Start()
+    end
+end)
+
+Modules.UltimateGod = {
+    State = {
+        IsEnabled = false,
+        Connection = nil
+    }
+}
+
+function Modules.UltimateGod:Toggle(): ()
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        self.State.Connection = RunService.Heartbeat:Connect(function()
+            local char: Model? = LocalPlayer.Character
+            local hum: Humanoid? = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+                if hum.Health <= 0 then
+                    hum.Health = hum.MaxHealth
+                end
+            end
+        end)
+        DoNotif("Ultimate Godmode: ENABLED", 2)
+    else
+        if self.State.Connection then self.State.Connection:Disconnect() end
+        local hum: Humanoid? = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+        end
+        DoNotif("Ultimate Godmode: DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "god",
+    Aliases = {"godmode", "integrityv3"},
+    Description = "Aggressively locks humanoid state and health to prevent death."
+}, function()
+    Modules.UltimateGod:Toggle()
+end)
+
 Modules.NetworkNormalizer = {
     State = {
         IsNormalized = false,
@@ -16766,144 +17423,272 @@ RegisterCommand({
     Modules.ToolAttributeLister:Scan()
 end)
 
-Modules.RoFController = {
+
+Modules.NeuralOverride = {
     State = {
-        IsEnabled = false,
-        Multiplier = 1,
-        StartTime = os.clock(),
-        OriginalIndex = nil
+        IsScanning = false
     }
 }
 
-function Modules.RoFController:Toggle(multiplier: number?): ()
-    if not (getrawmetatable and setreadonly and newcclosure) then
-        return DoNotif("Executor does not support engine-level hooks.", 4)
+function Modules.NeuralOverride:OverwriteData(targetVar: string, newValue: any): ()
+    if not (getgc and debug.getupvalue and debug.setupvalue) then
+        return DoNotif("NeuralOverride: Executor lacks debug library support.", 3)
     end
 
-    local mt = getrawmetatable(game)
+    local count: number = 0
+    local convertedValue: any = newValue
+    if newValue == "true" then convertedValue = true
+    elseif newValue == "false" then convertedValue = false
+    elseif tonumber(newValue) then convertedValue = tonumber(newValue) end
+
+    for _: number, obj: any in ipairs(getgc()) do
+        if type(obj) == "function" and islclosure(obj) then
+            local idx: number = 1
+            while true do
+                local name: string?, val: any = debug.getupvalue(obj, idx)
+                if not name then break end
+                if name == targetVar then
+                    pcall(debug.setupvalue, obj, idx, convertedValue)
+                    count = count + 1
+                end
+                idx = idx + 1
+            end
+        end
+    end
+    DoNotif(string.format("NeuralOverride: Patched %d instances of '%s'", count, targetVar), 3)
+end
+
+RegisterCommand({
+    Name = "neural",
+    Aliases = {"patch"},
+    Description = "Scans game memory and overwrites internal script variables. ;neural isAdmin true"
+}, function(args: {string})
+    if #args < 2 then return DoNotif("Usage: ;neural [varName] [value]", 3) end
+    Modules.NeuralOverride:OverwriteData(args[1], args[2])
+end)
+
+Modules.VanguardShield = {
+    State = {
+        IsEnabled = false,
+        OriginalIndex = nil,
+        SpoofTable = {
+            WalkSpeed = 16,
+            JumpPower = 50,
+            JumpHeight = 7.2,
+            Health = 100
+        }
+    }
+}
+
+function Modules.VanguardShield:Toggle(): ()
+    local success, mt = pcall(getrawmetatable, game)
+    if not success or not mt then return end
+
     self.State.IsEnabled = not self.State.IsEnabled
 
     if self.State.IsEnabled then
-        self.State.Multiplier = multiplier or 2
-        self.State.StartTime = os.clock()
         self.State.OriginalIndex = mt.__index
-        
-        local clock = os.clock
-        local tick = tick
-        local startTime = self.State.StartTime
+        local originalIndex = self.State.OriginalIndex
+        local lp = LocalPlayer
 
         setreadonly(mt, false)
-
         mt.__index = newcclosure(function(selfArg, key)
-            if self.State.IsEnabled then
-                if key == "os" or selfArg == os then
-                    local originalOs = self.State.OriginalIndex(selfArg, "os") or os
-                    return setmetatable({}, {
-                        __index = function(_, k)
-                            if k == "clock" then
-                                return function()
-                                    return startTime + (clock() - startTime) * self.State.Multiplier
-                                end
-                            end
-                            return originalOs[k]
-                        end
-                    })
-                elseif key == "tick" then
-                    return function()
-                        return startTime + (tick() - startTime) * self.State.Multiplier
-                    end
+            if Modules.VanguardShield.State.IsEnabled and selfArg:IsA("Humanoid") and selfArg:IsDescendantOf(lp.Character) then
+                if Modules.VanguardShield.State.SpoofTable[key] ~= nil then
+                    return Modules.VanguardShield.State.SpoofTable[key]
                 end
             end
-            return self.State.OriginalIndex(selfArg, key)
+            return originalIndex(selfArg, key)
         end)
-
         setreadonly(mt, true)
-        DoNotif("RoF Controller: ENABLED (" .. self.State.Multiplier .. "x speed)", 3)
+        DoNotif("Vanguard Shield: ENABLED (Property Spoofing Active)", 2)
     else
         setreadonly(mt, false)
         mt.__index = self.State.OriginalIndex
         setreadonly(mt, true)
-        DoNotif("RoF Controller: DISABLED", 2)
+        DoNotif("Vanguard Shield: DISABLED", 2)
     end
 end
 
 RegisterCommand({
-    Name = "fastfire",
-    Aliases = {"rof", "rapidfire", "fireate"},
-    Description = "Manipulates local time to increase weapon rate of fire."
-}, function(args)
-    local mult = tonumber(args[1])
-    if Modules.RoFController.State.IsEnabled then
-        if mult then
-            Modules.RoFController.State.Multiplier = mult
-            DoNotif("RoF Multiplier updated to: " .. mult, 2)
-        else
-            Modules.RoFController:Toggle()
-        end
-    else
-        Modules.RoFController:Toggle(mult)
-    end
+    Name = "vanguard",
+    Aliases = {"antiscan", "propertyspoof"},
+    Description = "Prevents local scripts from reading your real WalkSpeed/JumpPower/Health."
+}, function()
+    Modules.VanguardShield:Toggle()
 end)
+
+Modules.InterstellarInteraction = {
+    State = {
+        Active = false,
+        Connection = nil
+    }
+}
+
+function Modules.InterstellarInteraction:Toggle(): ()
+    self.State.Active = not self.State.Active
+    if self.State.Active then
+        self.State.Connection = RunService.Heartbeat:Connect(function()
+            for _: number, obj: Instance in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") then
+                    obj.RequiresLineOfSight = false
+                    obj.MaxActivationDistance = 1e7
+                    if fireproximityprompt then
+                        fireproximityprompt(obj)
+                    end
+                end
+                if obj:IsA("ClickDetector") then
+                    obj.MaxActivationDistance = 1e7
+                    if fireclickdetector then
+                        fireclickdetector(obj)
+                    end
+                end
+            end
+        end)
+        DoNotif("Interstellar: Global Interaction ACTIVE", 2)
+    else
+        if self.State.Connection then self.State.Connection:Disconnect() end
+        DoNotif("Interstellar: Global Interaction DISABLED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "interstellar",
+    Aliases = {"massfire", "autofireall"},
+    Description = "Automatically triggers every Prompt and ClickDetector in the game regardless of distance."
+}, function()
+    Modules.InterstellarInteraction:Toggle()
+end)
+
+Modules.IdentityPhantom = {
+    State = {
+        IsEnabled = false,
+        OriginalIndex = nil
+    }
+}
+
+function Modules.IdentityPhantom:Toggle(targetUser: string?): ()
+    local success, mt = pcall(getrawmetatable, game)
+    if not success or not mt then return end
+
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        self.State.OriginalIndex = mt.__index
+        local originalIndex = self.State.OriginalIndex
+        local fakeId: number = 1 
+        local fakeName: string = targetUser or "Roblox"
+
+        pcall(function()
+            if targetUser then
+                fakeId = Players:GetUserIdFromNameAsync(targetUser)
+            end
+        end)
+
+        setreadonly(mt, false)
+        mt.__index = newcclosure(function(selfArg, key)
+            if Modules.IdentityPhantom.State.IsEnabled and selfArg == LocalPlayer then
+                if key == "UserId" or key == "userId" then return fakeId end
+                if key == "Name" or key == "name" then return fakeName end
+            end
+            return originalIndex(selfArg, key)
+        end)
+        setreadonly(mt, true)
+        DoNotif("Identity Phantom: Masked as " .. fakeName, 3)
+    else
+        setreadonly(mt, false)
+        mt.__index = self.State.OriginalIndex
+        setreadonly(mt, true)
+        DoNotif("Identity Phantom: Mask REMOVED", 2)
+    end
+end
+
+RegisterCommand({
+    Name = "phantom",
+    Aliases = {"mask"},
+    Description = "Locally spoofs your Name and UserId to fool group-based admin scripts. ;phantom [username]"
+}, function(args: {string})
+    Modules.IdentityPhantom:Toggle(args[1])
+end)
+
+local Players: Players = game:GetService("Players")
+local LocalPlayer: Player = Players.LocalPlayer
 
 Modules.ClassicSwordAnim = {
     State = {
         IsEnabled = false,
-        OriginalNamecall = nil,
-        TargetAnimationId = "rbxassetid://1259011"
+        OriginalNamecall = nil
+    },
+    Config = {
+        SLASH = "rbxassetid://1259011",
+        LUNGE = "rbxassetid://129967390",
+        IDLE = "rbxassetid://180435571",
+        WALK = "rbxassetid://180426354"
     }
 }
 
 function Modules.ClassicSwordAnim:Toggle(): ()
-    if not (getrawmetatable and getnamecallmethod and newcclosure and setreadonly) then
-        return DoNotif("Executor does not support namecall hooks.", 3)
+    local success, mt = pcall(getrawmetatable, game)
+    if not success or not mt then
+        return DoNotif("Classic Sword: Metatable access denied.", 3)
     end
 
-    local mt = getrawmetatable(game)
     self.State.IsEnabled = not self.State.IsEnabled
 
     if self.State.IsEnabled then
         self.State.OriginalNamecall = mt.__namecall
-        setreadonly(mt, false)
+        local originalNamecall = self.State.OriginalNamecall
 
+        setreadonly(mt, false)
         mt.__namecall = newcclosure(function(selfArg, ...)
             local method = getnamecallmethod()
             local args = {...}
 
-            if self.State.IsEnabled and (method == "LoadAnimation" or method == "loadAnimation") then
-                local animationObject = args[1]
-                if animationObject and animationObject:IsA("Animation") then
-                    animationObject.AnimationId = self.State.TargetAnimationId
+            if Modules.ClassicSwordAnim.State.IsEnabled and (method == "LoadAnimation" or method == "loadAnimation") then
+                local animObj = args[1]
+                if animObj and animObj:IsA("Animation") then
+                    local name = animObj.Name:lower()
+                    local id = animObj.AnimationId:lower()
+
+                    if name:find("lunge") or name:find("power") or name:find("heavy") then
+                        animObj.AnimationId = Modules.ClassicSwordAnim.Config.LUNGE
+                    elseif name:find("slash") or name:find("attack") or name:find("swing") then
+                        animObj.AnimationId = Modules.ClassicSwordAnim.Config.SLASH
+                    elseif name:find("idle") then
+                        animObj.AnimationId = Modules.ClassicSwordAnim.Config.IDLE
+                    elseif name:find("walk") or name:find("run") then
+                        animObj.AnimationId = Modules.ClassicSwordAnim.Config.WALK
+                    end
                 end
             end
 
-            return self.State.OriginalNamecall(selfArg, unpack(args))
+            return originalNamecall(selfArg, unpack(args))
         end)
-
         setreadonly(mt, true)
-        
-        if LocalPlayer.Character then
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+
+        task.spawn(function()
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local animator = hum and hum:FindFirstChildOfClass("Animator")
             if animator then
                 for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-                    track:Stop()
+                    track:Stop(0)
                 end
             end
-        end
+        end)
 
-        DoNotif("Classic Sword Anims: ENABLED (All melee now uses Linked Sword slash)", 3)
+        DoNotif("Classic Sword: ENABLED (Slash & Lunge Mapped)", 3)
     else
         setreadonly(mt, false)
         mt.__namecall = self.State.OriginalNamecall
         setreadonly(mt, true)
-        DoNotif("Classic Sword Anims: DISABLED", 2)
+        DoNotif("Classic Sword: DISABLED", 2)
     end
 end
 
 RegisterCommand({
     Name = "classicsword",
-    Aliases = {"swordanim", "linkedsword"},
-    Description = "Forces all loaded animations to use the classic Linked Sword slash ID."
+    Aliases = {"swordanim", "oldschool"},
+    Description = "Forces all melee animations to use Classic Slash and Lunge IDs."
 }, function()
     Modules.ClassicSwordAnim:Toggle()
 end)
@@ -16998,37 +17783,73 @@ local function loadstringCmd(url, notif)
     DoNotif(notif, 3)
 end
 
--- Loadstrings, will implement these into the script when I find motivation.
-RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin") end)
-RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!") end)
-RegisterCommand({Name = "dex", Aliases = {}, Description = "Loads Dex"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit") end)
-RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/anthonysrepository/refs/heads/main/scripts/Anti%20Bang.lua", "Loading Player farmer") end)
+
+RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function()
+loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin")
+end)
+
+
+RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function()
+loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!")
+end)
+
+
+RegisterCommand({Name = "dex", Aliases = {}, Description = "Loads Dex"}, function()
+loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit")
+end)
+
+RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/anthonysrepository/refs/heads/main/scripts/Anti%20Bang.lua", "Anti Gay Shield Activated.") end)
+
 RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "Makes the pumpkin launcher into a rapid fire beast."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RAPIDFIREPumpkinlauncher.lua", "Loading Modification") end)
+
 RegisterCommand({Name = "zukahub", Aliases = {"zuka"}, Description = "Loads the Zuka Hub"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZukaHub.lua", "Loading Zuka's Hub...") end)
+
 RegisterCommand({Name = "noacid", Aliases = {"unfuck"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AntiAcidRainLag.lua", "Loading...") end)
+
 RegisterCommand({Name = "stats", Aliases = {}, Description = "Edit and lock your properties."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/statlock.lua", "Loading Stats..") end)
+
 RegisterCommand({Name = "zgui", Aliases = {"upd3", "zui"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZfuckerUpgraded.lua", "Loaded GUI") end)
+
 RegisterCommand({Name = "creepyanim", Aliases = {"canim"}, Description = "Uncanny Animation GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/uncannyanim.lua", "Loaded GUI") end)
+
 RegisterCommand({Name = "swordbot", Aliases = {"sf", "sfbot"}, Description = "Auto Sword Fighter, use E and R"}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/swordnpc", "Bot loaded.") end)
+
 RegisterCommand({Name = "touchfling", Aliases = {}, Description = "Loads the touchfling GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SimpleTouchFlingGui.lua", "Loaded") end)
+
 RegisterCommand({Name = "zoneui", Aliases = {"masterequiper"}, Description = "For https://www.roblox.com/games/99381597249674/Zombie-Zone" }, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/Nice.lua", "Loaded") end)
+
 RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded Gui For Btools"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/fixedbtools.lua", "Loading Revamped Btools Gui") end)
+
 RegisterCommand({Name = "simplespy", Aliases = {"bestspy"}, Description = "Best remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/simplee%20spyyy%20mobilee", "Loading rSpy...") end)
+
 RegisterCommand({Name = "exec", Aliases = {"executor"}, Description = "internal executor"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Executor.lua", "Loading") end)
+
 RegisterCommand({Name = "lineofsight", Aliases = {}, Description = "Logger for players looking at you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/LineOfSightLogger.lua", "Loading...") end)
+
 RegisterCommand({Name = "nova", Aliases = {"delua"}, Description = "Novas Deobfuscator, Bytecode Grabber"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/NovasDeobfuscator.lua", "Deobfuscator Loaded") end)
+
 RegisterCommand({Name = "nocooldown", Aliases = {"ncd"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/NocooldownsZombieUpd3.txt", "Loading Cooldownremover...") end)
+
 RegisterCommand({Name = "extendroot", Aliases = {}, Description = "Bypasses Raycasting"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/HitboxExtender.lua", "Loading Extender.") end)
+
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
+
 RegisterCommand({Name = "updatedoverseer", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt", "Loading GUI..") end)
+
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
+
 RegisterCommand({Name = "rem", Aliases = {}, Description = "In game exploit creation kit.."}, function() loadstringCmd("https://e-vil.com/anbu/rem.lua", "Loading Rem.") end)
+
 RegisterCommand({Name = "copyconsole", Aliases = {"copy"}, Description = "Allows you to copy errors from the console.."}, function() loadstringCmd("https://raw.githubusercontent.com/scriptlisenbe-stack/luaprojectse3/refs/heads/main/consolecopy.lua", "Copy Console Activated.") end)
+
 RegisterCommand({Name = "tptohp", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/zgamemedkit.lua", "Loading HP Teleport") end)
+
 RegisterCommand({Name = "reachfix", Aliases = {"fix"}, Description = "Makes your equipped tool invisible when using reach"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/InvisibleEquippedTool.lua", "Fixed") end)
+
 RegisterCommand({Name = "worldofstands", Aliases = {"wos"}, Description = "For https://www.roblox.com/games/6728870912/World-of-Stands - Removes dash cooldown"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/WOS.lua", "Loading, Wait a sec.") end)
+
 RegisterCommand({Name = "csgo", Aliases = {"phoon"}, Description = "Become a speed demon like phoon."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/phoon.lua", "Loading, Wait a sec.") end)
---End Of the Modules Section.
+
 
 function processCommand(message)
     if not (message:sub(1, #Prefix) == Prefix) then
@@ -17080,6 +17901,8 @@ for moduleName, module in pairs(Modules) do
 end
 end
 
+
+
 local function CreateMobileCommandButton()
 
     local UserInputService = game:GetService("UserInputService")
@@ -17116,7 +17939,7 @@ local function CreateMobileCommandButton()
     local isDragging = false
     local dragStartPos = nil
     local startGuiPosition = nil
-    local DRAG_THRESHOLD = 8
+    local DRAG_THRESHOLD = 8 -- Minimum pixel distance to be considered a drag, preventing accidental drags on tap
 
     cmdButton.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
@@ -17130,6 +17953,7 @@ local function CreateMobileCommandButton()
         if input.UserInputType == Enum.UserInputType.Touch and dragStartPos then
             local delta = input.Position - dragStartPos
             
+            -- If the finger moves past the threshold, it's officially a drag
             if not isDragging and delta.Magnitude > DRAG_THRESHOLD then
                 isDragging = true
             end
@@ -17148,14 +17972,18 @@ local function CreateMobileCommandButton()
     end)
 
     cmdButton.Activated:Connect(function()
+        -- The 'Activated' event fires on release. We only toggle the bar if it wasn't a drag.
         if not isDragging then
             if Modules.CommandBar and Modules.CommandBar.Toggle then
                 Modules.CommandBar:Toggle()
             end
         end
+        -- Reset dragging state after the action is complete
         isDragging = false
     end)
 end
+
+-- Execute the creation function
 CreateMobileCommandButton()
 Modules.CommandList:Initialize()
 local TextChatService = game:GetService("TextChatService")
