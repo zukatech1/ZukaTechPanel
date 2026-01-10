@@ -1,97 +1,130 @@
-
-if getgenv().ZukaLuaHub then
-    pcall(function() getgenv().ZukaLuaHub:Destroy() end)
-    getgenv().ZukaLuaHub = nil
-end
-
---==============================================================================
--- Services & Architectural Setup
---==============================================================================
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
 local Connections = {}
+local TrafficLog = {}
 
---==============================================================================
--- Aesthetic Configuration
---==============================================================================
 local THEME = {
-    Background = Color3.fromRGB(20, 20, 24),
-    Window = Color3.fromRGB(28, 28, 30),
-    Panel = Color3.fromRGB(30, 30, 34),
-    Accent = Color3.fromRGB(75, 145, 255),
-    AccentMuted = Color3.fromRGB(70, 110, 210),
-    Button = Color3.fromRGB(36, 36, 40),
-    ButtonHover = Color3.fromRGB(56, 56, 60),
-    Text = Color3.fromRGB(235, 240, 255),
-    MutedText = Color3.fromRGB(150, 160, 180),
-    Corner = 8,
+    Background = Color3.fromRGB(8, 8, 10),
+    Window = Color3.fromRGB(15, 15, 18),
+    Panel = Color3.fromRGB(20, 20, 24),
+    Accent = Color3.fromRGB(0, 255, 180),
+    AccentMuted = Color3.fromRGB(0, 80, 60),
+    Button = Color3.fromRGB(24, 24, 28),
+    ButtonHover = Color3.fromRGB(34, 34, 38),
+    Text = Color3.fromRGB(240, 240, 245),
+    MutedText = Color3.fromRGB(90, 90, 100),
+    Corner = 6
 }
 
---==============================================================================
--- Framework UI Helpers
---==============================================================================
-local screen = Instance.new("ScreenGui")
-screen.Name = "ZukaLuaHub"
-screen.ResetOnSpawn = false
-getgenv().ZukaLuaHub = screen
+if getgenv().ZukaArchitectHub then
+    pcall(function() getgenv().ZukaArchitectHub:Destroy() end)
+    getgenv().ZukaArchitectHub = nil
+end
 
-local function notify(title, text, duration)
-    pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", { Title = title, Text = text, Duration = duration or 3 }) end)
+local screen = Instance.new("ScreenGui")
+screen.Name = "ZukaArchitect_V1_Stable"
+screen.ResetOnSpawn = false
+getgenv().ZukaArchitectHub = screen
+
+local function notify(title, text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = 3
+        })
+    end)
 end
 
 local function makeUICorner(parent, radius)
-    local c = Instance.new("UICorner", parent); c.CornerRadius = UDim.new(0, radius or 6); return c
+    local c = Instance.new("UICorner", parent)
+    c.CornerRadius = UDim.new(0, radius or 6)
+    return c
+end
+
+local function stripComments(source)
+    if not source then return "" end
+    local clean = source:gsub("%-%-%[%[.-%]%]", "")
+    clean = clean:gsub("%-%-.*", "")
+    local lines = clean:split("\n")
+    local final = {}
+    for _, line in ipairs(lines) do
+        local trimmed = line:match("^%s*(.-)%s*$")
+        if trimmed and #trimmed > 0 then
+            table.insert(final, line)
+        end
+    end
+    return table.concat(final, "\n")
 end
 
 local function makeButton(parent, text, size, pos, callback, isAccent)
     local btn = Instance.new("TextButton", parent)
-    btn.Size = size; btn.Position = pos; btn.AutoButtonColor = false
+    btn.Size = size
+    btn.Position = pos
+    btn.AutoButtonColor = false
     btn.BackgroundColor3 = isAccent and THEME.Accent or THEME.Button
-    btn.TextColor3 = THEME.Text; btn.Font = Enum.Font.Code; btn.TextSize = 14; btn.Text = text
-    makeUICorner(btn, math.max(4, THEME.Corner - 2))
-
-    table.insert(Connections, btn.MouseEnter:Connect(function() 
-        TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = THEME.ButtonHover}):Play() 
+    btn.TextColor3 = isAccent and Color3.new(0,0,0) or THEME.Text
+    btn.Font = Enum.Font.Code
+    btn.TextSize = 13
+    btn.Text = text
+    makeUICorner(btn, 4)
+    
+    table.insert(Connections, btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = THEME.ButtonHover}):Play()
     end))
-    table.insert(Connections, btn.MouseLeave:Connect(function() 
-        TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = isAccent and THEME.Accent or THEME.Button}):Play() 
+    table.insert(Connections, btn.MouseLeave:Connect(function()
+        local targetColor = isAccent and THEME.Accent or THEME.Button
+        TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = targetColor}):Play()
     end))
-    table.insert(Connections, btn.MouseButton1Click:Connect(function() pcall(callback, btn) end))
+    table.insert(Connections, btn.MouseButton1Click:Connect(function()
+        pcall(callback, btn)
+    end))
     return btn
 end
 
---==============================================================================
--- Structural Components (Main Frame)
---==============================================================================
 local MainFrame = Instance.new("Frame", screen)
-MainFrame.Size = UDim2.new(0, 760, 0, 440)
-MainFrame.Position = UDim2.new(0.5, -380, 0.5, -220)
+MainFrame.Size = UDim2.new(0, 950, 0, 600)
+MainFrame.Position = UDim2.new(0.5, -475, 0.5, -300)
 MainFrame.BackgroundColor3 = THEME.Window
 MainFrame.BorderSizePixel = 0
 makeUICorner(MainFrame, THEME.Corner)
-local mainStroke = Instance.new("UIStroke", MainFrame); mainStroke.Color = Color3.fromRGB(10,10,12); mainStroke.Transparency = 0.6
 
 local TitleBar = Instance.new("Frame", MainFrame)
-TitleBar.Size = UDim2.new(1, 0, 0, 40); TitleBar.BackgroundColor3 = THEME.Panel; makeUICorner(TitleBar, THEME.Corner)
-local TitleLabel = Instance.new("TextLabel", TitleBar)
-TitleLabel.Size = UDim2.new(1, -180, 1, 0); TitleLabel.Position = UDim2.new(0, 44, 0, 0); TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "ZukaTech Executor // Architect Edition"; TitleLabel.Font = Enum.Font.Code; TitleLabel.TextSize = 16; TitleLabel.TextColor3 = THEME.Text; TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-local TitleIcon = Instance.new("ImageLabel", TitleBar)
-TitleIcon.Size = UDim2.new(0,28,0,28); TitleIcon.Position = UDim2.new(0, 8, 0, 6); TitleIcon.BackgroundTransparency = 1; TitleIcon.Image = "rbxassetid://7072711062"
+TitleBar.Size = UDim2.new(1, 0, 0, 35)
+TitleBar.BackgroundColor3 = THEME.Panel
+makeUICorner(TitleBar, THEME.Corner)
 
--- Optimized Dragging Logic
+local TitleLabel = Instance.new("TextLabel", TitleBar)
+TitleLabel.Size = UDim2.new(1, -200, 1, 0)
+TitleLabel.Position = UDim2.new(0, 12, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "Callum AI"
+TitleLabel.Font = Enum.Font.Code
+TitleLabel.TextSize = 14
+TitleLabel.TextColor3 = THEME.Accent
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
 do
     local dragging, dragStart, startPos
     table.insert(Connections, TitleBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging, dragStart, startPos = true, input.Position, MainFrame.Position
-            local conn; conn = input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false; conn:Disconnect() end end)
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    conn:Disconnect()
+                end
+            end)
         end
     end))
     table.insert(Connections, UserInputService.InputChanged:Connect(function(input)
@@ -102,23 +135,24 @@ do
     end))
 end
 
---==============================================================================
--- Navigation System
---==============================================================================
 local TabsColumn = Instance.new("Frame", MainFrame)
-TabsColumn.Size = UDim2.new(0, 140, 1, -48); TabsColumn.Position = UDim2.new(0, 8, 0, 44); TabsColumn.BackgroundColor3 = THEME.Panel; makeUICorner(TabsColumn, THEME.Corner)
-local tabsLayout = Instance.new("UIListLayout", TabsColumn); tabsLayout.Padding = UDim.new(0, 8); tabsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabsColumn.Size = UDim2.new(0, 160, 1, -45)
+TabsColumn.Position = UDim2.new(0, 5, 0, 40)
+TabsColumn.BackgroundColor3 = THEME.Panel
+makeUICorner(TabsColumn, THEME.Corner)
+
+local tabsLayout = Instance.new("UIListLayout", TabsColumn)
+tabsLayout.Padding = UDim.new(0, 4)
+tabsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
 local PagesArea = Instance.new("Frame", MainFrame)
-PagesArea.Size = UDim2.new(1, -164, 1, -48); PagesArea.Position = UDim2.new(0, 156, 0, 44); PagesArea.BackgroundTransparency = 1
+PagesArea.Size = UDim2.new(1, -175, 1, -45)
+PagesArea.Position = UDim2.new(0, 170, 0, 40)
+PagesArea.BackgroundTransparency = 1
 
 local pages = {}
-local function createPage(name)
-    local p = Instance.new("Frame", PagesArea); p.Name = name; p.Size = UDim2.new(1,0,1,0); p.BackgroundTransparency = 1; p.Visible = false
-    pages[name] = p; return p
-end
-
 local function switchPage(name)
-    for k,v in pairs(pages) do v.Visible = (k == name) end
+    for k, v in pairs(pages) do v.Visible = (k == name) end
     for _, child in pairs(TabsColumn:GetChildren()) do
         if child:IsA("TextButton") then
             local isTarget = child.Name == (name .. "_Tab")
@@ -127,101 +161,237 @@ local function switchPage(name)
     end
 end
 
-local function makeTab(name)
-    local btn = makeButton(TabsColumn, name, UDim2.new(1, -16, 0, 40), UDim2.new(), function() switchPage(name) end)
-    btn.Name = name .. "_Tab"; btn.LayoutOrder = #TabsColumn:GetChildren()
-    return btn
+local function createPage(name)
+    local p = Instance.new("Frame", PagesArea)
+    p.Name = name
+    p.Size = UDim2.new(1, 0, 1, 0)
+    p.BackgroundTransparency = 1
+    p.Visible = false
+    pages[name] = p
+    
+    local btn = makeButton(TabsColumn, name:upper(), UDim2.new(1, -10, 0, 32), UDim2.new(), function() switchPage(name) end)
+    btn.Name = name .. "_Tab"
+    return p
 end
 
--- Initialize the solitary Editor Tab
 local EditorPage = createPage("Editor")
-makeTab("Editor")
+local AIPage = createPage("Callum AI")
+local NetworkPage = createPage("Network")
 
---==============================================================================
--- Editor Logic (Execution Hub)
---==============================================================================
+local editorTextBox
 do
-    local editorBack = Instance.new("Frame", EditorPage); editorBack.Size = UDim2.new(1, 0, 1, 0); editorBack.BackgroundColor3 = THEME.Background; makeUICorner(editorBack, THEME.Corner)
-    local gutter = Instance.new("TextLabel", editorBack); gutter.Size = UDim2.new(0,44,1,-50); gutter.BackgroundColor3 = THEME.Panel; gutter.TextColor3 = THEME.MutedText; gutter.Font = Enum.Font.Code; gutter.TextSize = 14; gutter.TextXAlignment = Enum.TextXAlignment.Right; gutter.TextYAlignment = Enum.TextYAlignment.Top; gutter.Text = "1"; gutter.ClipsDescendants = true
+    local back = Instance.new("Frame", EditorPage)
+    back.Size = UDim2.new(1, 0, 1, 0)
+    back.BackgroundColor3 = THEME.Background
+    makeUICorner(back, THEME.Corner)
     
-    local scroller = Instance.new("ScrollingFrame", editorBack); scroller.Size = UDim2.new(1, -44, 1, -50); scroller.Position = UDim2.new(0, 44, 0, 0); scroller.CanvasSize = UDim2.new(0,0,0,0); scroller.ScrollBarThickness = 6; scroller.BackgroundColor3 = THEME.Background; scroller.BorderSizePixel = 0; scroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    local scroll = Instance.new("ScrollingFrame", back)
+    scroll.Size = UDim2.new(1, -10, 1, -45)
+    scroll.Position = UDim2.new(0, 5, 0, 5)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 2
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
     
-    local textBox = Instance.new("TextBox", scroller); textBox.Size = UDim2.new(1, 0, 1, 0); textBox.MultiLine = true; textBox.ClearTextOnFocus = false; textBox.TextXAlignment = Enum.TextXAlignment.Left; textBox.TextYAlignment = Enum.TextYAlignment.Top; textBox.Font = Enum.Font.Code; textBox.TextSize = 15; textBox.TextColor3 = THEME.Text; textBox.Text = "-- ZukaTech Architect Editor --\n-- Ready for injection.\n"; textBox.BackgroundTransparency = 1
+    editorTextBox = Instance.new("TextBox", scroll)
+    editorTextBox.Size = UDim2.new(1, 0, 1, 0)
+    editorTextBox.MultiLine = true
+    editorTextBox.ClearTextOnFocus = false
+    editorTextBox.TextXAlignment = Enum.TextXAlignment.Left
+    editorTextBox.TextYAlignment = Enum.TextYAlignment.Top
+    editorTextBox.Font = Enum.Font.Code
+    editorTextBox.TextSize = 14
+    editorTextBox.TextColor3 = THEME.Text
+    editorTextBox.BackgroundTransparency = 1
+    editorTextBox.Text = "-- Master Buffer V1"
+
+    local bar = Instance.new("Frame", back)
+    bar.Size = UDim2.new(1, 0, 0, 40)
+    bar.Position = UDim2.new(0, 0, 1, -40)
+    bar.BackgroundColor3 = THEME.Panel
     
-    table.insert(Connections, scroller:GetPropertyChangedSignal("CanvasPosition"):Connect(function() gutter.Position = UDim2.new(0,0,0,-scroller.CanvasPosition.Y) end))
-    table.insert(Connections, textBox:GetPropertyChangedSignal("Text"):Connect(function()
-        local lines = select(2, textBox.Text:gsub("\n","")) + 1
-        local lineNumbers = {}; for i = 1, lines do table.insert(lineNumbers, tostring(i)) end
-        gutter.Text = table.concat(lineNumbers, "\n")
-    end))
-    
-    local bar = Instance.new("Frame", editorBack); bar.Size = UDim2.new(1,0,0,50); bar.Position = UDim2.new(0,0,1,-50); bar.BackgroundColor3 = THEME.Panel
-    
-    makeButton(bar, "Execute", UDim2.new(0,120,0,34), UDim2.new(0,10,0,8), function()
-        local func, err = loadstring(textBox.Text)
+    makeButton(bar, "INJECT", UDim2.new(0, 100, 0, 28), UDim2.new(0, 10, 0, 6), function()
+        local func, err = loadstring(editorTextBox.Text)
         if func then 
-            task.spawn(function()
-                local success, execErr = pcall(func)
-                if not success then notify("Runtime Error", tostring(execErr), 5) end
-            end)
+            local s, r = pcall(function() task.spawn(func) end)
+            if not s then notify("Runtime Error", tostring(r)) end
         else 
-            notify("Compile Error", tostring(err), 5) 
+            notify("Architect Error", tostring(err)) 
         end
     end, true)
     
-    makeButton(bar, "Clear", UDim2.new(0,120,0,34), UDim2.new(0,140,0,8), function() textBox.Text = "" end)
-    
-    makeButton(bar, "Save", UDim2.new(0,120,0,34), UDim2.new(0,270,0,8), function()
-        if writefile then 
-            pcall(writefile, "ZukaHubScript.lua", textBox.Text)
-            notify("Architect", "Buffer saved to disk.", 2) 
-        else 
-            notify("Architect", "FS: writefile unsupported.", 3) 
-        end
-    end)
-    
-    makeButton(bar, "Load", UDim2.new(0,120,0,34), UDim2.new(0,400,0,8), function()
-        if readfile and isfile and isfile("ZukaHubScript.lua") then 
-            local ok, c = pcall(readfile, "ZukaHubScript.lua")
-            if ok then textBox.Text = c; notify("Architect", "Buffer loaded.", 2) end 
-        else 
-            notify("Architect", "FS: File not found.", 3) 
-        end
-    end)
+    makeButton(bar, "CLEAR", UDim2.new(0, 100, 0, 28), UDim2.new(0, 120, 0, 6), function() editorTextBox.Text = "" end)
 end
 
---==============================================================================
--- Cleanup & Lifecycle Management
---==============================================================================
+local CallumAI = {
+    API_KEY = "",
+    MODEL = "gemini-2.5-flash"
+}
+
+function CallumAI:GetHierarchy(root, depth)
+    local res = ""
+    local indent = string.rep("  ", depth)
+    local children = root:GetChildren()
+    for i, v in ipairs(children) do
+        if i > 30 then res = res .. indent .. "... (truncated)\n" break end
+        res = res .. string.format("%s%s [%s]\n", indent, v.Name, v.ClassName)
+        if depth < 2 and #v:GetChildren() > 0 then
+            res = res .. self:GetHierarchy(v, depth + 1)
+        end
+    end
+    return res
+end
+
+function CallumAI:Fetch(prompt, context)
+    local req = (request or syn.request or http.request)
+    if not req then return "HTTP functionality missing." end
+    
+    local sys = [[
+        IDENTITY: Callum, Supreme Security Architect.
+        OBJECTIVE: Generate high-performance Luau scripts.
+        REQUIREMENT: NO COMMENTS. NO EXPLANATIONS. OUTPUT ONLY RAW LUAU CODE IN BLOCKS.
+        CAPABILITY: ESP, Aimbot, GUI Hubs, Remote Spammers, Logic Hijacking.
+        CONTEXT: Integrated with game traffic and hierarchy.
+    ]]
+    
+    local payload = string.format("%s\n\n[CONTEXT]\n%s\n\n[REQUEST]\n%s", sys, context, prompt)
+    
+    local success, res = pcall(function()
+        return req({
+            Url = "https://generativelanguage.googleapis.com/v1/models/" .. self.MODEL .. ":generateContent?key=" .. self.API_KEY,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode({contents = {{parts = {{text = payload}}}}})
+        })
+    end)
+    
+    if success and res.StatusCode == 200 then
+        local data = HttpService:JSONDecode(res.Body)
+        return data.candidates[1].content.parts[1].text
+    end
+    return "Quantum Uplink timed out."
+end
+
+local aiOutput
+do
+    local back = Instance.new("Frame", AIPage)
+    back.Size = UDim2.new(1, 0, 1, 0)
+    back.BackgroundColor3 = THEME.Background
+    makeUICorner(back, THEME.Corner)
+    
+    local scroll = Instance.new("ScrollingFrame", back)
+    scroll.Size = UDim2.new(1, -20, 1, -110)
+    scroll.Position = UDim2.new(0, 10, 0, 10)
+    scroll.BackgroundColor3 = THEME.Panel
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    makeUICorner(scroll, 4)
+    
+    aiOutput = Instance.new("TextLabel", scroll)
+    aiOutput.Size = UDim2.new(1, -10, 0, 0)
+    aiOutput.Position = UDim2.new(0, 5, 0, 5)
+    aiOutput.BackgroundTransparency = 1
+    aiOutput.TextColor3 = THEME.Text
+    aiOutput.Font = Enum.Font.Code
+    aiOutput.TextSize = 12
+    aiOutput.TextXAlignment = Enum.TextXAlignment.Left
+    aiOutput.TextYAlignment = Enum.TextYAlignment.Top
+    aiOutput.TextWrapped = true
+    aiOutput.Text = "[CALLUM]: Initializing generation buffers. Awaiting target vector."
+    aiOutput.AutomaticSize = Enum.AutomaticSize.Y
+
+    local input = Instance.new("TextBox", back)
+    input.Size = UDim2.new(1, -120, 0, 35)
+    input.Position = UDim2.new(0, 10, 1, -45)
+    input.BackgroundColor3 = THEME.Panel
+    input.TextColor3 = THEME.Text
+    input.Font = Enum.Font.Code
+    input.TextSize = 14
+    input.PlaceholderText = "COMMAND LOGIC ENGINE..."
+    input.ClearTextOnFocus = false
+    makeUICorner(input, 4)
+
+    makeButton(back, "CONSTRUCT", UDim2.new(0, 100, 0, 35), UDim2.new(1, -110, 1, -45), function()
+        local query = input.Text
+        local context = string.format("NetTraffic:\n%s\nHierarchy:\n%s", table.concat(TrafficLog, "\n"), CallumAI:GetHierarchy(Workspace, 1))
+        aiOutput.Text = "[CALLUM]: Analyzing telemetry and stripping documentation..."
+        task.spawn(function()
+            local res = CallumAI:Fetch(query, context)
+            aiOutput.Text = "[CALLUM]: Logic synchronized."
+            local code = res:match("```lua\n?(.-)```") or res:match("```\n?(.-)```")
+            if code then
+                editorTextBox.Text = stripComments(code)
+                notify("Callum AI", "Logic Refactored & Buffed.")
+            end
+        end)
+    end, true)
+end
+
+do
+    local back = Instance.new("Frame", NetworkPage)
+    back.Size = UDim2.new(1, 0, 1, 0)
+    back.BackgroundColor3 = THEME.Background
+    makeUICorner(back, THEME.Corner)
+    
+    local scroll = Instance.new("ScrollingFrame", back)
+    scroll.Size = UDim2.new(1, -20, 1, -20)
+    scroll.Position = UDim2.new(0, 10, 0, 10)
+    scroll.BackgroundColor3 = THEME.Panel
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    makeUICorner(scroll, 4)
+    
+    local logList = Instance.new("UIListLayout", scroll)
+    logList.Padding = UDim.new(0, 2)
+    
+    local function logTraffic(remote, args)
+        local entry = string.format("[%s] %s (%d args)", os.date("%X"), remote.Name, #args)
+        if #TrafficLog > 50 then table.remove(TrafficLog, 1) end
+        table.insert(TrafficLog, entry)
+        local l = Instance.new("TextLabel", scroll)
+        l.Size = UDim2.new(1, 0, 0, 22)
+        l.BackgroundColor3 = THEME.Button
+        l.TextColor3 = THEME.Accent
+        l.Text = "  " .. entry
+        l.Font = Enum.Font.Code
+        l.TextSize = 11
+        l.TextXAlignment = Enum.TextXAlignment.Left
+        makeUICorner(l, 2)
+    end
+    
+    local success, mt = pcall(getrawmetatable, game)
+    if success and mt then
+        local old = mt.__namecall
+        setreadonly(mt, false)
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "FireServer" or method == "InvokeServer" then
+                task.spawn(logTraffic, self, {...})
+            end
+            return old(self, ...)
+        end)
+        setreadonly(mt, true)
+    end
+end
+
 local function cleanupAll()
     for _, conn in ipairs(Connections) do pcall(function() conn:Disconnect() end) end
     table.clear(Connections)
 end
 
-local CloseBtn = makeButton(TitleBar, "X", UDim2.new(0,40,1,-12), UDim2.new(1,-50,0,6), function()
+makeButton(TitleBar, "X", UDim2.new(0, 35, 1, -10), UDim2.new(1, -45, 0, 5), function()
     cleanupAll()
-    if getgenv().ZukaLuaHub then 
-        pcall(function() getgenv().ZukaLuaHub:Destroy() end)
-        getgenv().ZukaLuaHub = nil 
+    if getgenv().ZukaArchitectHub then 
+        pcall(function() getgenv().ZukaArchitectHub:Destroy() end)
+        getgenv().ZukaArchitectHub = nil 
     end
 end)
 
-local minimized = false; local originalSize
-local MinBtn = makeButton(TitleBar, "-", UDim2.new(0,40,1,-12), UDim2.new(1,-95,0,6), function()
-    minimized = not minimized
-    if minimized then
-        originalSize = MainFrame.Size
-        PagesArea.Visible = false; TabsColumn.Visible = false; MinBtn.Text = "+"
-        TweenService:Create(MainFrame, TweenInfo.new(0.22, Enum.EasingStyle.Quart), {Size = UDim2.new(0, 320, 0, 40)}):Play()
-    else
-        PagesArea.Visible = true; TabsColumn.Visible = true; MinBtn.Text = "-"
-        TweenService:Create(MainFrame, TweenInfo.new(0.22, Enum.EasingStyle.Quart), {Size = originalSize}):Play()
-    end
+makeButton(TitleBar, "-", UDim2.new(0, 35, 1, -10), UDim2.new(1, -85, 0, 5), function(btn)
+    local isMin = MainFrame.Size.Y.Offset < 100
+    TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {Size = isMin and UDim2.new(0, 950, 0, 600) or UDim2.new(0, 450, 0, 35)}):Play()
+    PagesArea.Visible = isMin
+    TabsColumn.Visible = isMin
+    btn.Text = isMin and "-" or "+"
 end)
 
---==============================================================================
--- Injection Point
---==============================================================================
 screen.Parent = CoreGui
 switchPage("Editor")
-notify("ZukaTech", "Executor Core Initialized.", 3)
+notify("Architect V1", "Neural Link established. Network Hook active.")
