@@ -85,23 +85,10 @@ local function playLand()
 end
 
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local gameModes = {}
 
-if isMobile then
-    gameModes = {
-        "default (mobile)",
-        "no grenades (mobile)",
-        "hard (mobile)"
-    }
-else
-    gameModes = {
-        "default (PC)",
-        "no grenades (PC)",
-        "hard (PC)"
-    }
-end
 
-local currentModeIndex = 1
+local HARD_MODE = true
+
 
 -- GUI
 local function createGui()
@@ -166,21 +153,6 @@ local function createGui()
                 end
             end
         end
-    end)
-
-    local modeButton = Instance.new("TextButton", g)
-    modeButton.Size = UDim2.new(0, 150, 0, 30)
-    modeButton.Position = UDim2.new(0, 10, 1, -50)
-    modeButton.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-    modeButton.Text = "Mode: " .. gameModes[currentModeIndex]
-    modeButton.TextScaled = true
-
-    modeButton.MouseButton1Click:Connect(function()
-        currentModeIndex = currentModeIndex + 1
-        if currentModeIndex > #gameModes then
-            currentModeIndex = 1
-        end
-        modeButton.Text = "Mode: " .. gameModes[currentModeIndex]
     end)
 
     if isMobile then
@@ -416,10 +388,7 @@ local function process(dt)
 
     moveDir = input
 
-    local currentMaxAirSpeed = cfg.maxAirSpeed
-    if gameModes[currentModeIndex] == "hard (PC)" or gameModes[currentModeIndex] == "hard (mobile)" then
-        currentMaxAirSpeed = cfg.maxAirSpeed * 0.3
-    end
+local currentMaxAirSpeed = cfg.maxAirSpeed * 0.3
 
     if isGrounded then
         applyFriction(dt)
