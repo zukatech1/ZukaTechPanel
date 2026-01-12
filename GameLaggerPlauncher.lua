@@ -5,10 +5,10 @@ local function PatchModule()
     local success: boolean, weaponTable: table = pcall(require, WeaponPath)
     
     if success and type(weaponTable) == "table" then
-        weaponTable.FireRate = 0.001
+        weaponTable.FireRate = 0
         weaponTable.Auto = true
         weaponTable.ShotgunEnabled = true
-        weaponTable.BulletPerShot = 2
+        weaponTable.BulletPerShot = 10
         weaponTable.ExplosionRadius = 900
         weaponTable.ExplosionSoundVolume = 10
         weaponTable.ReloadTime = 0
@@ -29,7 +29,7 @@ local function PatchModule()
         weaponTable.Acceleration = Vector3.new(0, 0, 0)
         weaponTable.PenetrationAmount = 100
         weaponTable.PenetrationDepth = 100
-        weaponTable.FireRates = {0.001, 0.001, 0.001, 0.001}
+        weaponTable.FireRates = {0, 0, 0, 0}
     end
 end
 
@@ -299,4 +299,5 @@ local v1: table = {
 }
 
 return v1
+
 
