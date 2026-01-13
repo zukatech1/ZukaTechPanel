@@ -9,7 +9,7 @@ with open("roblox_api_index.pkl", "rb") as f:
     ROBLOX_API = pickle.load(f)
 
 # === API CONFIG ===
-CALLUM_API_KEY = "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"
+CALLUM_API_KEY = ""
 FREE_MODEL = "tngtech/deepseek-r1t-chimera:free"
 BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 
