@@ -20,84 +20,133 @@ local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
 local PathService = game:GetService("PathfindingService")
 local MarketplaceService = game:GetService("MarketplaceService")
+
+
 do
+    local TweenService = game:GetService("TweenService")
+    local CoreGui = game:GetService("CoreGui")
+    local Lighting = game:GetService("Lighting")
+    local ContentProvider = game:GetService("ContentProvider")
+
     local THEME = {
-    Title = "We Lit",
-    Subtitle = "Made by @OverZuka - We're so back...",
-    IconAssetId = "rbxassetid://7243158473",
-    BackgroundColor = Color3.fromRGB(20, 20, 25),
-    AccentColor = Color3.fromRGB(0, 255, 255),
-    TextColor = Color3.fromRGB(240, 240, 240),
-    FadeInTime = 0.4,
-    HoldTime = 1.0,
-    FadeOutTime = 0.4
+        Title = "Welcome back king.",
+        Subtitle = "Made by @OverZuka — We're so back...",
+        IconAssetId = "rbxassetid://7243158473",
+
+        BackgroundColor = Color3.fromRGB(15, 15, 20),
+        AccentColor = Color3.fromRGB(0, 255, 255),
+        TextColor = Color3.fromRGB(240, 240, 240),
+
+        FadeInTime = 0.45,
+        HoldTime = 1.2,
+        FadeOutTime = 0.35
     }
+
+
     local splashGui = Instance.new("ScreenGui")
     splashGui.Name = "SplashScreen_" .. math.random(1000, 9999)
+    splashGui.IgnoreGuiInset = true
     splashGui.ResetOnSpawn = false
     splashGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    local background = Instance.new("Frame", splashGui)
+    splashGui.Parent = CoreGui
+
+
+    local background = Instance.new("Frame")
     background.Size = UDim2.fromScale(1, 1)
     background.BackgroundColor3 = THEME.BackgroundColor
     background.BackgroundTransparency = 1
-    local centerFrame = Instance.new("Frame", background)
-    centerFrame.Size = UDim2.fromOffset(200, 200)
-    centerFrame.Position = UDim2.fromScale(0.5, 0.5)
-    centerFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    centerFrame.BackgroundTransparency = 1
-    local icon = Instance.new("ImageLabel", centerFrame)
-    icon.Size = UDim2.fromScale(0.5, 0.5)
-    icon.Position = UDim2.fromScale(0.5, 0.35)
+    background.Parent = splashGui
+
+
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 1
+    blur.Parent = Lighting
+
+
+    local card = Instance.new("Frame")
+    card.Size = UDim2.fromOffset(320, 260)
+    card.Position = UDim2.fromScale(0.5, 0.5)
+    card.AnchorPoint = Vector2.new(0.5, 0.5)
+    card.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
+    card.BackgroundTransparency = 1
+    card.Parent = background
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 18)
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 1
+    stroke.Color = THEME.AccentColor
+    stroke.Transparency = 1
+    stroke.Parent = card
+
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.fromOffset(96, 96)
+    icon.Position = UDim2.fromScale(0.5, 0.32)
     icon.AnchorPoint = Vector2.new(0.5, 0.5)
     icon.BackgroundTransparency = 1
-    icon.Image = THEME.IconAssetId
+    icon.ImageTransparency = 0.5
     icon.ImageColor3 = THEME.AccentColor
-    icon.ImageTransparency = .4
-    local title = Instance.new("TextLabel", centerFrame)
-    title.Size = UDim2.new(1, 0, 0.2, 0)
-    title.Position = UDim2.fromScale(0.5, 0.65)
+    icon.Image = THEME.IconAssetId
+    icon.Parent = card
+
+
+    pcall(function()
+        ContentProvider:PreloadAsync({ icon })
+    end)
+
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -40, 0, 36)
+    title.Position = UDim2.fromScale(0.5, 0.62)
     title.AnchorPoint = Vector2.new(0.5, 0.5)
     title.BackgroundTransparency = 1
-    title.Font = Enum.Font.GothamSemibold
+    title.Font = Enum.Font.Oswald
     title.Text = THEME.Title
+    title.TextSize = 27
     title.TextColor3 = THEME.TextColor
-    title.TextSize = 24
-    title.TextTransparency = 1
-    local subtitle = Instance.new("TextLabel", centerFrame)
-    subtitle.Size = UDim2.new(1, 0, 0.1, 0)
-    subtitle.Position = UDim2.fromScale(0.5, 0.8)
+    title.TextTransparency = 0.6
+    title.Parent = card
+
+    -- Subtitle
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Size = UDim2.new(1, -40, 0, 24)
+    subtitle.Position = UDim2.fromScale(0.5, 0.75)
     subtitle.AnchorPoint = Vector2.new(0.5, 0.5)
     subtitle.BackgroundTransparency = 1
-    subtitle.Font = Enum.Font.Gotham
+    subtitle.Font = Enum.Font.Bangers
     subtitle.Text = THEME.Subtitle
-    subtitle.TextColor3 = THEME.TextColor
     subtitle.TextSize = 14
-    subtitle.TextTransparency = 1
-    splashGui.Parent = CoreGui
-    local tweenInfoIn = TweenInfo.new(THEME.FadeInTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tweenInfoOut = TweenInfo.new(THEME.FadeOutTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    local fadeInTweens = {
-    TweenService:Create(background, tweenInfoIn, { BackgroundTransparency = 0.3 }),
-    TweenService:Create(icon, tweenInfoIn, { ImageTransparency = 0 }),
-    TweenService:Create(title, tweenInfoIn, { TextTransparency = 0 }),
-    TweenService:Create(subtitle, tweenInfoIn, { TextTransparency = 0.2 })
-    }
-    local fadeOutTweens = {
-    TweenService:Create(background, tweenInfoOut, { BackgroundTransparency = 1 }),
-    TweenService:Create(icon, tweenInfoOut, { ImageTransparency = 1 }),
-    TweenService:Create(title, tweenInfoOut, { TextTransparency = 1 }),
-    TweenService:Create(subtitle, tweenInfoOut, { TextTransparency = 1 })
-    }
-    for _, tween in ipairs(fadeInTweens) do
-        tween:Play()
-    end
+    subtitle.TextColor3 = THEME.TextColor
+    subtitle.TextTransparency = 0
+    subtitle.Parent = card
+
+    -- Anim start scale
+    card.Size = card.Size - UDim2.fromOffset(40, 40)
+
+    local tweenIn = TweenInfo.new(THEME.FadeInTime, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local tweenOut = TweenInfo.new(THEME.FadeOutTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+
+    TweenService:Create(background, tweenIn, { BackgroundTransparency = 0.35 }):Play()
+    TweenService:Create(blur, tweenIn, { Size = 16 }):Play()
+    TweenService:Create(card, tweenIn, { Size = UDim2.fromOffset(320, 260) }):Play()
+    TweenService:Create(icon, tweenIn, { ImageTransparency = 0 }):Play()
+    TweenService:Create(title, tweenIn, { TextTransparency = 0 }):Play()
+    TweenService:Create(subtitle, tweenIn, { TextTransparency = 0.25 }):Play()
+
     task.wait(THEME.FadeInTime + THEME.HoldTime)
-    for _, tween in ipairs(fadeOutTweens) do
-        tween:Play()
-    end
-    fadeOutTweens[1].Completed:Wait()
+
+    TweenService:Create(background, tweenOut, { BackgroundTransparency = 1 }):Play()
+    TweenService:Create(blur, tweenOut, { Size = 0 }):Play()
+    TweenService:Create(icon, tweenOut, { ImageTransparency = 1 }):Play()
+    TweenService:Create(title, tweenOut, { TextTransparency = 1 }):Play()
+    TweenService:Create(subtitle, tweenOut, { TextTransparency = 1 }):Play()
+
+    task.wait(THEME.FadeOutTime)
+
+    blur:Destroy()
     splashGui:Destroy()
 end
+
+
 local Utilities = {}
 function Utilities.findPlayer(inputName)
     local input = tostring(inputName):lower()
@@ -6191,365 +6240,6 @@ function Modules.AnimationSpeed:Initialize()
     end)
 end
 
---[[Modules.ChatTranslator = {
-	State = {
-		IsEnabled = false,
-		IsPersistent = false,
-		TargetLang = "",
-		GoogleSession = {
-			fsid = nil,
-			bl = nil,
-			rid = math.random(1000, 9999),
-			gv = ""
-		},
-		Connections = {}
-	},
-	Config = {
-		YourLanguage = "en",
-		CommandPrefix = ">"
-	},
-	LANGS = {
-		auto = "Automatic", af = "Afrikaans", sq = "Albanian", am = "Amharic", ar = "Arabic", hy = "Armenian",
-		az = "Azerbaijani", eu = "Basque", be = "Belarusian", bn = "Bengali", bs = "Bosnian", bg = "Bulgarian",
-		ca = "Catalan", ceb = "Cebuano", ny = "Chichewa", ["zh-cn"] = "Chinese Simplified",
-		["zh-tw"] = "Chinese Traditional", co = "Corsican", hr = "Croatian", cs = "Czech", da = "Danish",
-		nl = "Dutch", en = "English", eo = "Esperanto", et = "Estonian", tl = "Filipino", fi = "Finnish",
-		fr = "French", fy = "Frisian", gl = "Galician", ka = "Georgian", de = "German", el = "Greek",
-		gu = "Gujarati", ht = "Haitian Creole", ha = "Hausa", haw = "Hawaiian", iw = "Hebrew", hi = "Hindi",
-		hmn = "Hmong", hu = "Hungarian", is = "Icelandic", ig = "Igbo", id = "Indonesian", ga = "Irish",
-		it = "Italian", ja = "Japanese", jw = "Javanese", kn = "Kannada", kk = "Kazakh", km = "Khmer",
-		ko = "Korean", ku = "Kurdish (Kurmanji)", ky = "Kyrgyz", lo = "Lao", la = "Latin", lv = "Latvian",
-		lt = "Lithuanian", lb = "Luxembourgish", mk = "Macedonian", mg = "Malagasy", ms = "Malay", ml = "Malayalam",
-		mt = "Maltese", mi = "Maori", mr = "Marathi", mn = "Mongolian", my = "Myanmar (Burmese)", ne = "Nepali",
-		no = "Norwegian", ps = "Pashto", fa = "Persian", pl = "Polish", pt = "Portuguese", pa = "Punjabi",
-		ro = "Romanian", ru = "Russian", sm = "Samoan", gd = "Scots Gaelic", sr = "Serbian", st = "Sesotho",
-		sn = "Shona", sd = "Sindhi", si = "Sinhala", sk = "Slovak", sl = "Slovenian", so = "Somali",
-		es = "Spanish", su = "Sundanese", sw = "Swahili", sv = "Swedish", tg = "Tajik", ta = "Tamil",
-		te = "Telugu", th = "Thai", tr = "Turkish", uk = "Ukrainian", ur = "Urdu", uz = "Uzbek", vi = "Vietnamese",
-		cy = "Welsh", xh = "Xhosa", yi = "Yiddish", yo = "Yoruba", zu = "Zulu"
-	}
-}
-
-function Modules.ChatTranslator:_sys(message: string): ()
-	TextChatService:DisplaySystemMessage(message)
-end
-
-function Modules.ChatTranslator:_request(url: string, method: string?, body: string?): { [string]: any }?
-	local requestFuncName = ("Reques" .. "tAsync")
-	local success, response = pcall(function()
-		return getfield(HttpService, requestFuncName)(HttpService, {
-			Url = url,
-			Method = method or "GET",
-			Headers = { cookie = "CONSENT=YES+" .. (self.State.GoogleSession.gv or "") },
-			Body = body
-		})
-	end)
-
-	if not success then
-		warn("[Translator] HTTP Request failed:", response)
-		return nil
-	end
-
-	if response and response.Body and response.Body:match("https://consent.google.com/s") then
-		local consentData = {}
-		for tag in response.Body:gmatch('<input type="hidden" name=".-" value=".-">') do
-			local k, v = tag:match('<input type="hidden" name="(.-)" value="(.-)">')
-			consentData[k] = v
-		end
-		self.State.GoogleSession.gv = consentData.v or ""
-		return self:_request(url, method, body)
-	end
-
-	return response
-end
-
-function Modules.ChatTranslator:_translate(text: string, targetLang: string, sourceLang: string?): (string?, string?)
-	local session = self.State.GoogleSession
-	session.rid += 10000
-
-	local targetIso = self:_iso(targetLang) or "en"
-	local sourceIso = self:_iso(sourceLang) or "auto"
-
-	local data = { { text, sourceIso, targetIso, true }, { nil } }
-	local freq = { { { "MkEWBc", HttpService:JSONEncode(data), nil, "generic" } } }
-
-	local queryParams = {
-		rpcids = "MkEWBc",
-		["f.sid"] = session.fsid,
-		bl = session.bl,
-		hl = "en",
-		_reqid = session.rid - 10000,
-		rt = "c"
-	}
-	local url = "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute?" .. HttpService:UrlEncode(queryParams)
-	local body = "f.req=" .. HttpService:UrlEncode(HttpService:JSONEncode(freq))
-
-	local response = self:_request(url, "POST", body)
-	if not (response and response.Success and response.Body) then return nil end
-
-	local success, result = pcall(function()
-		local arr = HttpService:JSONDecode(response.Body:match("%[.-%]\n"))
-		return HttpService:JSONDecode(arr[1][3])
-	end)
-
-	if not success or not result then return nil end
-
-	return result[2][1][1][6][1][1], result[3]
-end
-
-function Modules.ChatTranslator:_iso(s: string?): string?
-	if not s then return nil end
-	s = s:lower()
-	for code, name in pairs(self.LANGS) do
-		if code:lower() == s or name:lower() == s then
-			return code
-		end
-	end
-	return nil
-end
-
-function Modules.ChatTranslator:_onIncomingMessage(messageObject: TextChatMessage): ()
-	if not self.State.IsEnabled or not messageObject.TextSource then return end
-	if messageObject.TextSource.UserId == Players.LocalPlayer.UserId then return end
-
-	local sourcePlayer = Players:GetPlayerByUserId(messageObject.TextSource.UserId)
-	if not sourcePlayer then return end
-
-	local displayName = sourcePlayer.DisplayName
-	local userName = sourcePlayer.Name
-	local nameString = (displayName == userName) and ("@" .. userName) or ("%s (@%s)"):format(displayName, userName)
-
-	local translatedText, detectedLang = self:_translate(messageObject.Text, self.Config.YourLanguage, "auto")
-
-	if translatedText and translatedText ~= "" and translatedText ~= messageObject.Text then
-		local langTag = detectedLang and detectedLang:upper() or "AUTO"
-		self:_sys(("(%s) [%s]: %s"):format(langTag, nameString, translatedText))
-	end
-end
-
-function Modules.ChatTranslator:_onOutgoingMessage(messageObject: TextChatMessage): boolean
-	local text = messageObject.Text
-	local generalChannel = TextChatService.TextChannels:WaitForChild("RBXGeneral")
-
-	local code, msg = text:match("^" .. self.Config.CommandPrefix .. "(%S+)%s+(.+)$")
-	if code and msg then
-		local lang = self:_iso(code)
-		if lang then
-			local translated = self:_translate(msg, lang, "auto") or msg
-			generalChannel:SendAsync(translated)
-			self:_sys("[TR] Sent in " .. lang)
-		else
-			self:_sys("[TR] Invalid language code: " .. code)
-		end
-		return true
-	end
-
-	if self.State.IsPersistent and text:sub(1, 1) ~= ";" and text:sub(1, 1) ~= self.Config.CommandPrefix then
-		local translated = self:_translate(text, self.State.TargetLang, "auto") or text
-		generalChannel:SendAsync(translated)
-		return true
-	end
-
-	return false
-end
-
-function Modules.ChatTranslator:Disable(): ()
-	if not self.State.IsEnabled then return end
-
-	for _, conn in pairs(self.State.Connections) do
-		conn:Disconnect()
-	end
-	table.clear(self.State.Connections)
-
-	self.State.IsEnabled = false
-	self.State.IsPersistent = false
-	self.State.TargetLang = ""
-
-	DoNotif("Chat Translator: DISABLED.", 2)
-end
-
-function Modules.ChatTranslator:Enable(): ()
-	if self.State.IsEnabled then return end
-
-	task.spawn(function()
-		local response = self:_request("https://translate.google.com/")
-		if response and response.Body then
-			self.State.GoogleSession.fsid = response.Body:match('"FdrFJe":"(.-)"')
-			self.State.GoogleSession.bl = response.Body:match('"cfb2h":"(.-)"')
-			if self.State.GoogleSession.fsid then
-				self:_sys("[TR] Chat Translator ready.")
-			else
-				warn("[Translator] Failed to get session tokens from Google Translate.")
-				self:_sys("[TR] Error: Could not initialize session.")
-			end
-		end
-	end)
-
-	self.State.Connections.Incoming = TextChatService.MessageReceived:Connect(function(msg)
-		self:_onIncomingMessage(msg)
-	end)
-
-	self.State.Connections.Outgoing = TextChatService.SendingMessage:Connect(function(msg)
-		if self:_onOutgoingMessage(msg) then
-			return nil
-		end
-		return msg
-	end)
-
-	self.State.IsEnabled = true
-	DoNotif("Chat Translator: ENABLED.", 2)
-end
-
-function Modules.ChatTranslator:Initialize(): ()
-	HttpService = game:GetService("HttpService")
-	Players = game:GetService("Players")
-	TextChatService = game:GetService("TextChatService")
-	
-	local module = self
-	local generalChannel = TextChatService.TextChannels:WaitForChild("RBXGeneral")
-
-	RegisterCommand({
-		Name = "translator",
-		Aliases = { "tr", "translate" },
-		Description = "Toggles the chat translator and manages settings."
-	}, function(args)
-		local subCommand = args[1] and args[1]:lower()
-
-		if subCommand == "on" then
-			if not module.State.IsEnabled then module:Enable() end
-			return
-		end
-		if subCommand == "off" then
-			module:Disable()
-			return
-		end
-		if subCommand == "set" then
-			local lang = module:_iso(args[2])
-			if lang then
-				module.State.IsPersistent = true
-				module.State.TargetLang = lang
-				DoNotif("Translator set to persistently translate to: " .. lang, 3)
-			else
-				DoNotif("Invalid language code. Use ;trlangs to see a list.", 3)
-			end
-			return
-		end
-		if subCommand == "stop" or subCommand == "disable" then
-			module.State.IsPersistent = false
-			DoNotif("Persistent translation disabled.", 2)
-			return
-		end
-
-		local lang = module:_iso(args[1])
-		if lang then
-			table.remove(args, 1)
-			local message = table.concat(args, " ")
-			if message ~= "" then
-				local translated = module:_translate(message, lang, "auto") or message
-				generalChannel:SendAsync(translated)
-				module:_sys("[TR] Sent in " .. lang)
-			else
-				DoNotif("Cannot translate an empty message.", 3)
-			end
-		else
-			DoNotif("Usage: ;tr [lang] [message] OR ;tr set [lang]", 4)
-		end
-	end)
-
-	RegisterCommand({
-		Name = "trlangs",
-		Description = "Lists all available language codes for the translator."
-	}, function()
-		local codes = {}
-		for code, _ in pairs(module.LANGS) do table.insert(codes, code) end
-		table.sort(codes)
-		local message = "[TR] Languages: " .. table.concat(codes, ", ")
-		DoNotif("Printed language list to system chat.", 2)
-		module:_sys(message)
-	end)
-
-	self:Enable()
-end--]]
-
-Modules.Spider = {
-    State = {
-        IsEnabled = false,
-        ActiveWeld = nil -- Will store the active Weld instance
-    }
-}
-
---- Enables the Spider module, welding the character to the ceiling.
-function Modules.Spider:Enable()
-    if self.State.IsEnabled then return end
-
-    local character = LocalPlayer.Character
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    if not hrp then
-        return DoNotif("Spider failed: Character root not found.", 2)
-    end
-
-    -- Raycast upward to find a ceiling
-    local rayOrigin = hrp.Position
-    local rayDirection = Vector3.new(0, 1, 0) * 10 -- Look 10 studs up
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {character}
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    
-    local result = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-
-    if result and result.Instance then
-        local ceilingPart = result.Instance
-        DoNotif("Surface found. Engaging spider protocol.", 1.5)
-
-        -- Create and configure the weld
-        local weld = Instance.new("Weld")
-        weld.Part0 = hrp
-        weld.Part1 = ceilingPart
-        
-
-        local hitCFrame = CFrame.new(result.Position)
-        weld.C0 = hrp.CFrame:Inverse() * (hitCFrame * CFrame.new(0, -2.5, 0))
-        
-        weld.Parent = hrp -- Activating the weld
-
-        self.State.ActiveWeld = weld
-        self.State.IsEnabled = true
-    else
-        DoNotif("No surface found above.", 2)
-    end
-end
-
---- Disables the Spider module and restores normal physics.
-function Modules.Spider:Disable()
-    if not self.State.IsEnabled then return end
-    
-    -- Safely destroy the weld if it exists
-    if self.State.ActiveWeld and self.State.ActiveWeld.Parent then
-        self.State.ActiveWeld:Destroy()
-    end
-
-    self.State.ActiveWeld = nil
-    self.State.IsEnabled = false
-    DoNotif("Spider protocol disengaged.", 1.5)
-end
-
---- Toggles the state of the module.
-function Modules.Spider:Toggle()
-    if self.State.IsEnabled then
-        self:Disable()
-    else
-        self:Enable()
-    end
-end
-
---// --- COMMAND REGISTRATION ---
-RegisterCommand({
-    Name = "spider",
-    Aliases = {"sp", "cling"},
-    Description = "Toggles a weld to the surface directly above your character."
-}, function()
-    Modules.Spider:Toggle()
-end)
 
 Modules.Attacher = {
     State = {
@@ -9544,41 +9234,54 @@ end)
 
 Modules.UniversalESP = {
     State = {
-        ActiveFolders = {}
+        ActiveFolders = {} :: {[Instance]: ESPData}
     },
     Config = {
         FILL_COLOR = Color3.fromRGB(147, 112, 219),
         OUTLINE_COLOR = Color3.fromRGB(255, 255, 255),
         FILL_TRANSPARENCY = 0.5,
-        OUTLINE_TRANSPARENCY = 0
+        OUTLINE_TRANSPARENCY = 0,
+        HIGHLIGHT_LIMIT = 31
     }
 }
 
 function Modules.UniversalESP:_resolvePath(path: string): Instance?
-    local current: Instance = game
-    for component in string.gmatch(path, "[^%.]+") do
-        if string.find(component, ":GetService") then
-            local serviceName = component:match("'(.-)'") or component:match('"(.-)"')
-            current = serviceName and game:GetService(serviceName) or current
-        else
-            current = current and current:FindFirstChild(component)
+    local success, result = pcall(function()
+        local segments = string.split(path, ".")
+        local current: any = game
+
+        for i, name in ipairs(segments) do
+            if i == 1 then
+                if name:lower() == "game" then
+                    continue
+                elseif name:lower() == "workspace" then
+                    current = workspace
+                    continue
+                else
+                    current = game:GetService(name) or game:FindFirstChild(name)
+                end
+            else
+                current = current:FindFirstChild(name)
+            end
+            if not current then break end
         end
-    end
-    return current
+        return current
+    end)
+    return success and result or nil
 end
 
-function Modules.UniversalESP:_highlight(instance: Instance, storage: table): ()
+function Modules.UniversalESP:_highlight(instance: Instance, storage: {[Instance]: Highlight}): ()
     if not (instance:IsA("BasePart") or instance:IsA("Model")) then return end
     if storage[instance] then return end
 
     local highlight = Instance.new("Highlight")
-    highlight.Name = "Zuka_Universal_ESP"
+    highlight.Name = "Universal_ESP_Layer"
     highlight.Adornee = instance
     highlight.FillColor = self.Config.FILL_COLOR
     highlight.OutlineColor = self.Config.OUTLINE_COLOR
     highlight.FillTransparency = self.Config.FILL_TRANSPARENCY
     highlight.OutlineTransparency = self.Config.OUTLINE_TRANSPARENCY
-    highlight.Parent = instance
+    highlight.Parent = CoreGui
     
     storage[instance] = highlight
 end
@@ -9587,46 +9290,54 @@ function Modules.UniversalESP:Disable(folder: Instance): ()
     local data = self.State.ActiveFolders[folder]
     if not data then return end
 
-    data.Added:Disconnect()
-    data.Removed:Disconnect()
+    if data.Added then data.Added:Disconnect() end
+    if data.Removed then data.Removed:Disconnect() end
 
     for item, highlight in pairs(data.Highlights) do
         pcall(function() highlight:Destroy() end)
     end
 
     self.State.ActiveFolders[folder] = nil
-    DoNotif("Folder ESP disabled for: " .. folder.Name, 2)
+    DoNotif("Deactivated ESP for: " .. folder.Name, 2)
 end
 
 function Modules.UniversalESP:Enable(folder: Instance): ()
     if self.State.ActiveFolders[folder] then return end
 
-    local data = {
+    local data: ESPData = {
         Highlights = {},
         Added = nil,
         Removed = nil
     }
 
-    local function scan()
-        for _: number, child: Instance in ipairs(folder:GetChildren()) do
+    local function process(child: Instance)
+        if child:IsA("BasePart") or child:IsA("Model") then
             self:_highlight(child, data.Highlights)
+        elseif child:IsA("Folder") or child:IsA("Configuration") then
+            for _, subChild in ipairs(child:GetChildren()) do
+                process(subChild)
+            end
         end
     end
 
-    data.Added = folder.ChildAdded:Connect(function(child)
-        task.defer(function() self:_highlight(child, data.Highlights) end)
+    data.Added = folder.DescendantAdded:Connect(function(descendant)
+        task.defer(process, descendant)
     end)
 
-    data.Removed = folder.ChildRemoved:Connect(function(child)
-        if data.Highlights[child] then
-            pcall(function() data.Highlights[child]:Destroy() end)
-            data.Highlights[child] = nil
+    data.Removed = folder.DescendantRemoving:Connect(function(descendant)
+        if data.Highlights[descendant] then
+            pcall(function() data.Highlights[descendant]:Destroy() end)
+            data.Highlights[descendant] = nil
         end
     end)
 
     self.State.ActiveFolders[folder] = data
-    scan()
-    DoNotif("Folder ESP enabled for: " .. folder.Name, 2)
+    
+    for _, child in ipairs(folder:GetChildren()) do
+        process(child)
+    end
+    
+    DoNotif("Activated ESP for: " .. folder.Name, 2)
 end
 
 function Modules.UniversalESP:Initialize(): ()
@@ -9634,13 +9345,13 @@ function Modules.UniversalESP:Initialize(): ()
     RegisterCommand({
         Name = "espfolder",
         Aliases = {"fesp", "highf"},
-        Description = "Highlights every object in a specified folder/path. Usage: ;fesp Workspace.Map.Drops"
+        Description = "Recursive highlight for objects in a specified path."
     }, function(args: {string})
         local path = args[1]
-        if not path then return DoNotif("Usage: ;fesp <Path>", 3) end
+        if not path then return DoNotif("Argument Required: Path", 3) end
 
         local folder = module:_resolvePath(path)
-        if not folder then return DoNotif("Error: Invalid path or folder not found.", 3) end
+        if not folder then return DoNotif("Invalid Object Path: " .. path, 3) end
 
         if module.State.ActiveFolders[folder] then
             module:Disable(folder)
@@ -15099,7 +14810,7 @@ RegisterCommand({
 end)
 
 
-Modules.ModulePoisoner = { State = { IsEnabled = false, ActivePatches = {}, SelectedModule = nil, CurrentTable = nil, PathStack = {}, Minimized = false, ViewingCode = false, UI = nil, SidebarButtons = {} }, Config = { ACCENT_COLOR = Color3.fromRGB(0, 255, 170), BG_COLOR = Color3.fromRGB(10, 10, 12), HEADER_COLOR = Color3.fromRGB(15, 15, 18), SECONDARY_COLOR = Color3.fromRGB(18, 18, 22) } }
+--[[Modules.ModulePoisoner = { State = { IsEnabled = false, ActivePatches = {}, SelectedModule = nil, CurrentTable = nil, PathStack = {}, Minimized = false, ViewingCode = false, UI = nil, SidebarButtons = {} }, Config = { ACCENT_COLOR = Color3.fromRGB(0, 255, 170), BG_COLOR = Color3.fromRGB(10, 10, 12), HEADER_COLOR = Color3.fromRGB(15, 15, 18), SECONDARY_COLOR = Color3.fromRGB(18, 18, 22) } }
 
 function Modules.ModulePoisoner:_applyStyle(obj: GuiObject, radius: number) local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, radius or 4) corner.Parent = obj end
 
@@ -15530,17 +15241,11 @@ RegisterCommand({
     module:CreateUI()
 end)
 end
+--]]
 
 
-local HttpService: HttpService = game:GetService("HttpService")
-local RunService: RunService = game:GetService("RunService")
-local Players: Players = game:GetService("Players")
-local ReplicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ReplicatedFirst: ReplicatedFirst = game:GetService("ReplicatedFirst")
-local Workspace: Workspace = game:GetService("Workspace")
-local LocalPlayer: Player = Players.LocalPlayer
 
-Modules.CallumAI = {
+--[[Modules.CallumAI = {
     State = {
         IsEnabled = true,
         LastResponse = "",
@@ -15549,14 +15254,16 @@ Modules.CallumAI = {
         ExplorationBuffer = {}
     },
     Config = {
-        API_KEY = "",
-        MODEL = "gemini-2.5-flash",
+        -- REPLACEMENT REQUIRED: Insert your OpenRouter key here
+        API_KEY = "", 
+        MODEL = "tngtech/deepseek-r1t-chimera:free",
         ACCENT_COLOR = Color3.fromRGB(0, 255, 200),
         SCAN_KEYWORDS = {"network", "remote", "data", "store", "inventory", "purchase", "handler", "event", "admin", "combat", "security", "anti", "function", "state", "check", "weapon", "skill", "mana", "stamina", "health", "damage"},
         MAX_CONTEXT_LINES = 150
     }
 }
 
+-- Private utility: Formulates the capability manifest for the AI
 function Modules.CallumAI:_getPanelContext(): string
     local manifest: string = "Exploit Panel Capability Manifest:\n"
     for name: string, _ in pairs(Modules) do
@@ -15570,7 +15277,7 @@ function Modules.CallumAI:_extractCode(text: string): string?
 end
 
 function Modules.CallumAI:_decompileScript(scriptInstance: Instance): string
-    local decompiler: any = (decompile or decompile_script or function() return nil end)
+    local decompiler: any = (decompile or decompile_script or (syn and syn.decompile) or function() return nil end)
     local success: boolean, result: any = pcall(decompiler, scriptInstance)
     
     if success and typeof(result) == "string" then
@@ -15584,9 +15291,10 @@ function Modules.CallumAI:_decompileScript(scriptInstance: Instance): string
         end
         return result
     end
-    return "Decompilation failed or not supported by executor."
+    return "Decompilation failed or not supported by current executor."
 end
 
+-- Private utility: Resolves string paths to game instances
 function Modules.CallumAI:_getInstanceFromPath(path: string): Instance?
     local current: Instance = game
     for component: string in string.gmatch(path, "[^%.]+") do
@@ -15601,12 +15309,14 @@ function Modules.CallumAI:_getInstanceFromPath(path: string): Instance?
     return current
 end
 
+-- Private utility: Generates a visual tree of the game hierarchy
 function Modules.CallumAI:_getHierarchyMap(parent: Instance, depth: number): string
     local map: string = ""
     local indent: string = string.rep("  ", depth)
     local children: {Instance} = parent:GetChildren()
     
     for i: number, child: Instance in ipairs(children) do
+        -- Performance safety: avoid flooding context with too many objects
         if i > 25 then 
             map ..= indent .. "... (" .. (#children - 25) .. " more items)\n"
             break 
@@ -15619,6 +15329,7 @@ function Modules.CallumAI:_getHierarchyMap(parent: Instance, depth: number): str
     return map
 end
 
+-- Private utility: Scans high-value containers for forensic analysis
 function Modules.CallumAI:_scanGameContainers(): string
     local report: string = "--- FORENSIC HIERARCHY ANALYSIS ---\n"
     local targets: {Instance} = {ReplicatedStorage, Workspace, ReplicatedFirst}
@@ -15631,54 +15342,69 @@ function Modules.CallumAI:_scanGameContainers(): string
     return report
 end
 
-function Modules.CallumAI:FetchResponse(prompt: string, options: {Scan: boolean, Decompile: string?, Poison: string?}): string
+function Modules.CallumAI:FetchResponse(prompt: string, options: {Scan: boolean, Decompile: string?, Poison: string?, Silent: boolean}): string
     local requestFunc: any = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
     
-    if not requestFunc then
-        return "Error: Executor lacks HTTP capability."
-    end
+    if not requestFunc then return "Error: No HTTP capability." end
     
-    local gameContext: string = options.Scan and self:_scanGameContainers() or "No hierarchy scan requested."
+    local gameContext: string = options.Scan and self:_scanGameContainers() or ""
     local scriptContext: string = ""
     
     if options.Decompile then
-        local target: Instance? = self:_getInstanceFromPath(options.Decompile)
-        if target and (target:IsA("LocalScript") or target:IsA("ModuleScript")) then
-            scriptContext = "\n[DECOMPILED SOURCE: " .. target:GetFullName() .. "]\n" .. self:_decompileScript(target)
-        else
-            scriptContext = "\nTarget script for decompilation not found or invalid type."
-        end
+        local target = self:_getInstanceFromPath(options.Decompile)
+        if target then scriptContext = "\n[SOURCE]: " .. self:_decompileScript(target) end
     end
 
     local systemInstruction: string = [[
-        Identity: Callum, elite security researcher and black-hat architect.
-        Context: You have internal access to the game engine hierarchy and script sources.
-        Behavior: Analyze the provided hierarchy and source code to find insecure remotes, logic flaws, or hardcoded constants.
-        Output: Provide high-efficiency injection scripts. Use metatable hooks, constant overrides, or remote manipulation.
-        Formatting: Code must be in ```lua blocks. Keep reasoning brief and technical.
-    ]]
+        Identity: Callum, elite Luau Architect.
+        Task: Generate functional, optimized Luau code based on game hierarchy.
+        STRICT RULES:
+        1. NO COMMENTS in the code.
+        2. NO explanations, introductions, or summaries.
+        3. Output ONLY the code block.
+        4. Use 'game:GetService()' for all services.
+        5. Use local variables for everything.
+        6. Ensure the code is 'ready-to-run'.
+        7. If you cannot fulfill a request, return '-- ERROR: [Reason]'.
+    ]------
     
-    local payload: string = string.format("%s\n\n[MANIFEST]\n%s\n\n[GAME VIEW]\n%s%s\n\nUser Query: %s", 
-        systemInstruction, self:_getPanelContext(), gameContext, scriptContext, prompt)
+    local userPayload: string = string.format("[CONTEXT]\n%s\n%s\n\n[REQUEST]\n%s", 
+        gameContext, scriptContext, prompt)
     
     local success, result = pcall(function()
         local response = requestFunc({
-            Url = "https://generativelanguage.googleapis.com/v1/models/" .. self.Config.MODEL .. ":generateContent?key=" .. self.Config.API_KEY,
+            Url = "https://openrouter.ai/api/v1/chat/completions",
             Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
+            Headers = {
+                ["Content-Type"] = "application/json",
+                ["Authorization"] = "Bearer " .. self.Config.API_KEY,
+                ["HTTP-Referer"] = "https://roblox.com",
+                ["X-Title"] = "Callum AI"
+            },
             Body = HttpService:JSONEncode({
-                contents = {{parts = {{text = payload}}}}
+                model = "deepseek/deepseek-chat", -- Highly recommended for no-comment logic
+                messages = {
+                    {role = "system", content = systemInstruction},
+                    {role = "user", content = userPayload}
+                },
+                temperature = 0.2 -- Lower temperature = more stable, less "creative" (better for code)
             })
         })
         
         if response and response.StatusCode == 200 then
             local data = HttpService:JSONDecode(response.Body)
-            return data.candidates[1].content.parts[1].text
+            local content = data.choices[1].message.content
+            
+            -- If we only want the code, strip everything else immediately
+            if options.Silent then
+                return self:_extractCode(content) or content
+            end
+            return content
         end
-        return "Uplink Error: " .. (response and tostring(response.StatusCode) or "Timeout")
+        return "Uplink Failure."
     end)
     
-    return success and result or "Critical Failure: " .. tostring(result)
+    return success and result or "Critical Error."
 end
 
 function Modules.CallumAI:Initialize()
@@ -15686,62 +15412,48 @@ function Modules.CallumAI:Initialize()
     
     RegisterCommand({
         Name = "callum",
-        Aliases = {"c", "ai"},
-        Description = "Interface with Callum AI. Subcommands: scan, decompile, poison, run."
+        Aliases = {"c"},
+        Description = "Clean-code AI interface."
     }, function(args: {string})
-        if module.State.IsProcessing then
-            return DoNotif("Callum is already processing...", 2)
-        end
+        local sub = args[1] and args[1]:lower() or ""
+        local isRun = (sub == "run" or sub == "execute")
         
-        local sub: string = args[1] and args[1]:lower() or ""
-        local isScan: boolean = (sub == "scan")
-        local isDecompile: boolean = (sub == "decompile" or sub == "dec")
-        local isRun: boolean = (sub == "run" or sub == "execute")
-        local isPoison: boolean = (sub == "poison")
-        
-        local targetPath: string? = (isDecompile or isPoison or isRun) and args[2] or nil
-        local promptStart: number = (isScan or isRun or isDecompile) and 2 or (isPoison and 3 or 1)
-        local prompt: string = table.concat(args, " ", promptStart)
-        
-        if #prompt == 0 and not (isScan or isDecompile) then
-            return DoNotif("Usage: ;callum <subcommand> <path/prompt>", 3)
-        end
-        
-        if isDecompile and #prompt == 0 then
-            prompt = "Analyze this script for logic vulnerabilities and suggest a bypass."
-        end
-
+        -- If it's a 'run' command, we set 'Silent' to true to force code-only output
         module.State.IsProcessing = true
-        DoNotif("Callum is accessing game environment...", 3)
         
         task.spawn(function()
-            local reply: string = module:FetchResponse(prompt, {
-                Scan = isScan or isDecompile or isPoison,
-                Decompile = isDecompile and targetPath or nil,
-                Poison = isPoison and targetPath or nil
+            local reply = module:FetchResponse(table.concat(args, " "), {
+                Scan = true,
+                Decompile = (sub == "dec" and args[2] or nil),
+                Silent = isRun -- This triggers the code-only filter
             })
             
-            module.State.LastResponse = reply
             module.State.IsProcessing = false
             
-            local code: string? = module:_extractCode(reply)
-            if code then module.State.LastGeneratedCode = code end
-            
-            if Modules.CommandBar and Modules.CommandBar.AddOutput then
-                Modules.CommandBar:AddOutput("<font color='#00FFC8'>[CALLUM]:</font> " .. reply, module.Config.ACCENT_COLOR)
-                if isRun and code then
-                    local func = loadstring(code)
-                    if func then task.spawn(func) end
+            if isRun then
+                local cleanCode = module:_extractCode(reply) or reply
+                -- Clean up any residual markdown symbols just in case
+                cleanCode = cleanCode:gsub("```lua", ""):gsub("```", "")
+                
+                local func, err = loadstring(cleanCode)
+                if func then
+                    task.spawn(func)
+                    DoNotif("Script Executed Successfully.", 2)
+                else
+                    warn("[CallumAI] Execution Error: " .. tostring(err))
+                    print("Attempted Code:\n" .. cleanCode)
                 end
             else
-                print("--- [Callum AI Analysis] ---")
-                print(reply)
-                print("----------------------------")
-                DoNotif("Analysis Complete. Results in F9.", 5)
+                -- Standard output for 'scan' or 'dec'
+                if Modules.CommandBar then
+                    Modules.CommandBar:AddOutput(reply, module.Config.ACCENT_COLOR)
+                else
+                    print(reply)
+                end
             end
         end)
     end)
-end
+end--]]
 
 Modules.SourceBhop = {
     State = {
@@ -15749,7 +15461,11 @@ Modules.SourceBhop = {
         Velocity = Vector3.zero,
         SpaceHeld = false,
         UI = nil,
-        Connections = {}
+        Connections = {},
+        OriginalWalkSpeed = 16,
+        OriginalJumpPower = 50,
+        HasStoredOriginals = false,
+        LastCharacter = nil
     },
     Config = {
         GroundAccel = 45,
@@ -15803,17 +15519,37 @@ function Modules.SourceBhop:_createUI(): ()
     toggle.Position = UDim2.new(0.05, 0, 0.4, 0)
     toggle.BackgroundColor3 = self.Theme.Button
     toggle.Text = "SYSTEM: OFF"
-    toggle.TextColor3 = self.Theme.Text
+    toggle.TextColor3 = self.State.IsEnabled and self.Theme.Accent or self.Theme.Text
     toggle.Font = Enum.Font.Code
     toggle.TextSize = 13
     local bCorner = Instance.new("UICorner", toggle)
     bCorner.CornerRadius = UDim.new(0, 4)
     
     toggle.MouseButton1Click:Connect(function()
+        local character = Players.LocalPlayer.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        
         self.State.IsEnabled = not self.State.IsEnabled
         toggle.Text = self.State.IsEnabled and "SYSTEM: ON" or "SYSTEM: OFF"
-        toggle.TextColor3 = self.State.IsEnabled and self.Theme.Accent or self.Theme.Text
-        if not self.State.IsEnabled then self.State.Velocity = Vector3.zero end
+        toggle.TextColor3 = self.State.IsEnabled and self.Theme.Accent or self.State.Text
+        
+        if self.State.IsEnabled then
+            if humanoid and not self.State.HasStoredOriginals then
+                self.State.OriginalWalkSpeed = humanoid.WalkSpeed
+                self.State.OriginalJumpPower = humanoid.JumpPower
+                self.State.HasStoredOriginals = true
+            end
+            if humanoid then
+                humanoid.WalkSpeed = 0
+                humanoid.JumpPower = 0
+            end
+        else
+            if humanoid then
+                humanoid.WalkSpeed = self.State.HasStoredOriginals and self.State.OriginalWalkSpeed or 16
+                humanoid.JumpPower = self.State.HasStoredOriginals and self.State.OriginalJumpPower or 50
+            end
+            self.State.Velocity = Vector3.zero
+        end
     end)
     
     local dragging, dragStart, startPos
@@ -15837,6 +15573,12 @@ function Modules.SourceBhop:Process(dt: number): ()
     if not self.State.IsEnabled then return end
     
     local character = Players.LocalPlayer.Character
+    if character ~= self.State.LastCharacter then
+        self.State.LastCharacter = character
+        self.State.HasStoredOriginals = false
+        self.State.Velocity = Vector3.zero
+    end
+    
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     
@@ -17804,88 +17546,6 @@ RegisterCommand({
     Modules.ClassicSwordAnim:Toggle()
 end)
 
---[[Modules.InstanceInterceptor = {
-    State = {
-        IsEnabled = false,
-        OriginalNew = nil,
-        Blacklist = {
-            ["Watchdog"] = true,
-            ["ClientDetector"] = true,
-            ["AntiCheat"] = true,
-            ["AC_Main"] = true,
-            ["HeartbeatChecker"] = true
-        }
-    }
-}
-
-function Modules.InstanceInterceptor:Enable(): ()
-    if self.State.IsEnabled then return end
-    if not hookfunction then
-        return DoNotif("Executor does not support hookfunction.", 4)
-    end
-
-    local module = self
-
-    self.State.OriginalNew = hookfunction(Instance.new, function(className: string, parent: Instance)
-        if parent and module.State.Blacklist[parent.Name] then
-            print("--> [InstanceInterceptor] Blocked creation of " .. className .. " due to blacklisted parent: " .. parent.Name)
-            return nil
-        end
-        
-        local instance = module.State.OriginalNew(className, parent)
-        
-        if instance and module.State.Blacklist[instance.Name] then
-             print("--> [InstanceInterceptor] Blocked creation of blacklisted instance: " .. instance.Name)
-             pcall(instance.Destroy, instance)
-             return nil
-        end
-        
-        return instance
-    end)
-
-    self.State.IsEnabled = true
-    DoNotif("Instance Interceptor: ENABLED. Anti-Cheat creation will be blocked.", 3)
-end
-
-function Modules.InstanceInterceptor:Disable(): ()
-    if not self.State.IsEnabled then return end
-    if self.State.OriginalNew and unhookfunction then
-        pcall(unhookfunction, Instance.new)
-        self.State.OriginalNew = nil
-    end
-    self.State.IsEnabled = false
-    DoNotif("Instance Interceptor: DISABLED.", 2)
-end
-
-function Modules.InstanceInterceptor:Initialize(): ()
-    self:Enable()
-
-    RegisterCommand({
-        Name = "acblacklist",
-        Aliases = {"blacklist"},
-        Description = "Adds a name to the Anti-AC creation blacklist."
-    }, function(args)
-        local name = args[1]
-        if not name then return DoNotif("Usage: ;acblacklist <InstanceName>", 3) end
-        self.State.Blacklist[name] = true
-        DoNotif("Added '" .. name .. "' to instance creation blacklist.", 2)
-    end)
-
-    RegisterCommand({
-        Name = "acwhitelist",
-        Aliases = {"whitelist"},
-        Description = "Removes a name from the Anti-AC creation blacklist."
-    }, function(args)
-        local name = args[1]
-        if not name then return DoNotif("Usage: ;acwhitelist <InstanceName>", 3) end
-        if self.State.Blacklist[name] then
-            self.State.Blacklist[name] = nil
-            DoNotif("Removed '" .. name .. "' from instance creation blacklist.", 2)
-        else
-            DoNotif("'" .. name .. "' was not on the blacklist.", 2)
-        end
-    end)
-end--]]
 
 local function loadstringCmd(url, notif)
     pcall(function()
@@ -17911,6 +17571,8 @@ end)
 
 RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/anthonysrepository/refs/heads/main/scripts/Anti%20Bang.lua", "Anti Gay Shield Activated.") end)
 
+RegisterCommand({Name = "plag", Aliases = {}, Description = "Makes the pumpkin launcher lag players"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameLaggerPlauncher.lua", "Loading Modification") end)
+
 RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "Makes the pumpkin launcher into a rapid fire beast."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RAPIDFIREPumpkinlauncher.lua", "Loading Modification") end)
 
 RegisterCommand({Name = "zukahub", Aliases = {"zuka"}, Description = "Loads the Zuka Hub"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZukaHub.lua", "Loading Zuka's Hub...") end)
@@ -17927,13 +17589,15 @@ RegisterCommand({Name = "swordbot", Aliases = {"sf", "sfbot"}, Description = "Au
 
 RegisterCommand({Name = "touchfling", Aliases = {}, Description = "Loads the touchfling GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SimpleTouchFlingGui.lua", "Loaded") end)
 
-RegisterCommand({Name = "zoneui", Aliases = {"masterequiper"}, Description = "For https://www.roblox.com/games/99381597249674/Zombie-Zone" }, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/Nice.lua", "Loaded") end)
+RegisterCommand({Name = "zoneui", Aliases = {}, Description = "For https://www.roblox.com/games/99381597249674/Zombie-Zone" }, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/Nice.lua", "Loaded") end)
 
 RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded Gui For Btools"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/fixedbtools.lua", "Loading Revamped Btools Gui") end)
 
+RegisterCommand({Name = "ketamine", Aliases = {}, Description = "Updated remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/remotes.lua", "Loading rSpy...") end)
+
 RegisterCommand({Name = "simplespy", Aliases = {"bestspy"}, Description = "Best remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/simplee%20spyyy%20mobilee", "Loading rSpy...") end)
 
-RegisterCommand({Name = "exec", Aliases = {"executor"}, Description = "internal executor"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Executor.lua", "Loading") end)
+RegisterCommand({Name = "csgo", Aliases = {"phoon"}, Description = "Bhop movement fallback"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/phoon.lua", "Loading") end)
 
 RegisterCommand({Name = "lineofsight", Aliases = {}, Description = "Logger for players looking at you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/LineOfSightLogger.lua", "Loading...") end)
 
@@ -17945,7 +17609,7 @@ RegisterCommand({Name = "extendroot", Aliases = {}, Description = "Bypasses Rayc
 
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
 
-RegisterCommand({Name = "updatedoverseer", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt", "Loading GUI..") end)
+RegisterCommand({Name = "overseer", Aliases = {"patcher"}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt", "Loading GUI..") end)
 
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
 
