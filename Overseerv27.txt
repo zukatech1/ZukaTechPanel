@@ -33,6 +33,77 @@ local State = {
 
 local SidebarButtons = {}
 
+--// --- PATCH SAVE/LOAD SYSTEM ---
+local PatchMemory = {
+    Saves = {} :: { [string]: any },
+    CurrentSave = nil
+}
+
+local function SerializePatch(tbl: table, key: any, value: any): string?
+    local keyStr = tostring(key)
+    local valueStr = ""
+    
+    if type(value) == "string" then
+        valueStr = "\"" .. value:gsub("\"", "\\\"") .. "\""
+    elseif type(value) == "number" or type(value) == "boolean" then
+        valueStr = tostring(value)
+    elseif typeof(value) == "Color3" then
+        valueStr = string.format("Color3.fromRGB(%d,%d,%d)", value.R*255, value.G*255, value.B*255)
+    elseif typeof(value) == "Vector3" then
+        valueStr = string.format("Vector3.new(%f,%f,%f)", value.X, value.Y, value.Z)
+    else
+        return nil
+    end
+    
+    return keyStr .. "=" .. valueStr
+end
+
+local function SavePatches(saveName: string)
+    local snapshot = {}
+    for tbl, keys in pairs(Registry.ActivePatches) do
+        local tblName = tostring(tbl)
+        snapshot[tblName] = {}
+        for key, data in pairs(keys) do
+            local serialized = SerializePatch(tbl, key, data.Value)
+            if serialized then
+                table.insert(snapshot[tblName], {
+                    Key = tostring(key),
+                    Value = data.Value,
+                    Serialized = serialized
+                })
+            end
+        end
+    end
+    
+    PatchMemory.Saves[saveName] = {
+        Timestamp = tick(),
+        Patches = snapshot,
+        Count = (function() local c = 0 for _ in pairs(snapshot) do c = c + 1 end return c end)()
+    }
+    
+    return true
+end
+
+local function LoadPatches(saveName: string): boolean
+    local save = PatchMemory.Saves[saveName]
+    if not save then return false end
+    
+    -- Re-apply all patches from the save
+    for tbl, keys in pairs(Registry.ActivePatches) do
+        for key, data in pairs(keys) do
+            if data.Original then
+                pcall(ForceWrite, tbl, key, data.Original)
+            end
+        end
+    end
+    
+    Registry.ActivePatches = {}
+    
+    -- Note: This is a simplified loader. Full restoration requires keeping module references
+    -- For now, we'll just notify the user they need to re-navigate to the modules
+    PatchMemory.CurrentSave = saveName
+    return true
+end
 
 local GhostRegistry = {
     BlockedRemotes = {},
@@ -57,15 +128,31 @@ local function InitiateInterception()
     local mt = getrawmetatable(game)
     local old_namecall = mt.__namecall
     setreadonly(mt, false)
+    
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
+        local args = {...}
+
+        -- [NEW] Intercepting the modern Raycast API (Silent Aim)
+        if method == "Raycast" and self == workspace and not checkcaller() then
+            local target = ArchitectSuite.GetBestTarget(500)
+            if target then
+                -- Redirect the direction vector to face the target
+                args[2] = (target.Position - args[1]).Unit * 1000 
+                return old_namecall(self, unpack(args))
+            end
+        end
+
+        -- [ORIGINAL] Remote Interception logic
         if (method == "FireServer" or method == "InvokeServer") and GhostRegistry.BlockedRemotes[self.Name] then
             return nil 
         end
+        
         return old_namecall(self, ...)
     end)
     setreadonly(mt, true)
 end
+
 
 local function DeepScan()
     if not getgc then return end
@@ -75,6 +162,16 @@ local function DeepScan()
             if info:lower():find("anticheat") or info:lower():find("kick") then
                 hookfunction(obj, function() return end)
             end
+        end
+    end
+end
+
+local function FreezeConstant(func, constName, newVal)
+    for i = 1, 100 do -- Typical constant limit
+        local val = debug.getconstant(func, i)
+        if val == constName then
+            debug.setconstant(func, i, newVal)
+            break
         end
     end
 end
@@ -157,6 +254,18 @@ local ArchitectSuite = {
         return hiddenData
     end,
 
+    FreezeConstant = function(func, constName, newVal)
+        if not debug or not debug.getconstants then return end
+        local constants = debug.getconstants(func)
+        for i, v in pairs(constants) do
+            if v == constName then
+                debug.setconstant(func, i, newVal)
+                return true
+            end
+        end
+        return false
+    end,
+
     ProxyRaycast = function(originalFunc: any)
         return hookfunction(originalFunc, newcclosure(function(...)
             local result = originalFunc(...)
@@ -200,6 +309,21 @@ ArchitectSuite.HeuristicScan = function()
         end
     end
     return weaponModules
+end
+
+ArchitectSuite.GhostHook = function(instance, property, cheatValue)
+    local mt = getrawmetatable(game)
+    local oldIndex = mt.__index
+    setreadonly(mt, false)
+    
+    mt.__index = newcclosure(function(t, k)
+        if not checkcaller() and t == instance and k == property then
+            return 16 -- The "Legal" value the game expects to see
+        end
+        return oldIndex(t, k)
+    end)
+    instance[property] = cheatValue -- The actual value used for physics
+    setreadonly(mt, true)
 end
 
 --// --- UI Utilities (MOVED TO TOP TO PREVENT NIL ERRORS) ---
@@ -292,10 +416,13 @@ local function ApplyDeepPatch(tbl: table, key: any, val: any, isFunc: boolean)
             Registry.Hooks[originalFunc] = hookfunction(originalFunc, newClosure)
         end
     else
+        -- Store original value before patching
+        local original = tbl[key]
         Registry.ActivePatches[tbl][key] = {
             Value = val,
             Locked = true,
-            IsFunction = false
+            IsFunction = false,
+            Original = original
         }
         ForceWrite(tbl, key, val)
     end
@@ -313,8 +440,29 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+--// --- CLEANUP ON RESET/DEATH ---
+local function CleanupOnReset()
+    for tbl, keys in pairs(Registry.ActivePatches) do
+        for key, data in pairs(keys) do
+            if data.Original and not data.IsFunction then
+                pcall(ForceWrite, tbl, key, data.Original)
+            end
+        end
+    end
+    Registry.ActivePatches = {}
+    for func, hook in pairs(Registry.Hooks) do
+        if hookfunction then
+            pcall(hookfunction, func, hook)
+        end
+    end
+    Registry.Hooks = {}
+end
+
 task.spawn(CloakEnvironment)
 task.spawn(InitiateInterception)
+
+
+
 -- task.spawn(DeepScan) -- Optional: Uncomment to auto-disable game anti-cheats
 
 --// --- UI Construction ---
@@ -337,17 +485,11 @@ UserInputService.InputBegan:Connect(function(input, gpe)
     end
 end)
 
---// --- UI Construction ---
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "OVERSEER_ARCHITECT_V26_PAYLOADS"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
-
 local main = Instance.new("Frame")
 main.Size = UDim2.fromOffset(850, 550)
 main.Position = UDim2.new(0.5, -425, 0.5, -275)
-main.BackgroundColor3 = Color3.fromRGB(8, 8, 10)
+main.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
+main.BackgroundTransparency = 0.3
 main.BorderSizePixel = 0
 main.ClipsDescendants = true
 main.Parent = screenGui
@@ -361,13 +503,13 @@ end
 local function createStroke(obj: Instance, color: Color3)
     local s = Instance.new("UIStroke")
     s.Color = color
-    s.Thickness = 1
-    s.Transparency = 0.8
+    s.Thickness = 3
+    s.Transparency = 0.5
     s.Parent = obj
 end
 
 applyStyle(main, 6)
-createStroke(main, Color3.fromRGB(0, 255, 170))
+createStroke(main, Color3.fromRGB(255, 85, 99))
 
 -- Header
 local header = Instance.new("Frame")
@@ -375,11 +517,12 @@ header.Size = UDim2.new(1, 0, 0, 35)
 header.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
 header.Parent = main
 
+
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -220, 1, 0)
 title.Position = UDim2.fromOffset(12, 0)
-title.Text = "OVERSEER // ARCHITECT EDITION V26.1"
-title.TextColor3 = Color3.fromRGB(0, 255, 170)
+title.Text = "OVERSEER // V26.1"
+title.TextColor3 = Color3.fromRGB(178, 8, 8)
 title.Font = Enum.Font.Code
 title.TextSize = 11
 title.TextXAlignment = Enum.TextXAlignment.Left
@@ -388,7 +531,7 @@ title.Parent = header
 
 local backBtn = Instance.new("TextButton")
 backBtn.Size = UDim2.new(0, 60, 0, 22)
-backBtn.Position = UDim2.new(1, -195, 0.5, -11)
+backBtn.Position = UDim2.new(1, -347, 0.5, -12)
 backBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 backBtn.Text = "< BACK"
 backBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -430,6 +573,7 @@ local grid = Instance.new("ScrollingFrame")
 grid.Size = UDim2.new(1, -270, 1, -20)
 grid.Position = UDim2.fromOffset(260, 10)
 grid.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+grid.BackgroundTransparency = 1
 grid.AutomaticCanvasSize = Enum.AutomaticSize.Y
 grid.ScrollBarThickness = 1
 applyStyle(grid, 4)
@@ -500,20 +644,45 @@ local function PopulateGrid(targetTable: table, name: string)
     for _, v in ipairs(grid:GetChildren()) do
         if v:IsA("Frame") then v:Destroy() end
     end
+    
+    -- Validate that targetTable is actually a table
+    if not targetTable or type(targetTable) ~= "table" then
+        local emptyMsg = Instance.new("Frame")
+        emptyMsg.Size = UDim2.new(1, -10, 0, 50)
+        emptyMsg.BackgroundColor3 = Color3.fromRGB(30, 20, 20)
+        emptyMsg.Parent = grid
+        applyStyle(emptyMsg, 4)
+        
+        local emptyLabel = Instance.new("TextLabel", emptyMsg)
+        emptyLabel.Size = UDim2.new(1, 0, 1, 0)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Text = "⚠ Invalid or empty table"
+        emptyLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        emptyLabel.Font = Enum.Font.Code
+        emptyLabel.TextSize = 10
+        return
+    end
 
-    -- [NEW] Metatable Surveillance Row
-    local mt = ArchitectSuite.GetMetatableSafe(targetTable)
-    if mt then
+    -- [NEW] Recursive Metatable Surveillance
+    local function ExploreMetatables(tbl, depth, maxDepth)
+        if depth == nil then depth = 0 end
+        if maxDepth == nil then maxDepth = 5 end
+        if depth > maxDepth then return end
+        
+        local mt = ArchitectSuite.GetMetatableSafe(tbl)
+        if not mt then return end
+        
         local mtRow = Instance.new("Frame")
         mtRow.Size = UDim2.new(1, -10, 0, 35)
         mtRow.BackgroundColor3 = Color3.fromRGB(35, 15, 55)
         mtRow.Parent = grid
         applyStyle(mtRow, 4)
         
+        local depthStr = string.rep("→", depth)
         local mtLabel = Instance.new("TextLabel")
         mtLabel.Size = UDim2.new(0.4, 0, 1, 0)
         mtLabel.Position = UDim2.fromOffset(5, 0)
-        mtLabel.Text = "[METATABLE] Inherited Logic"
+        mtLabel.Text = depthStr .. " [MT-" .. depth .. "] Inherited Logic"
         mtLabel.TextColor3 = Color3.fromRGB(180, 120, 255)
         mtLabel.Font = Enum.Font.Code
         mtLabel.TextSize = 9
@@ -533,9 +702,16 @@ local function PopulateGrid(targetTable: table, name: string)
 
         mtDive.MouseButton1Click:Connect(function()
             table.insert(State.PathStack, targetTable)
-            PopulateGrid(mt, name .. ".__metatable")
+            PopulateGrid(mt, name .. ".__metatable" .. string.rep(".mt", depth))
         end)
+        
+        -- Recursively show deeper metatables
+        if depth < maxDepth then
+            ExploreMetatables(mt, depth + 1, maxDepth)
+        end
     end
+    
+    ExploreMetatables(targetTable, 0, 3)
 
     local function CreateRow(k: any, v: any, parent: table)
         local row = Instance.new("Frame")
@@ -639,8 +815,27 @@ local function PopulateGrid(targetTable: table, name: string)
     end
 
     pcall(function()
+        local itemCount = 0
         for k, v in pairs(targetTable) do
+            itemCount = itemCount + 1
             CreateRow(k, v, targetTable)
+        end
+        
+        -- Show message if table is empty
+        if itemCount == 0 then
+            local emptyMsg = Instance.new("Frame")
+            emptyMsg.Size = UDim2.new(1, -10, 0, 50)
+            emptyMsg.BackgroundColor3 = Color3.fromRGB(20, 30, 20)
+            emptyMsg.Parent = grid
+            applyStyle(emptyMsg, 4)
+            
+            local emptyLabel = Instance.new("TextLabel", emptyMsg)
+            emptyLabel.Size = UDim2.new(1, 0, 1, 0)
+            emptyLabel.BackgroundTransparency = 1
+            emptyLabel.Text = "✓ Table is empty (no keys)"
+            emptyLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
+            emptyLabel.Font = Enum.Font.Code
+            emptyLabel.TextSize = 10
         end
     end)
 end
@@ -693,11 +888,15 @@ local function AddSidebarItem(obj: any, name: string)
         PopulateGrid(success and result or obj, name)
     end)
 
-    payload.MouseButton1Click:Connect(function()
+payload.MouseButton1Click:Connect(function()
         local success, result = pcall(require, obj)
         if success then
             for k, v in pairs(result) do
                 if type(v) == "function" then
+                    -- Use the new FreezeConstant API to remove Recoil/Spread
+                    ArchitectSuite.FreezeConstant(v, "Recoil", 0)
+                    ArchitectSuite.FreezeConstant(v, "Spread", 0)
+                    
                     if k:lower():find("cooldown") then
                         hookfunction(v, newcclosure(function() return false end))
                     elseif k:lower():find("cast") or k:lower():find("ray") or k:lower():find("hit") then
@@ -705,13 +904,180 @@ local function AddSidebarItem(obj: any, name: string)
                     end
                 end
             end
-            payload.Text = "OK"
-            payload.BackgroundColor3 = Color3.fromRGB(20, 50, 20)
-            payload.TextColor3 = Color3.fromRGB(0, 255, 0)
+            payload.Text = "ACTIVE"
+            payload.BackgroundColor3 = Color3.fromRGB(0, 255, 170)
+            payload.TextColor3 = Color3.fromRGB(0, 0, 0)
         end
     end)
-    src.MouseButton1Click:Connect(function() ShowSource(obj) end)
 end
+--// --- RESCAN BUTTON ---
+local scannedModules = {}
+
+local function RescanModules()
+    -- Clear the sidebar
+    for btn, _ in pairs(SidebarButtons) do
+        btn:Destroy()
+    end
+    SidebarButtons = {}
+    
+    -- Clear scanned modules
+    scannedModules = {}
+    
+    -- Re-scan everything
+    local function scan(root)
+        for _, m in ipairs(root:GetDescendants()) do
+            if m:IsA("ModuleScript") and not scannedModules[m] then
+                scannedModules[m] = true
+                AddSidebarItem(m, m.Name)
+            end
+        end
+    end
+    
+    scan(ReplicatedStorage)
+    scan(LocalPlayer)
+    
+    if getloadedmodules then
+        for _, m in ipairs(getloadedmodules()) do
+            if not scannedModules[m] then
+                scannedModules[m] = true
+                AddSidebarItem(m, "[LOADED] " .. tostring(m))
+            end
+        end
+    end
+end
+
+local rescanBtn = Instance.new("TextButton")
+rescanBtn.Size = UDim2.new(0, 70, 0, 22)
+rescanBtn.Position = UDim2.new(1, -140, 0.5, -11)  -- Positioned left of the back button
+rescanBtn.BackgroundColor3 = Color3.fromRGB(30, 50, 40)
+rescanBtn.Text = "RESCAN"
+rescanBtn.TextColor3 = Color3.fromRGB(0, 255, 170)
+rescanBtn.Font = Enum.Font.Code
+rescanBtn.TextSize = 10
+applyStyle(rescanBtn, 3)
+rescanBtn.Parent = header
+
+rescanBtn.MouseButton1Click:Connect(RescanModules)
+
+--// --- PATCH SAVE/LOAD BUTTONS ---
+local saveBtn = Instance.new("TextButton")
+saveBtn.Size = UDim2.new(0, 60, 0, 22)
+saveBtn.Position = UDim2.new(1, -210, 0.5, -11)
+saveBtn.BackgroundColor3 = Color3.fromRGB(40, 35, 20)
+saveBtn.Text = "SAVE"
+saveBtn.TextColor3 = Color3.fromRGB(255, 200, 0)
+saveBtn.Font = Enum.Font.Code
+saveBtn.TextSize = 10
+applyStyle(saveBtn, 3)
+saveBtn.Parent = header
+
+saveBtn.MouseButton1Click:Connect(function()
+    local timestamp = os.date("%H%M%S")
+    SavePatches("AutoSave_" .. timestamp)
+    saveBtn.Text = "✓"
+    saveBtn.BackgroundColor3 = Color3.fromRGB(20, 50, 20)
+    task.wait(1)
+    saveBtn.Text = "SAVE"
+    saveBtn.BackgroundColor3 = Color3.fromRGB(40, 35, 20)
+end)
+
+local loadBtn = Instance.new("TextButton")
+loadBtn.Size = UDim2.new(0, 60, 0, 22)
+loadBtn.Position = UDim2.new(1, -280, 0.5, -11)
+loadBtn.BackgroundColor3 = Color3.fromRGB(20, 35, 40)
+loadBtn.Text = "LOAD"
+loadBtn.TextColor3 = Color3.fromRGB(100, 180, 255)
+loadBtn.Font = Enum.Font.Code
+loadBtn.TextSize = 10
+applyStyle(loadBtn, 3)
+loadBtn.Parent = header
+
+loadBtn.MouseButton1Click:Connect(function()
+    -- Check if a save list already exists and destroy it
+    local existing = screenGui:FindFirstChild("SaveListMenu")
+    if existing then
+        existing:Destroy()
+        return
+    end
+    
+    -- Create a save selection menu
+    local saveList = Instance.new("Frame")
+    saveList.Name = "SaveListMenu"
+    saveList.Size = UDim2.fromOffset(300, 400)
+    saveList.Position = UDim2.new(0.5, -150, 0.5, -200)
+    saveList.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+    saveList.ZIndex = 1000
+    applyStyle(saveList, 8)
+    createStroke(saveList, Color3.fromRGB(0, 255, 170))
+    saveList.Parent = screenGui
+    
+    local listTitle = Instance.new("TextLabel", saveList)
+    listTitle.Size = UDim2.new(1, 0, 0, 40)
+    listTitle.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    listTitle.Text = "PATCH SAVES"
+    listTitle.TextColor3 = Color3.fromRGB(0, 255, 170)
+    listTitle.Font = Enum.Font.Code
+    listTitle.TextSize = 11
+    applyStyle(listTitle, 4)
+    
+    local scroll = Instance.new("ScrollingFrame", saveList)
+    scroll.Size = UDim2.new(1, -20, 1, -60)
+    scroll.Position = UDim2.fromOffset(10, 45)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 2
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    local layout = Instance.new("UIListLayout", scroll)
+    layout.Padding = UDim.new(0, 8)
+    
+    for saveName, saveData in pairs(PatchMemory.Saves) do
+        local saveBtnItem = Instance.new("TextButton", scroll)
+        saveBtnItem.Size = UDim2.new(1, -10, 0, 35)
+        saveBtnItem.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+        saveBtnItem.Text = saveName .. " (" .. saveData.Count .. " patches)"
+        saveBtnItem.TextColor3 = Color3.fromRGB(200, 200, 200)
+        saveBtnItem.Font = Enum.Font.Code
+        saveBtnItem.TextSize = 9
+        applyStyle(saveBtnItem, 4)
+        
+        saveBtnItem.MouseButton1Click:Connect(function()
+            LoadPatches(saveName)
+            saveList:Destroy()
+        end)
+    end
+    
+    if not next(PatchMemory.Saves) then
+        local emptyLabel = Instance.new("TextLabel", scroll)
+        emptyLabel.Size = UDim2.new(1, 0, 0, 40)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Text = "No saves yet"
+        emptyLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+        emptyLabel.Font = Enum.Font.Code
+        emptyLabel.TextSize = 10
+    end
+    
+    local closeBtn = Instance.new("TextButton", saveList)
+    closeBtn.Size = UDim2.new(0, 100, 0, 30)
+    closeBtn.Position = UDim2.new(0.5, -50, 1, -40)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    closeBtn.Text = "CANCEL"
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.Code
+    closeBtn.TextSize = 9
+    applyStyle(closeBtn, 4)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        if saveList and saveList.Parent then
+            saveList:Destroy()
+        end
+    end)
+end)
+
+--// --- RESET/DEATH HANDLERS ---
+LocalPlayer.CharacterRemoving:Connect(CleanupOnReset)
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(2)  -- Wait for character to fully load
+    RescanModules()
+end)
 
 --// --- Scanner Thread ---
 task.spawn(function()
