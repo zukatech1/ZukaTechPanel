@@ -14810,20 +14810,16 @@ RegisterCommand({
 end)
 
 
---[[Modules.ModulePoisoner = { State = { IsEnabled = false, ActivePatches = {}, SelectedModule = nil, CurrentTable = nil, PathStack = {}, Minimized = false, ViewingCode = false, UI = nil, SidebarButtons = {} }, Config = { ACCENT_COLOR = Color3.fromRGB(0, 255, 170), BG_COLOR = Color3.fromRGB(10, 10, 12), HEADER_COLOR = Color3.fromRGB(15, 15, 18), SECONDARY_COLOR = Color3.fromRGB(18, 18, 22) } }
+Modules.ModulePoisoner = { State = { IsEnabled = false, ActivePatches = {}, SelectedModule = nil, CurrentTable = nil, PathStack = {}, Minimized = false, ViewingCode = false, UI = nil, SidebarButtons = {} }, Config = { ACCENT_COLOR = Color3.fromRGB(0, 255, 170), BG_COLOR = Color3.fromRGB(10, 10, 12), HEADER_COLOR = Color3.fromRGB(15, 15, 18), SECONDARY_COLOR = Color3.fromRGB(18, 18, 22) } }
 
 function Modules.ModulePoisoner:_applyStyle(obj: GuiObject, radius: number) local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, radius or 4) corner.Parent = obj end
-
 function Modules.ModulePoisoner:_setClipboard(txt: string) if setclipboard then setclipboard(txt) end end
-
 function Modules.ModulePoisoner:_applyPatch(tbl: table, key: any, val: any, isFunc: boolean) if not self.State.ActivePatches[tbl] then self.State.ActivePatches[tbl] = {} end
 
 self.State.ActivePatches[tbl][key] = {Value = val, Locked = true, IsFunction = isFunc}
 
-local setRO = setreadonly or (make_writeable and function(t, b) if b then make_writeable(t) else make_readonly(t) end end)
-
 pcall(function()
-    setRO(tbl, false)
+    if setreadonly then setreadonly(tbl, false) elseif make_writeable then make_writeable(tbl) end
     if isFunc then
         if val == "TRUE" then
             rawset(tbl, key, function() return true end)
@@ -14833,8 +14829,209 @@ pcall(function()
     else
         rawset(tbl, key, val)
     end
-    setRO(tbl, true)
+    if setreadonly then setreadonly(tbl, true) end
 end)
+end
+
+local c_check = clonefunction(checkcaller)
+local c_rawset = clonefunction(rawset)
+local c_getmt = clonefunction(getrawmetatable)
+
+function Modules.ModulePoisoner:_getUpvalues(func: (...any) -> ...any, depth: number, maxDepth: number)
+    depth = depth or 0
+    maxDepth = maxDepth or 5
+    if depth > maxDepth then return {} end
+    
+    local upvalues = {}
+    local success, result = pcall(debug.getupvalues, func)
+    
+    if success and result then
+        for i, uv in ipairs(result) do
+            local uvType = type(uv)
+            upvalues[i] = {
+                Index = i,
+                Value = uv,
+                Type = uvType,
+                IsFunction = uvType == "function",
+                IsTable = uvType == "table",
+                ChildUpvalues = uvType == "function" and self:_getUpvalues(uv, depth + 1, maxDepth) or {}
+            }
+        end
+    end
+    return upvalues
+end
+
+function Modules.ModulePoisoner:_patchUpvalue(func: (...any) -> ...any, uvIndex: number, newValue: any)
+    if not debug.getupvalues or not debug.setupvalue then return false end
+    
+    local success = pcall(function()
+        if setreadonly then setreadonly(func, false) elseif make_writeable then make_writeable(func) end
+        debug.setupvalue(func, uvIndex, newValue)
+        if setreadonly then setreadonly(func, true) end
+    end)
+    
+    return success
+end
+
+function Modules.ModulePoisoner:_scanMetatable(tbl: table)
+    if not getrawmetatable then return nil end
+    
+    local mt = c_getmt(tbl)
+    if not mt then return nil end
+    
+    -- Force metatable to be writeable
+    if setreadonly then setreadonly(mt, false) elseif make_writeable then make_writeable(mt) end
+    
+    local metamethods = {}
+    for k, v in pairs(mt) do
+        if type(v) == "function" then
+            metamethods[k] = {
+                Value = v,
+                Type = "function",
+                Upvalues = self:_getUpvalues(v),
+                OriginalUpvalues = self:_getUpvalues(v)
+            }
+        else
+            metamethods[k] = {Value = v, Type = type(v)}
+        end
+    end
+    
+    return {
+        Metatable = mt,
+        Methods = metamethods
+    }
+end
+
+function Modules.ModulePoisoner:_createUpvalueRow(uvIndex: number, uvData: any, parentFunc: ((...any) -> ...any)?, ui: any)
+    local row = Instance.new("Frame", ui.Grid)
+    row.Size = UDim2.new(1, -10, 0, 35)
+    row.BackgroundTransparency = 1
+    
+    local label = Instance.new("TextLabel", row)
+    label.Size = UDim2.new(0.4, 0, 1, 0)
+    label.Text = "  [" .. uvIndex .. "] " .. uvData.Type
+    label.TextColor3 = Color3.fromRGB(100, 200, 255)
+    label.Font = Enum.Font.Code
+    label.TextSize = 9
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+    label.ClipsDescendants = true
+    
+    if uvData.IsTable then
+        local diveBtn = Instance.new("TextButton", row)
+        diveBtn.Size = UDim2.new(0, 100, 0, 24)
+        diveBtn.Position = UDim2.fromScale(0.42, 0.15)
+        diveBtn.BackgroundColor3 = Color3.fromRGB(30, 60, 80)
+        diveBtn.Text = "DIVE UV >"
+        diveBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+        diveBtn.Font = Enum.Font.Code
+        diveBtn.TextSize = 8
+        self:_applyStyle(diveBtn, 2)
+        
+        diveBtn.MouseButton1Click:Connect(function()
+            table.insert(self.State.PathStack, self.State.CurrentTable)
+            self.State.CurrentTable = uvData.Value
+            self:PopulateGrid(uvData.Value, "[UV:" .. uvIndex .. "]")
+        end)
+    elseif uvData.IsFunction then
+        local uvBtn = Instance.new("TextButton", row)
+        uvBtn.Size = UDim2.new(0, 80, 0, 24)
+        uvBtn.Position = UDim2.fromScale(0.42, 0.15)
+        uvBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+        uvBtn.Text = "UVALS"
+        uvBtn.TextColor3 = Color3.fromRGB(150, 100, 255)
+        uvBtn.Font = Enum.Font.Code
+        uvBtn.TextSize = 8
+        self:_applyStyle(uvBtn, 2)
+        
+        uvBtn.MouseButton1Click:Connect(function()
+            self:_showUpvaluesUI(uvData.Value, "[UV:" .. uvIndex .. "] Function")
+        end)
+        
+        local viewBtn = Instance.new("TextButton", row)
+        viewBtn.Size = UDim2.new(0, 60, 0, 24)
+        viewBtn.Position = UDim2.fromScale(0.55, 0.15)
+        viewBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
+        viewBtn.Text = "VIEW"
+        viewBtn.TextColor3 = Color3.fromRGB(255, 100, 255)
+        viewBtn.Font = Enum.Font.Code
+        viewBtn.TextSize = 8
+        self:_applyStyle(viewBtn, 2)
+        
+        viewBtn.MouseButton1Click:Connect(function() self:_showSource(uvData.Value) end)
+    else
+        local box = Instance.new("TextBox", row)
+        box.Size = UDim2.new(0, 100, 0, 24)
+        box.Position = UDim2.fromScale(0.42, 0.15)
+        box.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+        box.Text = tostring(uvData.Value)
+        box.TextColor3 = Color3.fromRGB(100, 200, 255)
+        box.Font = Enum.Font.Code
+        box.TextSize = 9
+        self:_applyStyle(box, 2)
+        
+        box.FocusLost:Connect(function(enter)
+            if enter and parentFunc then
+                local newVal = tonumber(box.Text) or box.Text
+                self:_patchUpvalue(parentFunc, uvIndex, newVal)
+                box.Text = tostring(newVal)
+            end
+        end)
+    end
+end
+
+function Modules.ModulePoisoner:_showUpvaluesUI(func: (...any) -> ...any, funcName: string)
+    local ui = self.State.UI
+    
+    self.State.ViewingCode = true
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.Title.Text = "UPVALUES: " .. funcName
+    ui.CodeBox.Text = "-- Scanning upvalues..."
+    
+    task.spawn(function()
+        -- Clear grid for upvalue display
+        for _, v in ipairs(ui.Grid:GetChildren()) do
+            if not v:IsA("UIListLayout") then v:Destroy() end
+        end
+        
+        ui.CodeFrame.Visible = false
+        ui.Grid.Visible = true
+        
+        local upvalues = self:_getUpvalues(func)
+        if #upvalues == 0 then
+            local noUvLabel = Instance.new("TextLabel", ui.Grid)
+            noUvLabel.Size = UDim2.new(1, 0, 0, 20)
+            noUvLabel.Text = "  -- NO UPVALUES FOUND -- "
+            noUvLabel.TextColor3 = Color3.fromRGB(200, 100, 100)
+            noUvLabel.BackgroundTransparency = 1
+            noUvLabel.Font = Enum.Font.Code
+            noUvLabel.TextSize = 9
+        else
+            for _, uvData in ipairs(upvalues) do
+                self:_createUpvalueRow(uvData.Index, uvData, func, ui)
+                
+                -- Show nested upvalues if function
+                if uvData.IsFunction and #uvData.ChildUpvalues > 0 then
+                    for _, childUv in ipairs(uvData.ChildUpvalues) do
+                        local childRow = Instance.new("Frame", ui.Grid)
+                        childRow.Size = UDim2.new(1, -30, 0, 35)
+                        childRow.BackgroundTransparency = 1
+                        childRow.Position = UDim2.new(0, 20, 0, 0)
+                        
+                        local childLabel = Instance.new("TextLabel", childRow)
+                        childLabel.Size = UDim2.new(1, 0, 1, 0)
+                        childLabel.Text = "    └─[" .. childUv.Index .. "] " .. childUv.Type
+                        childLabel.TextColor3 = Color3.fromRGB(150, 150, 100)
+                        childLabel.Font = Enum.Font.Code
+                        childLabel.TextSize = 8
+                        childLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        childLabel.BackgroundTransparency = 1
+                    end
+                end
+            end
+        end
+    end)
 end
 
 function Modules.ModulePoisoner:_showSource(target: any) local decompiler = (decompile or decompile_script or function() return "-- [ERROR] Decompiler not supported." end) local ui = self.State.UI
@@ -14842,6 +15039,7 @@ function Modules.ModulePoisoner:_showSource(target: any) local decompiler = (dec
 self.State.ViewingCode = true
 ui.Grid.Visible = false
 ui.CodeFrame.Visible = true
+ui.CodeFrame.Name = "ViewMode"
 ui.Title.Text = "DECOMPILING: " .. (target.Name or "Closure")
 ui.CodeBox.Text = "-- Generating Source, please wait..."
 
@@ -14849,6 +15047,29 @@ task.spawn(function()
     local success, src = pcall(decompiler, target)
     ui.CodeBox.Text = success and src or "-- [FAILURE] Decompilation error."
 end)
+end
+
+function Modules.ModulePoisoner:_showEditUI(target: any, targetName: string)
+    local decompiler = (decompile or decompile_script or function() return "-- [ERROR] Decompiler not supported." end)
+    local ui = self.State.UI
+    
+    self.State.ViewingCode = true
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.CodeFrame.Name = "EditMode"
+    ui.Title.Text = "EDIT: " .. targetName
+    ui.CodeBox.Text = "-- Loading source..."
+    ui.CodeBox.TextEditable = true
+    ui.CodeBox.ClearTextOnFocus = true
+    
+    task.spawn(function()
+        local success, src = pcall(decompiler, target)
+        if success then
+            ui.CodeBox.Text = src
+        else
+            ui.CodeBox.Text = "-- [ERROR] Failed to decompile source\n-- Attempting fallback..."
+        end
+    end)
 end
 
 function Modules.ModulePoisoner:_createRow(k: any, v: any, src: table) local ui = self.State.UI local row = Instance.new("Frame", ui.Grid) row.Size = UDim2.new(1, -10, 0, 35) row.BackgroundTransparency = 1
@@ -14880,33 +15101,65 @@ if type(v) == "table" then
     end)
 elseif type(v) == "function" then
     local spoofBtn = Instance.new("TextButton", row)
-    spoofBtn.Size = UDim2.new(0, 60, 0, 24)
+    spoofBtn.Size = UDim2.new(0, 45, 0, 24)
     spoofBtn.Position = UDim2.fromScale(0.42, 0.15)
     spoofBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
     spoofBtn.Text = "SPOOF"
     spoofBtn.TextColor3 = Color3.new(1, 1, 1)
     spoofBtn.Font = Enum.Font.Code
-    spoofBtn.TextSize = 8
+    spoofBtn.TextSize = 7
     self:_applyStyle(spoofBtn, 2)
     
+    local uvBtn = Instance.new("TextButton", row)
+    uvBtn.Size = UDim2.new(0, 45, 0, 24)
+    uvBtn.Position = UDim2.fromScale(0.495, 0.15)
+    uvBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+    uvBtn.Text = "UVALS"
+    uvBtn.TextColor3 = Color3.fromRGB(150, 100, 255)
+    uvBtn.Font = Enum.Font.Code
+    uvBtn.TextSize = 7
+    self:_applyStyle(uvBtn, 2)
+    
+    uvBtn.MouseButton1Click:Connect(function() 
+        self:_showUpvaluesUI(v, tostring(k))
+    end)
+    
     local viewBtn = Instance.new("TextButton", row)
-    viewBtn.Size = UDim2.new(0, 60, 0, 24)
-    viewBtn.Position = UDim2.fromScale(0.55, 0.15)
+    viewBtn.Size = UDim2.new(0, 35, 0, 24)
+    viewBtn.Position = UDim2.fromScale(0.565, 0.15)
     viewBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
-    viewBtn.Text = "VIEW"
+    viewBtn.Text = "V"
     viewBtn.TextColor3 = Color3.fromRGB(255, 100, 255)
     viewBtn.Font = Enum.Font.Code
-    viewBtn.TextSize = 8
+    viewBtn.TextSize = 7
     self:_applyStyle(viewBtn, 2)
     
-    viewBtn.MouseButton1Click:Connect(function() self:_showSource(v) end)
+    viewBtn.MouseButton1Click:Connect(function() 
+        self.State.EditTarget = src
+        self:_showSource(v) 
+    end)
+    
+    local editBtn = Instance.new("TextButton", row)
+    editBtn.Size = UDim2.new(0, 35, 0, 24)
+    editBtn.Position = UDim2.fromScale(0.615, 0.15)
+    editBtn.BackgroundColor3 = Color3.fromRGB(100, 70, 50)
+    editBtn.Text = "E"
+    editBtn.TextColor3 = Color3.fromRGB(255, 180, 100)
+    editBtn.Font = Enum.Font.Code
+    editBtn.TextSize = 7
+    self:_applyStyle(editBtn, 2)
+    
+    editBtn.MouseButton1Click:Connect(function()
+        self.State.EditTarget = src
+        self:_showEditUI(v, tostring(k) .. "()")
+    end)
 
     local modes = {"NORMAL", "TRUE", "FALSE"}
     local cur = 1
     spoofBtn.MouseButton1Click:Connect(function()
         cur = (cur % 3) + 1
         local mode = modes[cur]
-        spoofBtn.Text = "FORCE " .. mode
+        spoofBtn.Text = "F" .. string.sub(mode, 1, 1)
         spoofBtn.BackgroundColor3 = (mode == "TRUE" and Color3.fromRGB(0, 200, 100)) or (mode == "FALSE" and Color3.fromRGB(200, 50, 50)) or Color3.fromRGB(50, 50, 70)
         if mode == "NORMAL" then
             if self.State.ActivePatches[src] then self.State.ActivePatches[src][k] = nil end
@@ -14944,19 +15197,88 @@ for k, v in pairs(targetTable) do
 end
 
 local mt = getrawmetatable and getrawmetatable(targetTable)
-if mt and mt.__index and type(mt.__index) == "table" then
-    local ghostLabel = Instance.new("TextLabel", ui.Grid)
-    ghostLabel.Size = UDim2.new(1, 0, 0, 20)
-    ghostLabel.Text = " -- GHOST INDEX -- "
-    ghostLabel.TextColor3 = Color3.fromRGB(255, 0, 255)
-    ghostLabel.BackgroundTransparency = 1
-    ghostLabel.Font = Enum.Font.Code
-    ghostLabel.TextSize = 9
-    for k, v in pairs(mt.__index) do
-        self:_createRow(k, v, mt.__index)
+if mt then
+    -- Force metatable to be writeable
+    if setreadonly then setreadonly(mt, false) elseif make_writeable then make_writeable(mt) end
+    
+    if mt.__index and type(mt.__index) == "table" then
+        local ghostLabel = Instance.new("TextLabel", ui.Grid)
+        ghostLabel.Size = UDim2.new(1, 0, 0, 20)
+        ghostLabel.Text = " -- GHOST INDEX (__index) -- "
+        ghostLabel.TextColor3 = Color3.fromRGB(255, 0, 255)
+        ghostLabel.BackgroundTransparency = 1
+        ghostLabel.Font = Enum.Font.Code
+        ghostLabel.TextSize = 9
+        for k, v in pairs(mt.__index) do
+            self:_createRow(k, v, mt.__index)
+        end
+    end
+    
+    -- Check for other metamethods
+    local metamethods = {}
+    for mmKey, mmVal in pairs(mt) do
+        if mmKey ~= "__index" and type(mmVal) == "function" then
+            table.insert(metamethods, {Key = mmKey, Value = mmVal})
+        end
+    end
+    
+    if #metamethods > 0 then
+        local mmLabel = Instance.new("TextLabel", ui.Grid)
+        mmLabel.Size = UDim2.new(1, 0, 0, 20)
+        mmLabel.Text = " -- METAMETHODS -- "
+        mmLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+        mmLabel.BackgroundTransparency = 1
+        mmLabel.Font = Enum.Font.Code
+        mmLabel.TextSize = 9
+        
+        for _, mmData in ipairs(metamethods) do
+            local mmRow = Instance.new("Frame", ui.Grid)
+            mmRow.Size = UDim2.new(1, -10, 0, 35)
+            mmRow.BackgroundTransparency = 1
+            
+            local mmLabel2 = Instance.new("TextLabel", mmRow)
+            mmLabel2.Size = UDim2.new(0.4, 0, 1, 0)
+            mmLabel2.Text = " " .. mmData.Key .. "()"
+            mmLabel2.TextColor3 = Color3.fromRGB(255, 200, 100)
+            mmLabel2.Font = Enum.Font.Code
+            mmLabel2.TextSize = 9
+            mmLabel2.TextXAlignment = Enum.TextXAlignment.Left
+            mmLabel2.BackgroundTransparency = 1
+            mmLabel2.ClipsDescendants = true
+            
+            local uvBtn = Instance.new("TextButton", mmRow)
+            uvBtn.Size = UDim2.new(0, 65, 0, 24)
+            uvBtn.Position = UDim2.fromScale(0.42, 0.15)
+            uvBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+            uvBtn.Text = "UVALS"
+            uvBtn.TextColor3 = Color3.fromRGB(150, 100, 255)
+            uvBtn.Font = Enum.Font.Code
+            uvBtn.TextSize = 8
+            self:_applyStyle(uvBtn, 2)
+            
+            uvBtn.MouseButton1Click:Connect(function()
+                self:_showUpvaluesUI(mmData.Value, mmData.Key .. "() metamethod")
+            end)
+            
+            local viewBtn = Instance.new("TextButton", mmRow)
+            viewBtn.Size = UDim2.new(0, 65, 0, 24)
+            viewBtn.Position = UDim2.fromScale(0.54, 0.15)
+            viewBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
+            viewBtn.Text = "VIEW"
+            viewBtn.TextColor3 = Color3.fromRGB(255, 100, 255)
+            viewBtn.Font = Enum.Font.Code
+            viewBtn.TextSize = 8
+            self:_applyStyle(viewBtn, 2)
+            
+            viewBtn.MouseButton1Click:Connect(function()
+                self:_showSource(mmData.Value)
+            end)
+        end
     end
 end
 end
+
+
 
 function Modules.ModulePoisoner:AddModuleToList(mod: ModuleScript) local n = mod.Name:lower() if n:find("chat") or n:find("roblox") then return end
 
@@ -14966,7 +15288,7 @@ container.Size = UDim2.new(1, -5, 0, 25)
 container.BackgroundTransparency = 1
 
 local b = Instance.new("TextButton", container)
-b.Size = UDim2.new(0.7, 0, 1, 0)
+b.Size = UDim2.new(0.65, 0, 1, 0)
 b.Text = " " .. mod.Name
 b.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 b.TextColor3 = Color3.new(0.8, 0.8, 0.8)
@@ -14976,14 +15298,24 @@ b.ClipsDescendants = true
 self:_applyStyle(b, 2)
 
 local srcB = Instance.new("TextButton", container)
-srcB.Size = UDim2.new(0.28, 0, 1, 0)
-srcB.Position = UDim2.fromScale(0.72, 0)
+srcB.Size = UDim2.new(0.175, 0, 1, 0)
+srcB.Position = UDim2.fromScale(0.65, 0)
 srcB.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-srcB.Text = "SRC"
-srcB.TextColor3 = self.Config.ACCENT_COLOR
+srcB.Text = "V"
+srcB.TextColor3 = Color3.fromRGB(100, 200, 255)
 srcB.Font = Enum.Font.Code
 srcB.TextSize = 8
 self:_applyStyle(srcB, 2)
+
+local editB = Instance.new("TextButton", container)
+editB.Size = UDim2.new(0.175, 0, 1, 0)
+editB.Position = UDim2.fromScale(0.825, 0)
+editB.BackgroundColor3 = Color3.fromRGB(50, 40, 30)
+editB.Text = "E"
+editB.TextColor3 = Color3.fromRGB(255, 180, 100)
+editB.Font = Enum.Font.Code
+editB.TextSize = 8
+self:_applyStyle(editB, 2)
 
 self.State.SidebarButtons[container] = mod.Name
 
@@ -14997,7 +15329,13 @@ b.MouseButton1Click:Connect(function()
 end)
 
 srcB.MouseButton1Click:Connect(function()
+    self.State.EditTarget = mod
     self:_showSource(mod)
+end)
+
+editB.MouseButton1Click:Connect(function()
+    self.State.EditTarget = mod
+    self:_showEditUI(mod, mod.Name)
 end)
 end
 
@@ -15111,20 +15449,52 @@ codeBox.AutomaticSize = Enum.AutomaticSize.XY
 self:_applyStyle(codeBox, 4)
 
 local copyBtn = Instance.new("TextButton", codeFrame)
-copyBtn.Size = UDim2.new(0, 100, 0, 30)
-copyBtn.Position = UDim2.new(1, -110, 1, -40)
+copyBtn.Size = UDim2.new(0, 90, 0, 30)
+copyBtn.Position = UDim2.new(1, -280, 1, -40)
 copyBtn.BackgroundColor3 = self.Config.ACCENT_COLOR
-copyBtn.Text = "COPY CODE"
+copyBtn.Text = "COPY"
 copyBtn.TextColor3 = Color3.new(0, 0, 0)
 copyBtn.Font = Enum.Font.Code
 copyBtn.TextSize = 10
 self:_applyStyle(copyBtn, 4)
 
+local editBtn = Instance.new("TextButton", codeFrame)
+editBtn.Size = UDim2.new(0, 90, 0, 30)
+editBtn.Position = UDim2.new(1, -185, 1, -40)
+editBtn.BackgroundColor3 = Color3.fromRGB(100, 70, 50)
+editBtn.Text = "EDIT"
+editBtn.TextColor3 = Color3.fromRGB(255, 180, 100)
+editBtn.Font = Enum.Font.Code
+editBtn.TextSize = 10
+self:_applyStyle(editBtn, 4)
+
+local applyBtn = Instance.new("TextButton", codeFrame)
+applyBtn.Size = UDim2.new(0, 90, 0, 30)
+applyBtn.Position = UDim2.new(1, -280, 1, -40)
+applyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+applyBtn.Text = "APPLY"
+applyBtn.TextColor3 = Color3.new(1, 1, 1)
+applyBtn.Font = Enum.Font.Code
+applyBtn.TextSize = 10
+applyBtn.Visible = false
+self:_applyStyle(applyBtn, 4)
+
+local discardBtn = Instance.new("TextButton", codeFrame)
+discardBtn.Size = UDim2.new(0, 90, 0, 30)
+discardBtn.Position = UDim2.new(1, -185, 1, -40)
+discardBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+discardBtn.Text = "DISCARD"
+discardBtn.TextColor3 = Color3.new(1, 1, 1)
+discardBtn.Font = Enum.Font.Code
+discardBtn.TextSize = 10
+discardBtn.Visible = false
+self:_applyStyle(discardBtn, 4)
+
 local closeCode = Instance.new("TextButton", codeFrame)
-closeCode.Size = UDim2.new(0, 100, 0, 30)
+closeCode.Size = UDim2.new(0, 90, 0, 30)
 closeCode.Position = UDim2.new(0, 10, 1, -40)
 closeCode.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-closeCode.Text = "EXIT SOURCE"
+closeCode.Text = "EXIT"
 closeCode.TextColor3 = Color3.new(1, 1, 1)
 closeCode.Font = Enum.Font.Code
 closeCode.TextSize = 10
@@ -15138,8 +15508,60 @@ self.State.UI = {
     Sidebar = sidebar,
     CodeFrame = codeFrame,
     CodeBox = codeBox,
-    Search = searchInput
+    Search = searchInput,
+    EditMode = false,
+    EditTarget = nil,
+    OriginalCode = ""
 }
+
+--// --- RESCAN BUTTON ---
+local scannedModules = {}
+
+local function RescanModules()
+    -- Clear the sidebar
+    for btn, _ in pairs(self.State.SidebarButtons) do
+        btn:Destroy()
+    end
+    self.State.SidebarButtons = {}
+    
+    -- Clear scanned modules
+    scannedModules = {}
+    
+    -- Re-scan everything
+    local function scan(root)
+        for _, m in ipairs(root:GetDescendants()) do
+            if m:IsA("ModuleScript") and not scannedModules[m] then
+                scannedModules[m] = true
+                self:AddModuleToList(m)
+            end
+        end
+    end
+    
+    scan(ReplicatedStorage)
+    scan(Players.LocalPlayer)
+    
+    if getloadedmodules then
+        for _, m in ipairs(getloadedmodules()) do
+            if not scannedModules[m] then
+                scannedModules[m] = true
+                self:AddModuleToList(m)
+            end
+        end
+    end
+end
+
+local rescanBtn = Instance.new("TextButton")
+rescanBtn.Size = UDim2.new(0, 70, 0, 22)
+rescanBtn.Position = UDim2.new(1, -140, 0.5, -11)  -- Positioned left of the back button
+rescanBtn.BackgroundColor3 = Color3.fromRGB(30, 50, 40)
+rescanBtn.Text = "RESCAN"
+rescanBtn.TextColor3 = Color3.fromRGB(0, 255, 170)
+rescanBtn.Font = Enum.Font.Code
+rescanBtn.TextSize = 10
+self:_applyStyle(rescanBtn, 3)
+rescanBtn.Parent = header
+
+rescanBtn.MouseButton1Click:Connect(RescanModules)
 
 backBtn.MouseButton1Click:Connect(function()
     if #self.State.PathStack > 0 then
@@ -15156,14 +15578,82 @@ closeCode.MouseButton1Click:Connect(function()
     self.State.ViewingCode = false
     codeFrame.Visible = false
     grid.Visible = true
+    ui.CodeBox.TextEditable = false
+    copyBtn.Visible = true
+    editBtn.Visible = true
+    applyBtn.Visible = false
+    discardBtn.Visible = false
+    self.State.UI.EditMode = false
     title.Text = "PATH: " .. (self.State.SelectedModule and self.State.SelectedModule.Name or "Main")
 end)
 
 copyBtn.MouseButton1Click:Connect(function()
-    self:_setClipboard(codeBox.Text)
+    self:_setClipboard(ui.CodeBox.Text)
     copyBtn.Text = "COPIED!"
     task.wait(1)
-    copyBtn.Text = "COPY CODE"
+    copyBtn.Text = "COPY"
+end)
+
+editBtn.MouseButton1Click:Connect(function()
+    self.State.UI.EditMode = true
+    self.State.UI.OriginalCode = ui.CodeBox.Text
+    ui.CodeBox.TextEditable = true
+    copyBtn.Visible = false
+    editBtn.Visible = false
+    applyBtn.Visible = true
+    discardBtn.Visible = true
+    ui.Title.Text = ui.Title.Text .. " [EDITING]"
+end)
+
+applyBtn.MouseButton1Click:Connect(function()
+    local editedCode = ui.CodeBox.Text
+    
+    -- Try to compile and execute the edited code
+    local success, result = pcall(function()
+        local compiled = load(editedCode, "EditedModule")
+        if compiled then
+            compiled()
+            return true
+        end
+        return false
+    end)
+    
+    if success and result then
+        applyBtn.Text = "APPLIED!"
+        applyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+        task.wait(1.5)
+        applyBtn.Text = "APPLY"
+        applyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+        
+        -- Store patch info
+        if self.State.EditTarget then
+            self.State.ActivePatches[self.State.EditTarget] = self.State.ActivePatches[self.State.EditTarget] or {}
+            self.State.ActivePatches[self.State.EditTarget]["_EditedCode"] = {
+                Value = editedCode,
+                Locked = false,
+                IsFunction = false,
+                IsEdit = true
+            }
+        end
+    else
+        applyBtn.Text = "ERROR!"
+        applyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        ui.CodeBox.Text = "-- [ERROR] " .. tostring(result) .. "\n\n" .. editedCode
+        task.wait(2)
+        applyBtn.Text = "APPLY"
+        applyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+    end
+end)
+
+discardBtn.MouseButton1Click:Connect(function()
+    self.State.UI.EditMode = false
+    ui.CodeBox.Text = self.State.UI.OriginalCode
+    ui.CodeBox.TextEditable = false
+    copyBtn.Visible = true
+    editBtn.Visible = true
+    applyBtn.Visible = false
+    discardBtn.Visible = false
+    ui.Title.Text = ui.Title.Text:gsub(" %[EDITING%]", "")
 end)
 
 searchInput:GetPropertyChangedSignal("Text"):Connect(function()
@@ -15214,9 +15704,8 @@ RunService.Heartbeat:Connect(function()
     for tbl, keys in pairs(module.State.ActivePatches) do
         for key, data in pairs(keys) do
             if data.Locked then
-                local setRO = setreadonly or (make_writeable and function(t, b) if b then make_writeable(t) else make_readonly(t) end end)
                 pcall(function()
-                    setRO(tbl, false)
+                    if setreadonly then setreadonly(tbl, false) elseif make_writeable then make_writeable(tbl) end
                     if data.IsFunction then
                         if data.Value == "TRUE" then
                             rawset(tbl, key, function() return true end)
@@ -15226,7 +15715,7 @@ RunService.Heartbeat:Connect(function()
                     else
                         rawset(tbl, key, data.Value)
                     end
-                    setRO(tbl, true)
+                    if setreadonly then setreadonly(tbl, true) end
                 end)
             end
         end
@@ -15235,15 +15724,12 @@ end)
 
 RegisterCommand({
     Name = "poisoner",
-    Aliases = {"overseer", "modulepoison", "mp"},
+    Aliases = {"meta", "modulepoison", "mp"},
     Description = "Opens the high-tier Module Poisoner and Logic Hijacking UI."
 }, function()
     module:CreateUI()
 end)
 end
---]]
-
-
 
 --[[Modules.CallumAI = {
     State = {
@@ -17463,8 +17949,7 @@ RegisterCommand({
     Modules.IdentityPhantom:Toggle(args[1])
 end)
 
-local Players: Players = game:GetService("Players")
-local LocalPlayer: Player = Players.LocalPlayer
+
 
 Modules.ClassicSwordAnim = {
     State = {
