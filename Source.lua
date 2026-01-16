@@ -20,9 +20,14 @@ local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
 local PathService = game:GetService("PathfindingService")
 local MarketplaceService = game:GetService("MarketplaceService")
-local ContentProvider = game:GetService("ContentProvider")
+
 
 do
+    local TweenService = game:GetService("TweenService")
+    local CoreGui = game:GetService("CoreGui")
+    local Lighting = game:GetService("Lighting")
+    local ContentProvider = game:GetService("ContentProvider")
+
     local THEME = {
         Title = "Welcome back king.",
         Subtitle = "Made by @OverZuka — We're so back...",
@@ -10344,8 +10349,11 @@ Modules.Overseer = {
         PropertyHooks = {}, -- {instance, property} -> {value, enabled}
         RemoteSpyData = {},
         CallFrequency = {},
-        CurrentTypeFilter = nil, -- Current type being filtered
-        FilteredResults = {}
+        CurrentTypeFilter = nil,
+        FilteredResults = {},
+        SpyCallLog = {},
+        IsSpying = false,
+        SelectedRemote = nil
     },
     Config = {
         ACCENT_COLOR = Color3.fromRGB(0, 255, 170),
@@ -10353,7 +10361,17 @@ Modules.Overseer = {
         HEADER_COLOR = Color3.fromRGB(15, 15, 18),
         SECONDARY_COLOR = Color3.fromRGB(18, 18, 22),
         HOOK_COLOR = Color3.fromRGB(0, 200, 150),
-        DANGER_COLOR = Color3.fromRGB(200, 50, 50)
+        DANGER_COLOR = Color3.fromRGB(200, 50, 50),
+        BUTTON_HEIGHT = 24,
+        ROW_HEIGHT = 35,
+        FILTER_HEIGHT = 40,
+        PADDING = 4,
+        CORNER_RADIUS = 2,
+        CODE_BUTTON_HEIGHT = 30
+    },
+    RemoteSpy = {
+        MaxLogSize = 500,
+        RecordingTypes = { "FireServer", "FireClient", "InvokeServer" }
     }
 }
 
@@ -10361,13 +10379,13 @@ Modules.Overseer = {
 -- UTILITY FUNCTIONS
 -- ============================================================================
 
-function Modules.Overseer:_applyStyle(obj: GuiObject, radius: number)
+function Modules.Overseer:_applyStyle(obj, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 4)
     corner.Parent = obj
 end
 
-function Modules.Overseer:_setClipboard(txt: string)
+function Modules.Overseer:_setClipboard(txt)
     if setclipboard then setclipboard(txt) end
 end
 
@@ -10405,6 +10423,256 @@ function Modules.Overseer:_applyEnvironment(func, scriptInstance)
 end
 
 -- ============================================================================
+-- UI FACTORY SYSTEM
+-- ============================================================================
+
+function Modules.Overseer:_createButton(parent, text, size, position, bgColor, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = size
+    btn.Position = position
+    btn.BackgroundColor3 = bgColor or self.Config.HOOK_COLOR
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.Code
+    btn.TextSize = 9
+    self:_applyStyle(btn, self.Config.CORNER_RADIUS)
+    
+    if callback then
+        btn.MouseButton1Click:Connect(callback)
+    end
+    
+    return btn
+end
+
+function Modules.Overseer:_createLabel(parent, text, size, position, textColor, bgColor)
+    local lbl = Instance.new("TextLabel", parent)
+    lbl.Size = size
+    lbl.Position = position
+    lbl.Text = text
+    lbl.TextColor3 = textColor or Color3.fromRGB(150, 150, 150)
+    lbl.BackgroundColor3 = bgColor or Color3.new(0, 0, 0)
+    lbl.BackgroundTransparency = (bgColor == nil and 1 or 0.3)
+    lbl.Font = Enum.Font.Code
+    lbl.TextSize = 9
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextYAlignment = Enum.TextYAlignment.Center
+    
+    return lbl
+end
+
+function Modules.Overseer:_createRow(parent, labelText, labelSize, labelColor)
+    local row = Instance.new("Frame", parent)
+    row.Size = UDim2.new(1, -10, 0, self.Config.ROW_HEIGHT)
+    row.BackgroundTransparency = 1
+    
+    local label = Instance.new("TextLabel", row)
+    label.Size = labelSize or UDim2.new(0.6, 0, 1, 0)
+    label.Text = labelText
+    label.TextColor3 = labelColor or Color3.fromRGB(150, 150, 150)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.Code
+    label.TextSize = 9
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ClipsDescendants = true
+    
+    return row, label
+end
+
+-- ============================================================================
+-- REMOTE SPY SYSTEM
+-- ============================================================================
+
+function Modules.Overseer:_initRemoteSpy()
+    if self.State.IsSpying then return end
+    self.State.IsSpying = true
+    
+    local RemoteEvent = game:GetService("ReplicatedStorage"):FindFirstChild("RemoteEvent") or Instance.new("RemoteEvent")
+    
+    -- Hook RemoteEvent.FireServer
+    if RemoteEvent then
+        local originalFire = RemoteEvent.FireServer
+        
+        pcall(function()
+            if setreadonly then setreadonly(RemoteEvent, false) end
+            
+            RemoteEvent.FireServer = function(self, ...)
+                local args = {...}
+                local callInfo = {
+                    Type = "FireServer",
+                    Remote = self.Name or "Unknown",
+                    Args = args,
+                    Time = tick(),
+                    Success = true
+                }
+                
+                table.insert(Modules.Overseer.State.SpyCallLog, callInfo)
+                if #Modules.Overseer.State.SpyCallLog > Modules.Overseer.RemoteSpy.MaxLogSize then
+                    table.remove(Modules.Overseer.State.SpyCallLog, 1)
+                end
+                
+                return originalFire(self, ...)
+            end
+            
+            if setreadonly then setreadonly(RemoteEvent, true) end
+        end)
+    end
+    
+    -- Hook all RemoteEvents in game
+    local function hookRemotes(parent)
+        for _, child in ipairs(parent:GetDescendants()) do
+            if child:IsA("RemoteEvent") then
+                pcall(function()
+                    local original = child.FireServer
+                    if setreadonly then setreadonly(child, false) end
+                    
+                    child.FireServer = function(self, ...)
+                        local args = {...}
+                        table.insert(Modules.Overseer.State.SpyCallLog, {
+                            Type = "FireServer",
+                            Remote = self.Name,
+                            Parent = self.Parent.Name,
+                            Args = args,
+                            Time = tick()
+                        })
+                        
+                        if #Modules.Overseer.State.SpyCallLog > Modules.Overseer.RemoteSpy.MaxLogSize then
+                            table.remove(Modules.Overseer.State.SpyCallLog, 1)
+                        end
+                        
+                        return original(self, ...)
+                    end
+                    
+                    if setreadonly then setreadonly(child, true) end
+                end)
+            elseif child:IsA("RemoteFunction") then
+                pcall(function()
+                    local original = child.InvokeServer
+                    if setreadonly then setreadonly(child, false) end
+                    
+                    child.InvokeServer = function(self, ...)
+                        local args = {...}
+                        table.insert(Modules.Overseer.State.SpyCallLog, {
+                            Type = "InvokeServer",
+                            Remote = self.Name,
+                            Parent = self.Parent.Name,
+                            Args = args,
+                            Time = tick()
+                        })
+                        
+                        if #Modules.Overseer.State.SpyCallLog > Modules.Overseer.RemoteSpy.MaxLogSize then
+                            table.remove(Modules.Overseer.State.SpyCallLog, 1)
+                        end
+                        
+                        return original(self, ...)
+                    end
+                    
+                    if setreadonly then setreadonly(child, true) end
+                end)
+            end
+        end
+    end
+    
+    hookRemotes(ReplicatedStorage)
+    hookRemotes(game)
+end
+
+function Modules.Overseer:_showRemoteSpy()
+    local ui = self.State.UI
+    ui.Grid.Visible = true
+    ui.CodeFrame.Visible = false
+    ui.Title.Text = "REMOTE SPY - " .. #self.State.SpyCallLog .. " CALLS"
+    
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+    
+    -- Start Spy button
+    local spyStatusLabel = Instance.new("TextLabel", ui.Grid)
+    spyStatusLabel.Size = UDim2.new(1, -10, 0, 30)
+    spyStatusLabel.BackgroundColor3 = self.State.IsSpying and Color3.fromRGB(20, 40, 20) or Color3.fromRGB(40, 20, 20)
+    spyStatusLabel.Text = "SPY STATUS: " .. (self.State.IsSpying and "ACTIVE" or "INACTIVE")
+    spyStatusLabel.TextColor3 = self.State.IsSpying and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    spyStatusLabel.Font = Enum.Font.Code
+    spyStatusLabel.TextSize = 10
+    self:_applyStyle(spyStatusLabel, 2)
+    
+    if not self.State.IsSpying then
+        local startBtn = Instance.new("TextButton", ui.Grid)
+        startBtn.Size = UDim2.new(0.9, 0, 0, 35)
+        startBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
+        startBtn.Text = "START SPYING ON ALL REMOTES"
+        startBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        startBtn.Font = Enum.Font.Code
+        startBtn.TextSize = 10
+        self:_applyStyle(startBtn, 2)
+        
+        startBtn.MouseButton1Click:Connect(function()
+            self:_initRemoteSpy()
+            self:_showRemoteSpy()
+        end)
+    end
+    
+    -- Call log
+    if #self.State.SpyCallLog > 0 then
+        local logLabel = Instance.new("TextLabel", ui.Grid)
+        logLabel.Size = UDim2.new(1, 0, 0, 20)
+        logLabel.Text = " CALL HISTORY (Most Recent First)"
+        logLabel.TextColor3 = Color3.fromRGB(200, 200, 100)
+        logLabel.BackgroundTransparency = 1
+        logLabel.Font = Enum.Font.Code
+        logLabel.TextSize = 9
+        
+        -- Show last 30 calls in reverse order
+        for i = math.min(30, #self.State.SpyCallLog), 1, -1 do
+            local call = self.State.SpyCallLog[i]
+            local row, label = self:_createRow(ui.Grid, "", UDim2.new(0.7, 0, 1, 0))
+            
+            local callText = "[" .. call.Type .. "] " .. call.Remote .. " | Parent: " .. call.Parent
+            label.Text = callText
+            label.TextColor3 = (call.Type == "FireServer" and Color3.fromRGB(100, 150, 255) or Color3.fromRGB(150, 100, 255))
+            
+            local argsBtn = Instance.new("TextButton", row)
+            argsBtn.Size = UDim2.new(0, 60, 0, 24)
+            argsBtn.Position = UDim2.fromScale(0.72, 0.15)
+            argsBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+            argsBtn.Text = "ARGS (" .. #call.Args .. ")"
+            argsBtn.TextColor3 = Color3.fromRGB(200, 200, 255)
+            argsBtn.Font = Enum.Font.Code
+            argsBtn.TextSize = 7
+            self:_applyStyle(argsBtn, 2)
+            
+            argsBtn.MouseButton1Click:Connect(function()
+                self:_showRemoteArgs(call)
+            end)
+        end
+    end
+end
+
+function Modules.Overseer:_showRemoteArgs(callInfo)
+    local ui = self.State.UI
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.Title.Text = "REMOTE ARGS: " .. callInfo.Remote
+    
+    local argText = "[" .. callInfo.Type .. "] " .. callInfo.Remote .. "\n\n"
+    
+    for i, arg in ipairs(callInfo.Args) do
+        local argType = type(arg)
+        if argType == "table" then
+            argText = argText .. "Arg[" .. i .. "]: TABLE\n"
+            for k, v in pairs(arg) do
+                argText = argText .. "  [" .. tostring(k) .. "] = " .. tostring(v) .. "\n"
+            end
+        else
+            argText = argText .. "Arg[" .. i .. "]: " .. argType:upper() .. " = " .. tostring(arg) .. "\n"
+        end
+    end
+    
+    ui.CodeBox.Text = argText
+    ui.CodeBox.TextEditable = false
+end
+
+-- ============================================================================
 -- CLONED FUNCTIONS FOR SAFETY
 -- ============================================================================
 
@@ -10416,7 +10684,7 @@ local c_getmt = clonefunction(getrawmetatable)
 -- VALUE HOOKING SYSTEM
 -- ============================================================================
 
-function Modules.Overseer:_hookValue(tbl: table, key: any, value: any, valueType: string)
+function Modules.Overseer:_hookValue(tbl, key, value, valueType)
     local hookKey = tostring(tbl) .. ":" .. tostring(key)
     
     if self.State.ValueHooks[hookKey] then
@@ -10462,12 +10730,12 @@ function Modules.Overseer:_hookValue(tbl: table, key: any, value: any, valueType
     end
 end
 
-function Modules.Overseer:_unhookValue(tbl: table, key: any)
+function Modules.Overseer:_unhookValue(tbl, key)
     local hookKey = tostring(tbl) .. ":" .. tostring(key)
     self.State.ValueHooks[hookKey] = nil
 end
 
-function Modules.Overseer:_hookProperty(instance: Instance, property: string, value: any)
+function Modules.Overseer:_hookProperty(instance, property, value)
     if not instance:IsA("Instance") then return end
     
     local propKey = tostring(instance) .. ":" .. property
@@ -10497,7 +10765,7 @@ function Modules.Overseer:_hookProperty(instance: Instance, property: string, va
     end
 end
 
-function Modules.Overseer:_unhookProperty(instance: Instance, property: string)
+function Modules.Overseer:_unhookProperty(instance, property)
     local propKey = tostring(instance) .. ":" .. property
     if self.State.HookedConnections[propKey] then
         self.State.HookedConnections[propKey]:Disconnect()
@@ -10518,7 +10786,7 @@ function Modules.Overseer:_getPatchStatus()
     return active, valueHooks, propHooks
 end
 
-function Modules.Overseer:_filterTableByType(tbl: table, typeFilter: string)
+function Modules.Overseer:_filterTableByType(tbl, typeFilter)
     local results = {}
     
     for k, v in pairs(tbl) do
@@ -10531,7 +10799,7 @@ function Modules.Overseer:_filterTableByType(tbl: table, typeFilter: string)
     return results
 end
 
-function Modules.Overseer:_searchInTable(tbl: table, searchTerm: string)
+function Modules.Overseer:_searchInTable(tbl, searchTerm)
     local results = {}
     searchTerm = searchTerm:lower()
     
@@ -10547,7 +10815,7 @@ function Modules.Overseer:_searchInTable(tbl: table, searchTerm: string)
     return results
 end
 
-function Modules.Overseer:_getAllValuesOfType(typeFilter: string, searchDepth: number)
+function Modules.Overseer:_getAllValuesOfType(typeFilter, searchDepth)
     searchDepth = searchDepth or 2
     local results = {}
     local scanned = {}
@@ -10581,7 +10849,7 @@ end
 -- MODULE POISONER FUNCTIONS
 -- ============================================================================
 
-function Modules.Overseer:_applyPatch(tbl: table, key: any, val: any, isFunc: boolean)
+function Modules.Overseer:_applyPatch(tbl, key, val, isFunc)
     if not self.State.ActivePatches[tbl] then
         self.State.ActivePatches[tbl] = {}
     end
@@ -10603,7 +10871,7 @@ function Modules.Overseer:_applyPatch(tbl: table, key: any, val: any, isFunc: bo
     end)
 end
 
-function Modules.Overseer:_getUpvalues(func: (...any) -> ...any, depth: number, maxDepth: number)
+function Modules.Overseer:_getUpvalues(func, depth, maxDepth)
     depth = depth or 0
     maxDepth = maxDepth or 5
     if depth > maxDepth then return {} end
@@ -10627,7 +10895,7 @@ function Modules.Overseer:_getUpvalues(func: (...any) -> ...any, depth: number, 
     return upvalues
 end
 
-function Modules.Overseer:_patchUpvalue(func: (...any) -> ...any, uvIndex: number, newValue: any)
+function Modules.Overseer:_patchUpvalue(func, uvIndex, newValue)
     if not debug.getupvalues or not debug.setupvalue then return false end
     
     local success = pcall(function()
@@ -10639,7 +10907,7 @@ function Modules.Overseer:_patchUpvalue(func: (...any) -> ...any, uvIndex: numbe
     return success
 end
 
-function Modules.Overseer:_scanMetatable(tbl: table)
+function Modules.Overseer:_scanMetatable(tbl)
     if not getrawmetatable then return nil end
     
     local mt = c_getmt(tbl)
@@ -10667,7 +10935,7 @@ function Modules.Overseer:_scanMetatable(tbl: table)
     }
 end
 
-function Modules.Overseer:_createUpvalueRow(uvIndex: number, uvData: any, parentFunc: ((...any) -> ...any)?, ui: any)
+function Modules.Overseer:_createUpvalueRow(uvIndex, uvData, parentFunc, ui)
     local row = Instance.new("Frame", ui.Grid)
     row.Size = UDim2.new(1, -10, 0, 35)
     row.BackgroundTransparency = 1
@@ -10745,7 +11013,7 @@ function Modules.Overseer:_createUpvalueRow(uvIndex: number, uvData: any, parent
     end
 end
 
-function Modules.Overseer:_showUpvaluesUI(func: (...any) -> ...any, funcName: string)
+function Modules.Overseer:_showUpvaluesUI(func, funcName)
     local ui = self.State.UI
     
     self.State.ViewingCode = true
@@ -10797,7 +11065,7 @@ function Modules.Overseer:_showUpvaluesUI(func: (...any) -> ...any, funcName: st
     end)
 end
 
-function Modules.Overseer:_showSource(target: any)
+function Modules.Overseer:_showSource(target)
     local decompiler = (decompile or decompile_script or function() return "-- [ERROR] Decompiler not supported." end)
     local ui = self.State.UI
 
@@ -10814,7 +11082,7 @@ function Modules.Overseer:_showSource(target: any)
     end)
 end
 
-function Modules.Overseer:_showEditUI(target: any, targetName: string)
+function Modules.Overseer:_showEditUI(target, targetName)
     local decompiler = (decompile or decompile_script or function() return "-- [ERROR] Decompiler not supported." end)
     local ui = self.State.UI
     
@@ -10837,7 +11105,7 @@ function Modules.Overseer:_showEditUI(target: any, targetName: string)
     end)
 end
 
-function Modules.Overseer:_createRow(k: any, v: any, src: table)
+function Modules.Overseer:_createTableRow(k, v, src)
     local ui = self.State.UI
     local row = Instance.new("Frame", ui.Grid)
     row.Size = UDim2.new(1, -10, 0, 35)
@@ -10979,7 +11247,7 @@ function Modules.Overseer:_createRow(k: any, v: any, src: table)
     end
 end
 
-function Modules.Overseer:PopulateGrid(targetTable: table, name: string)
+function Modules.Overseer:PopulateGrid(targetTable, name)
     local ui = self.State.UI
     self.State.CurrentTable = targetTable
     self.State.CurrentTypeFilter = nil
@@ -11054,7 +11322,7 @@ function Modules.Overseer:PopulateGrid(targetTable: table, name: string)
     self:_populateGridRows(targetTable)
 end
 
-function Modules.Overseer:_populateGridRows(targetTable: table)
+function Modules.Overseer:_populateGridRows(targetTable)
     local ui = self.State.UI
     
     -- Remove old rows (keep filter frame)
@@ -11078,11 +11346,11 @@ function Modules.Overseer:_populateGridRows(targetTable: table)
 
     if type(rowsToDisplay) == "table" and #rowsToDisplay > 0 then
         for _, item in ipairs(rowsToDisplay) do
-            self:_createRow(item.key, item.value, targetTable)
+            self:_createTableRow(item.key, item.value, targetTable)
         end
     else
         for k, v in pairs(rowsToDisplay) do
-            self:_createRow(k, v, targetTable)
+            self:_createTableRow(k, v, targetTable)
         end
     end
 
@@ -11099,7 +11367,7 @@ function Modules.Overseer:_populateGridRows(targetTable: table)
             ghostLabel.Font = Enum.Font.Code
             ghostLabel.TextSize = 9
             for k, v in pairs(mt.__index) do
-                self:_createRow(k, v, mt.__index)
+                self:_createTableRow(k, v, mt.__index)
             end
         end
         
@@ -11166,14 +11434,14 @@ function Modules.Overseer:_populateGridRows(targetTable: table)
     end
 end
 
-function Modules.Overseer:_applyTypeFilter(targetTable: table, typeFilter: string, name: string)
+function Modules.Overseer:_applyTypeFilter(targetTable, typeFilter, name)
     self.State.CurrentTypeFilter = typeFilter
     local ui = self.State.UI
     ui.Title.Text = "FILTERED BY: " .. typeFilter:upper() .. " in " .. (name or "Main")
     self:_populateGridRows(targetTable)
 end
 
-function Modules.Overseer:AddModuleToList(mod: ModuleScript)
+function Modules.Overseer:AddModuleToList(mod)
     local n = mod.Name:lower()
     if n:find("chat") or n:find("roblox") then return end
 
@@ -11238,7 +11506,7 @@ end
 -- EXPLORER FUNCTIONS
 -- ============================================================================
 
-function Modules.Overseer:_createInstanceRow(inst: Instance, parent: Instance?)
+function Modules.Overseer:_createInstanceRow(inst, parent)
     local ui = self.State.UI
     local row = Instance.new("Frame", ui.Grid)
     row.Size = UDim2.new(1, -10, 0, 35)
@@ -11312,7 +11580,7 @@ function Modules.Overseer:_createInstanceRow(inst: Instance, parent: Instance?)
     end
 end
 
-function Modules.Overseer:PopulateExplorer(instance: Instance)
+function Modules.Overseer:PopulateExplorer(instance)
     local ui = self.State.UI
     self.State.ExplorerInstance = instance
     
@@ -11383,7 +11651,7 @@ function Modules.Overseer:_showGlobalTypeSearch()
     end
 end
 
-function Modules.Overseer:_displayGlobalSearchResults(typeFilter: string)
+function Modules.Overseer:_displayGlobalSearchResults(typeFilter)
     local ui = self.State.UI
     
     for _, v in ipairs(ui.Grid:GetChildren()) do
@@ -11451,7 +11719,7 @@ function Modules.Overseer:_displayGlobalSearchResults(typeFilter: string)
     end
 end
 
-function Modules.Overseer:_showInstanceProperties(inst: Instance)
+function Modules.Overseer:_showInstanceProperties(inst)
     local ui = self.State.UI
     self.State.ViewingCode = true
     ui.Grid.Visible = false
@@ -11586,31 +11854,25 @@ function Modules.Overseer:LoadDex()
     end)
 end
 
-function Modules.Overseer:_generatePoisonedVersion(originalCode: string)
-    local poisonedCode = [[
-
-local ORIGINAL_SCRIPT = [[
-]] .. originalCode .. [[
-]]
-
--- Execute original script
-local success, result = pcall(function()
-    local func, err = loadstring(ORIGINAL_SCRIPT, "PoisonedScript")
-    if func then
-        return func()
-    else
-        error("Failed to compile: " .. tostring(err))
-    end
-end)
-
-if not success then
-    warn("Poisoned Script Error: " .. tostring(result))
-end
+function Modules.Overseer:_generatePoisonedVersion(originalCode)
+    local poisonedCode = "\nlocal ORIGINAL_SCRIPT = [[\n" .. originalCode .. "\n]]\n\n" ..
+    "-- Execute original script\n" ..
+    "local success, result = pcall(function()\n" ..
+    "    local func, err = loadstring(ORIGINAL_SCRIPT, 'PoisonedScript')\n" ..
+    "    if func then\n" ..
+    "        return func()\n" ..
+    "    else\n" ..
+    "        error('Failed to compile: ' .. tostring(err))\n" ..
+    "    end\n" ..
+    "end)\n\n" ..
+    "if not success then\n" ..
+    "    warn('Poisoned Script Error: ' .. tostring(result))\n" ..
+    "end\n"
 
     return poisonedCode
 end
 
-function Modules.Overseer:_generateAdvancedPoisonVersion(originalCode: string, options: table)
+function Modules.Overseer:_generateAdvancedPoisonVersion(originalCode, options)
     options = options or {}
     local poisonedCode = "-- ============================================================================\n"
     poisonedCode = poisonedCode .. "-- ADVANCED POISONED VERSION\n"
@@ -11738,7 +12000,7 @@ function Modules.Overseer:_showPoisonOptions()
     end
 end
 
-function Modules.Overseer:_showPoisonedCode(poisonedCode: string, optionName: string)
+function Modules.Overseer:_showPoisonedCode(poisonedCode, optionName)
     local ui = self.State.UI
     
     ui.Grid.Visible = false
@@ -11932,16 +12194,23 @@ function Modules.Overseer:CreateUI()
     screenGui.ResetOnSpawn = false
 
     local main = Instance.new("Frame", screenGui)
-    main.Size = UDim2.fromOffset(850, 550)
-    main.Position = UDim2.new(0.5, -425, 0.5, -275)
+    main.Size = UDim2.fromOffset(850, 570)
+    main.Position = UDim2.new(0.5, -425, 0.5, -285)
     main.BackgroundColor3 = self.Config.BG_COLOR
     main.BackgroundTransparency = 0.4
     main.BorderSizePixel = 0
     main.ClipsDescendants = true
     self:_applyStyle(main, 6)
 
+    -- Toolbar frame (above header)
+    local toolbar = Instance.new("Frame", main)
+    toolbar.Size = UDim2.new(1, 0, 0, 30)
+    toolbar.Position = UDim2.fromOffset(0, 0)
+    toolbar.BackgroundColor3 = self.Config.SECONDARY_COLOR
+
     local header = Instance.new("Frame", main)
     header.Size = UDim2.new(1, 0, 0, 35)
+    header.Position = UDim2.fromOffset(0, 30)
     header.BackgroundColor3 = self.Config.HEADER_COLOR
 
     local title = Instance.new("TextLabel", header)
@@ -11984,9 +12253,19 @@ function Modules.Overseer:CreateUI()
     searchBtn.TextSize = 9
     self:_applyStyle(searchBtn, 2)
 
+    local spyBtn = Instance.new("TextButton", header)
+    spyBtn.Size = UDim2.new(0, 70, 0, 24)
+    spyBtn.Position = UDim2.new(1, -415, 0.5, -11)
+    spyBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 100)
+    spyBtn.Text = "SPY"
+    spyBtn.TextColor3 = Color3.fromRGB(255, 100, 255)
+    spyBtn.Font = Enum.Font.Code
+    spyBtn.TextSize = 9
+    self:_applyStyle(spyBtn, 2)
+
     local backBtn = Instance.new("TextButton", header)
     backBtn.Size = UDim2.new(0, 60, 0, 24)
-    backBtn.Position = UDim2.new(1, -415, 0.5, -11)
+    backBtn.Position = UDim2.new(1, -490, 0.5, -11)
     backBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     backBtn.Text = "< BACK"
     backBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -12013,8 +12292,8 @@ function Modules.Overseer:CreateUI()
     closeBtn.Font = Enum.Font.Code
 
     local content = Instance.new("Frame", main)
-    content.Size = UDim2.new(1, 0, 1, -35)
-    content.Position = UDim2.fromOffset(0, 35)
+    content.Size = UDim2.new(1, 0, 1, -65)
+    content.Position = UDim2.fromOffset(0, 65)
     content.BackgroundTransparency = 1
 
     local searchInput = Instance.new("TextBox", content)
@@ -12183,16 +12462,15 @@ function Modules.Overseer:CreateUI()
         end
     end
 
-    local rescanBtn = Instance.new("TextButton")
-    rescanBtn.Size = UDim2.new(0, 70, 0, 22)
-    rescanBtn.Position = UDim2.new(1, -351, 0.5, -10)
+    local rescanBtn = Instance.new("TextButton", toolbar)
+    rescanBtn.Size = UDim2.new(0, 80, 0, 22)
+    rescanBtn.Position = UDim2.new(0, 10, 0.5, -11)
     rescanBtn.BackgroundColor3 = Color3.fromRGB(30, 50, 40)
     rescanBtn.Text = "RESCAN"
     rescanBtn.TextColor3 = Color3.fromRGB(0, 255, 170)
     rescanBtn.Font = Enum.Font.Code
     rescanBtn.TextSize = 10
     self:_applyStyle(rescanBtn, 3)
-    rescanBtn.Parent = header
 
     modeBtn.MouseButton1Click:Connect(function()
         if self.State.CurrentMode == "modules" then
@@ -12215,6 +12493,10 @@ function Modules.Overseer:CreateUI()
 
     searchBtn.MouseButton1Click:Connect(function()
         self:_showGlobalTypeSearch()
+    end)
+
+    spyBtn.MouseButton1Click:Connect(function()
+        self:_showRemoteSpy()
     end)
 
     rescanBtn.MouseButton1Click:Connect(RescanModules)
@@ -12404,6 +12686,7 @@ function Modules.Overseer:Initialize()
         module:CreateUI()
     end)
 end
+
 
 
 
