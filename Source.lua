@@ -10329,7 +10329,2090 @@ function Modules.ForceRespawn:Initialize()
     end)
 end
 
-Modules.ForensicExplorer = {
+Modules.Overseer = {
+    State = {
+        IsEnabled = false,
+        ActivePatches = {},
+        SelectedModule = nil,
+        CurrentTable = nil,
+        PathStack = {},
+        Minimized = false,
+        ViewingCode = false,
+        CurrentMode = "modules", -- "modules" or "explorer"
+        ExplorerPath = {},
+        ExplorerInstance = nil,
+        IsLoadingDex = false,
+        UI = nil,
+        SidebarButtons = {},
+        ValueHooks = {}, -- {table, key} -> {value, enabled, type}
+        HookedConnections = {}, -- Store connections for cleanup
+        PropertyHooks = {}, -- {instance, property} -> {value, enabled}
+        RemoteSpyData = {},
+        CallFrequency = {},
+        CurrentTypeFilter = nil, -- Current type being filtered
+        FilteredResults = {}
+    },
+    Config = {
+        ACCENT_COLOR = Color3.fromRGB(0, 255, 170),
+        BG_COLOR = Color3.fromRGB(10, 10, 12),
+        HEADER_COLOR = Color3.fromRGB(15, 15, 18),
+        SECONDARY_COLOR = Color3.fromRGB(18, 18, 22),
+        HOOK_COLOR = Color3.fromRGB(0, 200, 150),
+        DANGER_COLOR = Color3.fromRGB(200, 50, 50)
+    }
+}
+
+-- ============================================================================
+-- UTILITY FUNCTIONS
+-- ============================================================================
+
+function Modules.Overseer:_applyStyle(obj: GuiObject, radius: number)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 4)
+    corner.Parent = obj
+end
+
+function Modules.Overseer:_setClipboard(txt: string)
+    if setclipboard then setclipboard(txt) end
+end
+
+function Modules.Overseer:_generateObfuscatedName()
+    local charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    local length = math.random(10, 20)
+    local result = ""
+    for i = 1, length do
+        local rand = math.random(1, #charset)
+        result = result .. charset:sub(rand, rand)
+    end
+    return result
+end
+
+function Modules.Overseer:_applyEnvironment(func, scriptInstance)
+    local fenv = {}
+    local realFenv = {script = scriptInstance}
+    local fenvMt = {}
+
+    fenvMt.__index = function(_, key)
+        return realFenv[key] or getfenv()[key]
+    end
+
+    fenvMt.__newindex = function(_, key, value)
+        if realFenv[key] == nil then
+            getfenv()[key] = value
+        else
+            realFenv[key] = value
+        end
+    end
+
+    setmetatable(fenv, fenvMt)
+    setfenv(func, fenv)
+    return func
+end
+
+-- ============================================================================
+-- CLONED FUNCTIONS FOR SAFETY
+-- ============================================================================
+
+local c_check = clonefunction(checkcaller)
+local c_rawset = clonefunction(rawset)
+local c_getmt = clonefunction(getrawmetatable)
+
+-- ============================================================================
+-- VALUE HOOKING SYSTEM
+-- ============================================================================
+
+function Modules.Overseer:_hookValue(tbl: table, key: any, value: any, valueType: string)
+    local hookKey = tostring(tbl) .. ":" .. tostring(key)
+    
+    if self.State.ValueHooks[hookKey] then
+        self.State.ValueHooks[hookKey].enabled = true
+        return
+    end
+
+    self.State.ValueHooks[hookKey] = {
+        table = tbl,
+        key = key,
+        value = value,
+        type = valueType,
+        enabled = true,
+        originalMt = getrawmetatable and getrawmetatable(tbl)
+    }
+
+    pcall(function()
+        if setreadonly then setreadonly(tbl, false) elseif make_writeable then make_writeable(tbl) end
+        rawset(tbl, key, value)
+        if setreadonly then setreadonly(tbl, true) end
+    end)
+
+    if getrawmetatable then
+        local mt = getrawmetatable(tbl)
+        if mt then
+            pcall(function()
+                if setreadonly then setreadonly(mt, false) elseif make_writeable then make_writeable(mt) end
+                
+                local originalNewindex = rawget(mt, "__newindex")
+                rawset(mt, "__newindex", function(t, k, v)
+                    if k == key then
+                        rawset(tbl, key, value)
+                    elseif type(originalNewindex) == "function" then
+                        originalNewindex(t, k, v)
+                    else
+                        rawset(t, k, v)
+                    end
+                end)
+                
+                if setreadonly then setreadonly(mt, true) end
+            end)
+        end
+    end
+end
+
+function Modules.Overseer:_unhookValue(tbl: table, key: any)
+    local hookKey = tostring(tbl) .. ":" .. tostring(key)
+    self.State.ValueHooks[hookKey] = nil
+end
+
+function Modules.Overseer:_hookProperty(instance: Instance, property: string, value: any)
+    if not instance:IsA("Instance") then return end
+    
+    local propKey = tostring(instance) .. ":" .. property
+    
+    self.State.PropertyHooks[propKey] = {
+        instance = instance,
+        property = property,
+        value = value,
+        enabled = true
+    }
+
+    pcall(function()
+        instance[property] = value
+    end)
+
+    -- Use Heartbeat to constantly reapply
+    if not self.State.HookedConnections[propKey] then
+        self.State.HookedConnections[propKey] = RunService.Heartbeat:Connect(function()
+            if self.State.PropertyHooks[propKey] and self.State.PropertyHooks[propKey].enabled then
+                pcall(function()
+                    if instance and instance.Parent then
+                        instance[property] = value
+                    end
+                end)
+            end
+        end)
+    end
+end
+
+function Modules.Overseer:_unhookProperty(instance: Instance, property: string)
+    local propKey = tostring(instance) .. ":" .. property
+    if self.State.HookedConnections[propKey] then
+        self.State.HookedConnections[propKey]:Disconnect()
+        self.State.HookedConnections[propKey] = nil
+    end
+    self.State.PropertyHooks[propKey] = nil
+end
+
+function Modules.Overseer:_getPatchStatus()
+    local active = 0
+    local valueHooks = 0
+    local propHooks = 0
+    
+    for _, _ in pairs(self.State.ActivePatches) do active = active + 1 end
+    for _, hook in pairs(self.State.ValueHooks) do if hook.enabled then valueHooks = valueHooks + 1 end end
+    for _, hook in pairs(self.State.PropertyHooks) do if hook.enabled then propHooks = propHooks + 1 end end
+    
+    return active, valueHooks, propHooks
+end
+
+function Modules.Overseer:_filterTableByType(tbl: table, typeFilter: string)
+    local results = {}
+    
+    for k, v in pairs(tbl) do
+        local vType = type(v)
+        if typeFilter == "all" or vType == typeFilter then
+            table.insert(results, {key = k, value = v, type = vType})
+        end
+    end
+    
+    return results
+end
+
+function Modules.Overseer:_searchInTable(tbl: table, searchTerm: string)
+    local results = {}
+    searchTerm = searchTerm:lower()
+    
+    for k, v in pairs(tbl) do
+        local keyStr = tostring(k):lower()
+        local valStr = tostring(v):lower()
+        
+        if keyStr:find(searchTerm) or valStr:find(searchTerm) then
+            table.insert(results, {key = k, value = v, type = type(v)})
+        end
+    end
+    
+    return results
+end
+
+function Modules.Overseer:_getAllValuesOfType(typeFilter: string, searchDepth: number)
+    searchDepth = searchDepth or 2
+    local results = {}
+    local scanned = {}
+    
+    local function scanTable(tbl, depth, path)
+        if scanned[tbl] or depth <= 0 then return end
+        scanned[tbl] = true
+        
+        for k, v in pairs(tbl) do
+            if type(v) == typeFilter then
+                table.insert(results, {
+                    path = path .. "." .. tostring(k),
+                    key = k,
+                    value = v,
+                    type = typeFilter,
+                    table = tbl
+                })
+            elseif type(v) == "table" and depth > 0 then
+                scanTable(v, depth - 1, path .. "." .. tostring(k))
+            end
+        end
+    end
+    
+    -- Scan from common roots
+    if _G then scanTable(_G, searchDepth, "_G") end
+    
+    return results
+end
+
+-- ============================================================================
+-- MODULE POISONER FUNCTIONS
+-- ============================================================================
+
+function Modules.Overseer:_applyPatch(tbl: table, key: any, val: any, isFunc: boolean)
+    if not self.State.ActivePatches[tbl] then
+        self.State.ActivePatches[tbl] = {}
+    end
+
+    self.State.ActivePatches[tbl][key] = {Value = val, Locked = true, IsFunction = isFunc}
+
+    pcall(function()
+        if setreadonly then setreadonly(tbl, false) elseif make_writeable then make_writeable(tbl) end
+        if isFunc then
+            if val == "TRUE" then
+                rawset(tbl, key, function() return true end)
+            elseif val == "FALSE" then
+                rawset(tbl, key, function() return false end)
+            end
+        else
+            rawset(tbl, key, val)
+        end
+        if setreadonly then setreadonly(tbl, true) end
+    end)
+end
+
+function Modules.Overseer:_getUpvalues(func: (...any) -> ...any, depth: number, maxDepth: number)
+    depth = depth or 0
+    maxDepth = maxDepth or 5
+    if depth > maxDepth then return {} end
+    
+    local upvalues = {}
+    local success, result = pcall(debug.getupvalues, func)
+    
+    if success and result then
+        for i, uv in ipairs(result) do
+            local uvType = type(uv)
+            upvalues[i] = {
+                Index = i,
+                Value = uv,
+                Type = uvType,
+                IsFunction = uvType == "function",
+                IsTable = uvType == "table",
+                ChildUpvalues = uvType == "function" and self:_getUpvalues(uv, depth + 1, maxDepth) or {}
+            }
+        end
+    end
+    return upvalues
+end
+
+function Modules.Overseer:_patchUpvalue(func: (...any) -> ...any, uvIndex: number, newValue: any)
+    if not debug.getupvalues or not debug.setupvalue then return false end
+    
+    local success = pcall(function()
+        if setreadonly then setreadonly(func, false) elseif make_writeable then make_writeable(func) end
+        debug.setupvalue(func, uvIndex, newValue)
+        if setreadonly then setreadonly(func, true) end
+    end)
+    
+    return success
+end
+
+function Modules.Overseer:_scanMetatable(tbl: table)
+    if not getrawmetatable then return nil end
+    
+    local mt = c_getmt(tbl)
+    if not mt then return nil end
+    
+    if setreadonly then setreadonly(mt, false) elseif make_writeable then make_writeable(mt) end
+    
+    local metamethods = {}
+    for k, v in pairs(mt) do
+        if type(v) == "function" then
+            metamethods[k] = {
+                Value = v,
+                Type = "function",
+                Upvalues = self:_getUpvalues(v),
+                OriginalUpvalues = self:_getUpvalues(v)
+            }
+        else
+            metamethods[k] = {Value = v, Type = type(v)}
+        end
+    end
+    
+    return {
+        Metatable = mt,
+        Methods = metamethods
+    }
+end
+
+function Modules.Overseer:_createUpvalueRow(uvIndex: number, uvData: any, parentFunc: ((...any) -> ...any)?, ui: any)
+    local row = Instance.new("Frame", ui.Grid)
+    row.Size = UDim2.new(1, -10, 0, 35)
+    row.BackgroundTransparency = 1
+    
+    local label = Instance.new("TextLabel", row)
+    label.Size = UDim2.new(0.4, 0, 1, 0)
+    label.Text = "  [" .. uvIndex .. "] " .. uvData.Type
+    label.TextColor3 = Color3.fromRGB(100, 200, 255)
+    label.Font = Enum.Font.Code
+    label.TextSize = 9
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+    label.ClipsDescendants = true
+    
+    if uvData.IsTable then
+        local diveBtn = Instance.new("TextButton", row)
+        diveBtn.Size = UDim2.new(0, 100, 0, 24)
+        diveBtn.Position = UDim2.fromScale(0.42, 0.15)
+        diveBtn.BackgroundColor3 = Color3.fromRGB(30, 60, 80)
+        diveBtn.Text = "DIVE UV >"
+        diveBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+        diveBtn.Font = Enum.Font.Code
+        diveBtn.TextSize = 8
+        self:_applyStyle(diveBtn, 2)
+        
+        diveBtn.MouseButton1Click:Connect(function()
+            table.insert(self.State.PathStack, self.State.CurrentTable)
+            self.State.CurrentTable = uvData.Value
+            self:PopulateGrid(uvData.Value, "[UV:" .. uvIndex .. "]")
+        end)
+    elseif uvData.IsFunction then
+        local uvBtn = Instance.new("TextButton", row)
+        uvBtn.Size = UDim2.new(0, 80, 0, 24)
+        uvBtn.Position = UDim2.fromScale(0.42, 0.15)
+        uvBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+        uvBtn.Text = "UVALS"
+        uvBtn.TextColor3 = Color3.fromRGB(150, 100, 255)
+        uvBtn.Font = Enum.Font.Code
+        uvBtn.TextSize = 8
+        self:_applyStyle(uvBtn, 2)
+        
+        uvBtn.MouseButton1Click:Connect(function()
+            self:_showUpvaluesUI(uvData.Value, "[UV:" .. uvIndex .. "] Function")
+        end)
+        
+        local viewBtn = Instance.new("TextButton", row)
+        viewBtn.Size = UDim2.new(0, 60, 0, 24)
+        viewBtn.Position = UDim2.fromScale(0.55, 0.15)
+        viewBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
+        viewBtn.Text = "VIEW"
+        viewBtn.TextColor3 = Color3.fromRGB(255, 100, 255)
+        viewBtn.Font = Enum.Font.Code
+        viewBtn.TextSize = 8
+        self:_applyStyle(viewBtn, 2)
+        
+        viewBtn.MouseButton1Click:Connect(function() self:_showSource(uvData.Value) end)
+    else
+        local box = Instance.new("TextBox", row)
+        box.Size = UDim2.new(0, 100, 0, 24)
+        box.Position = UDim2.fromScale(0.42, 0.15)
+        box.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+        box.Text = tostring(uvData.Value)
+        box.TextColor3 = Color3.fromRGB(100, 200, 255)
+        box.Font = Enum.Font.Code
+        box.TextSize = 9
+        self:_applyStyle(box, 2)
+        
+        box.FocusLost:Connect(function(enter)
+            if enter and parentFunc then
+                local newVal = tonumber(box.Text) or box.Text
+                self:_patchUpvalue(parentFunc, uvIndex, newVal)
+                box.Text = tostring(newVal)
+            end
+        end)
+    end
+end
+
+function Modules.Overseer:_showUpvaluesUI(func: (...any) -> ...any, funcName: string)
+    local ui = self.State.UI
+    
+    self.State.ViewingCode = true
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.Title.Text = "UPVALUES: " .. funcName
+    ui.CodeBox.Text = "-- Scanning upvalues..."
+    
+    task.spawn(function()
+        for _, v in ipairs(ui.Grid:GetChildren()) do
+            if not v:IsA("UIListLayout") then v:Destroy() end
+        end
+        
+        ui.CodeFrame.Visible = false
+        ui.Grid.Visible = true
+        
+        local upvalues = self:_getUpvalues(func)
+        if #upvalues == 0 then
+            local noUvLabel = Instance.new("TextLabel", ui.Grid)
+            noUvLabel.Size = UDim2.new(1, 0, 0, 20)
+            noUvLabel.Text = "  -- NO UPVALUES FOUND -- "
+            noUvLabel.TextColor3 = Color3.fromRGB(200, 100, 100)
+            noUvLabel.BackgroundTransparency = 1
+            noUvLabel.Font = Enum.Font.Code
+            noUvLabel.TextSize = 9
+        else
+            for _, uvData in ipairs(upvalues) do
+                self:_createUpvalueRow(uvData.Index, uvData, func, ui)
+                
+                if uvData.IsFunction and #uvData.ChildUpvalues > 0 then
+                    for _, childUv in ipairs(uvData.ChildUpvalues) do
+                        local childRow = Instance.new("Frame", ui.Grid)
+                        childRow.Size = UDim2.new(1, -30, 0, 35)
+                        childRow.BackgroundTransparency = 1
+                        childRow.Position = UDim2.new(0, 20, 0, 0)
+                        
+                        local childLabel = Instance.new("TextLabel", childRow)
+                        childLabel.Size = UDim2.new(1, 0, 1, 0)
+                        childLabel.Text = "    └─[" .. childUv.Index .. "] " .. childUv.Type
+                        childLabel.TextColor3 = Color3.fromRGB(150, 150, 100)
+                        childLabel.Font = Enum.Font.Code
+                        childLabel.TextSize = 8
+                        childLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        childLabel.BackgroundTransparency = 1
+                    end
+                end
+            end
+        end
+    end)
+end
+
+function Modules.Overseer:_showSource(target: any)
+    local decompiler = (decompile or decompile_script or function() return "-- [ERROR] Decompiler not supported." end)
+    local ui = self.State.UI
+
+    self.State.ViewingCode = true
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.CodeFrame.Name = "ViewMode"
+    ui.Title.Text = "DECOMPILING: " .. (target.Name or "Closure")
+    ui.CodeBox.Text = "-- Generating Source, please wait..."
+
+    task.spawn(function()
+        local success, src = pcall(decompiler, target)
+        ui.CodeBox.Text = success and src or "-- [FAILURE] Decompilation error."
+    end)
+end
+
+function Modules.Overseer:_showEditUI(target: any, targetName: string)
+    local decompiler = (decompile or decompile_script or function() return "-- [ERROR] Decompiler not supported." end)
+    local ui = self.State.UI
+    
+    self.State.ViewingCode = true
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.CodeFrame.Name = "EditMode"
+    ui.Title.Text = "EDIT: " .. targetName
+    ui.CodeBox.Text = "-- Loading source..."
+    ui.CodeBox.TextEditable = true
+    ui.CodeBox.ClearTextOnFocus = true
+    
+    task.spawn(function()
+        local success, src = pcall(decompiler, target)
+        if success then
+            ui.CodeBox.Text = src
+        else
+            ui.CodeBox.Text = "-- [ERROR] Failed to decompile source\n-- Attempting fallback..."
+        end
+    end)
+end
+
+function Modules.Overseer:_createRow(k: any, v: any, src: table)
+    local ui = self.State.UI
+    local row = Instance.new("Frame", ui.Grid)
+    row.Size = UDim2.new(1, -10, 0, 35)
+    row.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", row)
+    label.Size = UDim2.new(0.35, 0, 1, 0)
+    label.Text = " " .. tostring(k)
+    label.TextColor3 = Color3.fromRGB(150, 150, 150)
+    label.Font = Enum.Font.Code
+    label.TextSize = 9
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+    label.ClipsDescendants = true
+
+    if type(v) == "table" then
+        local diveBtn = Instance.new("TextButton", row)
+        diveBtn.Size = UDim2.new(0, 100, 0, 24)
+        diveBtn.Position = UDim2.fromScale(0.37, 0.15)
+        diveBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        diveBtn.Text = "DIVE >"
+        diveBtn.TextColor3 = self.Config.ACCENT_COLOR
+        diveBtn.Font = Enum.Font.Code
+        diveBtn.TextSize = 8
+        self:_applyStyle(diveBtn, 2)
+        
+        diveBtn.MouseButton1Click:Connect(function()
+            table.insert(self.State.PathStack, src)
+            self:PopulateGrid(v, tostring(k))
+        end)
+    elseif type(v) == "function" then
+        local spoofBtn = Instance.new("TextButton", row)
+        spoofBtn.Size = UDim2.new(0, 40, 0, 24)
+        spoofBtn.Position = UDim2.fromScale(0.37, 0.15)
+        spoofBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        spoofBtn.Text = "SPOOF"
+        spoofBtn.TextColor3 = Color3.new(1, 1, 1)
+        spoofBtn.Font = Enum.Font.Code
+        spoofBtn.TextSize = 7
+        self:_applyStyle(spoofBtn, 2)
+        
+        local uvBtn = Instance.new("TextButton", row)
+        uvBtn.Size = UDim2.new(0, 40, 0, 24)
+        uvBtn.Position = UDim2.fromScale(0.45, 0.15)
+        uvBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+        uvBtn.Text = "UVALS"
+        uvBtn.TextColor3 = Color3.fromRGB(150, 100, 255)
+        uvBtn.Font = Enum.Font.Code
+        uvBtn.TextSize = 7
+        self:_applyStyle(uvBtn, 2)
+        
+        uvBtn.MouseButton1Click:Connect(function() 
+            self:_showUpvaluesUI(v, tostring(k))
+        end)
+        
+        local viewBtn = Instance.new("TextButton", row)
+        viewBtn.Size = UDim2.new(0, 35, 0, 24)
+        viewBtn.Position = UDim2.fromScale(0.54, 0.15)
+        viewBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
+        viewBtn.Text = "V"
+        viewBtn.TextColor3 = Color3.fromRGB(255, 100, 255)
+        viewBtn.Font = Enum.Font.Code
+        viewBtn.TextSize = 7
+        self:_applyStyle(viewBtn, 2)
+        
+        viewBtn.MouseButton1Click:Connect(function() 
+            self.State.EditTarget = src
+            self:_showSource(v) 
+        end)
+        
+        local editBtn = Instance.new("TextButton", row)
+        editBtn.Size = UDim2.new(0, 35, 0, 24)
+        editBtn.Position = UDim2.fromScale(0.615, 0.15)
+        editBtn.BackgroundColor3 = Color3.fromRGB(100, 70, 50)
+        editBtn.Text = "E"
+        editBtn.TextColor3 = Color3.fromRGB(255, 180, 100)
+        editBtn.Font = Enum.Font.Code
+        editBtn.TextSize = 7
+        self:_applyStyle(editBtn, 2)
+        
+        editBtn.MouseButton1Click:Connect(function()
+            self.State.EditTarget = src
+            self:_showEditUI(v, tostring(k) .. "()")
+        end)
+
+        local modes = {"NORMAL", "TRUE", "FALSE"}
+        local cur = 1
+        spoofBtn.MouseButton1Click:Connect(function()
+            cur = (cur % 3) + 1
+            local mode = modes[cur]
+            spoofBtn.Text = "F" .. string.sub(mode, 1, 1)
+            spoofBtn.BackgroundColor3 = (mode == "TRUE" and Color3.fromRGB(0, 200, 100)) or (mode == "FALSE" and Color3.fromRGB(200, 50, 50)) or Color3.fromRGB(50, 50, 70)
+            if mode == "NORMAL" then
+                if self.State.ActivePatches[src] then self.State.ActivePatches[src][k] = nil end
+            else
+                self:_applyPatch(src, k, mode, true)
+            end
+        end)
+    else
+        local valueType = type(v)
+        local box = Instance.new("TextBox", row)
+        box.Size = UDim2.new(0, 90, 0, 24)
+        box.Position = UDim2.fromScale(0.37, 0.15)
+        box.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+        box.Text = tostring(v)
+        box.TextColor3 = self.Config.ACCENT_COLOR
+        box.Font = Enum.Font.Code
+        box.TextSize = 9
+        self:_applyStyle(box, 2)
+        
+        box.FocusLost:Connect(function(enter)
+            if enter then
+                self:_applyPatch(src, k, tonumber(box.Text) or box.Text, false)
+            end
+        end)
+
+        -- Hook button for numbers
+        if valueType == "number" then
+            local hookBtn = Instance.new("TextButton", row)
+            hookBtn.Size = UDim2.new(0, 45, 0, 24)
+            hookBtn.Position = UDim2.fromScale(0.545, 0.15)
+            hookBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
+            hookBtn.Text = "HOOK"
+            hookBtn.TextColor3 = self.Config.HOOK_COLOR
+            hookBtn.Font = Enum.Font.Code
+            hookBtn.TextSize = 7
+            self:_applyStyle(hookBtn, 2)
+            
+            hookBtn.MouseButton1Click:Connect(function()
+                local newVal = tonumber(box.Text) or v
+                self:_hookValue(src, k, newVal, valueType)
+                hookBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+                hookBtn.Text = "HOOKED"
+                task.wait(0.5)
+                hookBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
+                hookBtn.Text = "HOOK"
+            end)
+        end
+    end
+end
+
+function Modules.Overseer:PopulateGrid(targetTable: table, name: string)
+    local ui = self.State.UI
+    self.State.CurrentTable = targetTable
+    self.State.CurrentTypeFilter = nil
+    local active, valueHooks, propHooks = self:_getPatchStatus()
+    ui.Title.Text = "PATH: " .. (name or "Main") .. " [" .. active .. " patches | " .. valueHooks .. " value hooks]"
+
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    -- Add type filter buttons
+    local filterFrame = Instance.new("Frame", ui.Grid)
+    filterFrame.Size = UDim2.new(1, -10, 0, 40)
+    filterFrame.BackgroundTransparency = 0.8
+    filterFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    self:_applyStyle(filterFrame, 2)
+
+    local types = {"number", "string", "boolean", "function", "table"}
+    local typeButtons = {}
+
+    for i, typeStr in ipairs(types) do
+        local typeBtn = Instance.new("TextButton", filterFrame)
+        typeBtn.Size = UDim2.new(0, 80, 0, 25)
+        typeBtn.Position = UDim2.new(0, 10 + (i-1) * 90, 0.5, -12.5)
+        typeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        typeBtn.Text = typeStr:upper()
+        typeBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        typeBtn.Font = Enum.Font.Code
+        typeBtn.TextSize = 8
+        self:_applyStyle(typeBtn, 2)
+
+        typeBtn.MouseButton1Click:Connect(function()
+            self:_applyTypeFilter(targetTable, typeStr, name)
+            
+            for _, btn in ipairs(typeButtons) do
+                btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+            end
+            
+            typeBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
+            typeBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+        end)
+
+        table.insert(typeButtons, typeBtn)
+    end
+
+    local clearBtn = Instance.new("TextButton", filterFrame)
+    clearBtn.Size = UDim2.new(0, 60, 0, 25)
+    clearBtn.Position = UDim2.new(0, 10 + 5 * 90, 0.5, -12.5)
+    clearBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
+    clearBtn.Text = "ALL"
+    clearBtn.TextColor3 = Color3.new(1, 1, 1)
+    clearBtn.Font = Enum.Font.Code
+    clearBtn.TextSize = 8
+    self:_applyStyle(clearBtn, 2)
+
+    clearBtn.MouseButton1Click:Connect(function()
+        for _, btn in ipairs(typeButtons) do
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        end
+        clearBtn.BackgroundColor3 = Color3.fromRGB(100, 80, 40)
+        clearBtn.TextColor3 = Color3.fromRGB(255, 200, 100)
+        
+        self.State.CurrentTypeFilter = nil
+        self:_populateGridRows(targetTable)
+    end)
+
+    clearBtn.BackgroundColor3 = Color3.fromRGB(100, 80, 40)
+    clearBtn.TextColor3 = Color3.fromRGB(255, 200, 100)
+
+    self:_populateGridRows(targetTable)
+end
+
+function Modules.Overseer:_populateGridRows(targetTable: table)
+    local ui = self.State.UI
+    
+    -- Remove old rows (keep filter frame)
+    local children = ui.Grid:GetChildren()
+    for i = #children, 1, -1 do
+        local v = children[i]
+        if not v:IsA("UIListLayout") and v ~= children[1] then
+            if v.Name ~= "FilterFrame" then
+                v:Destroy()
+            end
+        end
+    end
+
+    local rowsToDisplay = targetTable
+    
+    if self.State.CurrentTypeFilter then
+        rowsToDisplay = self:_filterTableByType(targetTable, self.State.CurrentTypeFilter)
+    else
+        rowsToDisplay = targetTable
+    end
+
+    if type(rowsToDisplay) == "table" and #rowsToDisplay > 0 then
+        for _, item in ipairs(rowsToDisplay) do
+            self:_createRow(item.key, item.value, targetTable)
+        end
+    else
+        for k, v in pairs(rowsToDisplay) do
+            self:_createRow(k, v, targetTable)
+        end
+    end
+
+    local mt = getrawmetatable and getrawmetatable(targetTable)
+    if mt then
+        if setreadonly then setreadonly(mt, false) elseif make_writeable then make_writeable(mt) end
+        
+        if mt.__index and type(mt.__index) == "table" then
+            local ghostLabel = Instance.new("TextLabel", ui.Grid)
+            ghostLabel.Size = UDim2.new(1, 0, 0, 20)
+            ghostLabel.Text = " -- GHOST INDEX (__index) -- "
+            ghostLabel.TextColor3 = Color3.fromRGB(255, 0, 255)
+            ghostLabel.BackgroundTransparency = 1
+            ghostLabel.Font = Enum.Font.Code
+            ghostLabel.TextSize = 9
+            for k, v in pairs(mt.__index) do
+                self:_createRow(k, v, mt.__index)
+            end
+        end
+        
+        local metamethods = {}
+        for mmKey, mmVal in pairs(mt) do
+            if mmKey ~= "__index" and type(mmVal) == "function" then
+                table.insert(metamethods, {Key = mmKey, Value = mmVal})
+            end
+        end
+        
+        if #metamethods > 0 then
+            local mmLabel = Instance.new("TextLabel", ui.Grid)
+            mmLabel.Size = UDim2.new(1, 0, 0, 20)
+            mmLabel.Text = " -- METAMETHODS -- "
+            mmLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+            mmLabel.BackgroundTransparency = 1
+            mmLabel.Font = Enum.Font.Code
+            mmLabel.TextSize = 9
+            
+            for _, mmData in ipairs(metamethods) do
+                local mmRow = Instance.new("Frame", ui.Grid)
+                mmRow.Size = UDim2.new(1, -10, 0, 35)
+                mmRow.BackgroundTransparency = 1
+                
+                local mmLabel2 = Instance.new("TextLabel", mmRow)
+                mmLabel2.Size = UDim2.new(0.4, 0, 1, 0)
+                mmLabel2.Text = " " .. mmData.Key .. "()"
+                mmLabel2.TextColor3 = Color3.fromRGB(255, 200, 100)
+                mmLabel2.Font = Enum.Font.Code
+                mmLabel2.TextSize = 9
+                mmLabel2.TextXAlignment = Enum.TextXAlignment.Left
+                mmLabel2.BackgroundTransparency = 1
+                mmLabel2.ClipsDescendants = true
+                
+                local uvBtn = Instance.new("TextButton", mmRow)
+                uvBtn.Size = UDim2.new(0, 65, 0, 24)
+                uvBtn.Position = UDim2.fromScale(0.42, 0.15)
+                uvBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+                uvBtn.Text = "UVALS"
+                uvBtn.TextColor3 = Color3.fromRGB(150, 100, 255)
+                uvBtn.Font = Enum.Font.Code
+                uvBtn.TextSize = 8
+                self:_applyStyle(uvBtn, 2)
+                
+                uvBtn.MouseButton1Click:Connect(function()
+                    self:_showUpvaluesUI(mmData.Value, mmData.Key .. "() metamethod")
+                end)
+                
+                local viewBtn = Instance.new("TextButton", mmRow)
+                viewBtn.Size = UDim2.new(0, 65, 0, 24)
+                viewBtn.Position = UDim2.fromScale(0.54, 0.15)
+                viewBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
+                viewBtn.Text = "VIEW"
+                viewBtn.TextColor3 = Color3.fromRGB(255, 100, 255)
+                viewBtn.Font = Enum.Font.Code
+                viewBtn.TextSize = 8
+                self:_applyStyle(viewBtn, 2)
+                
+                viewBtn.MouseButton1Click:Connect(function()
+                    self:_showSource(mmData.Value)
+                end)
+            end
+        end
+    end
+end
+
+function Modules.Overseer:_applyTypeFilter(targetTable: table, typeFilter: string, name: string)
+    self.State.CurrentTypeFilter = typeFilter
+    local ui = self.State.UI
+    ui.Title.Text = "FILTERED BY: " .. typeFilter:upper() .. " in " .. (name or "Main")
+    self:_populateGridRows(targetTable)
+end
+
+function Modules.Overseer:AddModuleToList(mod: ModuleScript)
+    local n = mod.Name:lower()
+    if n:find("chat") or n:find("roblox") then return end
+
+    local ui = self.State.UI
+    local container = Instance.new("Frame", ui.Sidebar)
+    container.Size = UDim2.new(1, -5, 0, 25)
+    container.BackgroundTransparency = 1
+
+    local b = Instance.new("TextButton", container)
+    b.Size = UDim2.new(0.65, 0, 1, 0)
+    b.Text = " " .. mod.Name
+    b.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    b.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+    b.Font = Enum.Font.Code
+    b.TextXAlignment = Enum.TextXAlignment.Left
+    b.ClipsDescendants = true
+    self:_applyStyle(b, 2)
+
+    local srcB = Instance.new("TextButton", container)
+    srcB.Size = UDim2.new(0.175, 0, 1, 0)
+    srcB.Position = UDim2.fromScale(0.65, 0)
+    srcB.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    srcB.Text = "V"
+    srcB.TextColor3 = Color3.fromRGB(100, 200, 255)
+    srcB.Font = Enum.Font.Code
+    srcB.TextSize = 8
+    self:_applyStyle(srcB, 2)
+
+    local editB = Instance.new("TextButton", container)
+    editB.Size = UDim2.new(0.175, 0, 1, 0)
+    editB.Position = UDim2.fromScale(0.825, 0)
+    editB.BackgroundColor3 = Color3.fromRGB(50, 40, 30)
+    editB.Text = "E"
+    editB.TextColor3 = Color3.fromRGB(255, 180, 100)
+    editB.Font = Enum.Font.Code
+    editB.TextSize = 8
+    self:_applyStyle(editB, 2)
+
+    self.State.SidebarButtons[container] = mod.Name
+
+    b.MouseButton1Click:Connect(function()
+        self.State.SelectedModule = mod
+        self.State.PathStack = {}
+        local success, result = pcall(require, mod)
+        if success then
+            self:PopulateGrid(result, mod.Name)
+        end
+    end)
+
+    srcB.MouseButton1Click:Connect(function()
+        self.State.EditTarget = mod
+        self:_showSource(mod)
+    end)
+
+    editB.MouseButton1Click:Connect(function()
+        self.State.EditTarget = mod
+        self:_showEditUI(mod, mod.Name)
+    end)
+end
+
+-- ============================================================================
+-- EXPLORER FUNCTIONS
+-- ============================================================================
+
+function Modules.Overseer:_createInstanceRow(inst: Instance, parent: Instance?)
+    local ui = self.State.UI
+    local row = Instance.new("Frame", ui.Grid)
+    row.Size = UDim2.new(1, -10, 0, 35)
+    row.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", row)
+    label.Size = UDim2.new(0.55, 0, 1, 0)
+    label.Text = " " .. inst.Name .. " (" .. inst.ClassName .. ")"
+    label.TextColor3 = Color3.fromRGB(150, 200, 255)
+    label.Font = Enum.Font.Code
+    label.TextSize = 9
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+    label.ClipsDescendants = true
+
+    if #inst:GetChildren() > 0 then
+        local expandBtn = Instance.new("TextButton", row)
+        expandBtn.Size = UDim2.new(0, 50, 0, 24)
+        expandBtn.Position = UDim2.fromScale(0.57, 0.15)
+        expandBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 80)
+        expandBtn.Text = "EXPAND"
+        expandBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+        expandBtn.Font = Enum.Font.Code
+        expandBtn.TextSize = 7
+        self:_applyStyle(expandBtn, 2)
+        
+        expandBtn.MouseButton1Click:Connect(function()
+            table.insert(self.State.ExplorerPath, inst)
+            self:PopulateExplorer(inst)
+        end)
+    end
+
+    if inst:IsA("ModuleScript") or inst:IsA("Script") or inst:IsA("LocalScript") then
+        local poisonBtn = Instance.new("TextButton", row)
+        poisonBtn.Size = UDim2.new(0, 50, 0, 24)
+        poisonBtn.Position = UDim2.fromScale(0.72, 0.15)
+        poisonBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 60)
+        poisonBtn.Text = "POISON"
+        poisonBtn.TextColor3 = Color3.fromRGB(255, 100, 255)
+        poisonBtn.Font = Enum.Font.Code
+        poisonBtn.TextSize = 7
+        self:_applyStyle(poisonBtn, 2)
+        
+        poisonBtn.MouseButton1Click:Connect(function()
+            self.State.SelectedModule = inst
+            self.State.PathStack = {}
+            self.State.CurrentMode = "modules"
+            if inst:IsA("ModuleScript") then
+                local success, result = pcall(require, inst)
+                if success then
+                    self:PopulateGrid(result, inst.Name)
+                end
+            else
+                self:_showSource(inst)
+            end
+        end)
+    elseif inst:IsA("GuiObject") or inst:IsA("Part") or inst:IsA("BasePart") then
+        local propBtn = Instance.new("TextButton", row)
+        propBtn.Size = UDim2.new(0, 50, 0, 24)
+        propBtn.Position = UDim2.fromScale(0.72, 0.15)
+        propBtn.BackgroundColor3 = Color3.fromRGB(60, 50, 40)
+        propBtn.Text = "PROPS"
+        propBtn.TextColor3 = Color3.fromRGB(255, 180, 100)
+        propBtn.Font = Enum.Font.Code
+        propBtn.TextSize = 7
+        self:_applyStyle(propBtn, 2)
+        
+        propBtn.MouseButton1Click:Connect(function()
+            self:_showInstanceProperties(inst)
+        end)
+    end
+end
+
+function Modules.Overseer:PopulateExplorer(instance: Instance)
+    local ui = self.State.UI
+    self.State.ExplorerInstance = instance
+    
+    local pathStr = ""
+    for i, inst in ipairs(self.State.ExplorerPath) do
+        pathStr = pathStr .. inst.Name .. "/"
+    end
+    pathStr = pathStr .. instance.Name
+    
+    ui.Title.Text = "EXPLORER: " .. pathStr
+
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local children = instance:GetChildren()
+    if #children == 0 then
+        local emptyLabel = Instance.new("TextLabel", ui.Grid)
+        emptyLabel.Size = UDim2.new(1, 0, 0, 20)
+        emptyLabel.Text = "  -- NO CHILDREN -- "
+        emptyLabel.TextColor3 = Color3.fromRGB(200, 100, 100)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Font = Enum.Font.Code
+        emptyLabel.TextSize = 9
+    else
+        for _, child in ipairs(children) do
+            self:_createInstanceRow(child, instance)
+        end
+    end
+end
+
+function Modules.Overseer:_showGlobalTypeSearch()
+    local ui = self.State.UI
+    self.State.ViewingCode = true
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.Title.Text = "GLOBAL TYPE SEARCH"
+    ui.CodeBox.TextEditable = false
+
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local searchLabel = Instance.new("TextLabel", ui.Grid)
+    searchLabel.Size = UDim2.new(1, -10, 0, 30)
+    searchLabel.Text = "Select a type to search globally..."
+    searchLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    searchLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    searchLabel.Font = Enum.Font.Code
+    searchLabel.TextSize = 10
+    self:_applyStyle(searchLabel, 2)
+
+    local types = {"number", "string", "boolean", "function", "table"}
+    
+    for i, typeStr in ipairs(types) do
+        local typeBtn = Instance.new("TextButton", ui.Grid)
+        typeBtn.Size = UDim2.new(0.9, 0, 0, 35)
+        typeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        typeBtn.Text = "SEARCH: " .. typeStr:upper() .. " (Click to start)"
+        typeBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+        typeBtn.Font = Enum.Font.Code
+        typeBtn.TextSize = 9
+        self:_applyStyle(typeBtn, 2)
+
+        typeBtn.MouseButton1Click:Connect(function()
+            self:_displayGlobalSearchResults(typeStr)
+        end)
+    end
+end
+
+function Modules.Overseer:_displayGlobalSearchResults(typeFilter: string)
+    local ui = self.State.UI
+    
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    ui.CodeBox.Text = "Searching for all " .. typeFilter .. " values...\nThis may take a moment...\n\n"
+
+    local results = self:_getAllValuesOfType(typeFilter, 3)
+    
+    ui.CodeBox.Text = "Found " .. #results .. " " .. typeFilter .. " values:\n\n"
+    
+    local headerLabel = Instance.new("TextLabel", ui.Grid)
+    headerLabel.Size = UDim2.new(1, -10, 0, 25)
+    headerLabel.Text = "FOUND " .. #results .. " RESULTS - Click to dive into"
+    headerLabel.TextColor3 = self.Config.HOOK_COLOR
+    headerLabel.BackgroundColor3 = Color3.fromRGB(20, 30, 20)
+    headerLabel.Font = Enum.Font.Code
+    headerLabel.TextSize = 10
+    self:_applyStyle(headerLabel, 2)
+
+    for i, result in ipairs(results) do
+        if i > 50 then 
+            local moreLabel = Instance.new("TextLabel", ui.Grid)
+            moreLabel.Size = UDim2.new(1, -10, 0, 20)
+            moreLabel.Text = "... and " .. (#results - 50) .. " more"
+            moreLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+            moreLabel.BackgroundTransparency = 1
+            moreLabel.Font = Enum.Font.Code
+            moreLabel.TextSize = 9
+            break
+        end
+
+        local resultRow = Instance.new("Frame", ui.Grid)
+        resultRow.Size = UDim2.new(1, -10, 0, 35)
+        resultRow.BackgroundTransparency = 1
+
+        local resultLabel = Instance.new("TextLabel", resultRow)
+        resultLabel.Size = UDim2.new(0.7, 0, 1, 0)
+        resultLabel.Text = " " .. result.path
+        resultLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+        resultLabel.Font = Enum.Font.Code
+        resultLabel.TextSize = 8
+        resultLabel.TextXAlignment = Enum.TextXAlignment.Left
+        resultLabel.BackgroundTransparency = 1
+        resultLabel.ClipsDescendants = true
+
+        local diveBtn = Instance.new("TextButton", resultRow)
+        diveBtn.Size = UDim2.new(0, 55, 0, 24)
+        diveBtn.Position = UDim2.fromScale(0.72, 0.15)
+        diveBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 80)
+        diveBtn.Text = "DIVE"
+        diveBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+        diveBtn.Font = Enum.Font.Code
+        diveBtn.TextSize = 8
+        self:_applyStyle(diveBtn, 2)
+
+        diveBtn.MouseButton1Click:Connect(function()
+            if type(result.value) == "table" then
+                table.insert(self.State.PathStack, self.State.CurrentTable)
+                self.State.CurrentTable = result.value
+                self:PopulateGrid(result.value, result.path)
+            end
+        end)
+    end
+end
+
+function Modules.Overseer:_showInstanceProperties(inst: Instance)
+    local ui = self.State.UI
+    self.State.ViewingCode = true
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.Title.Text = "PROPERTIES: " .. inst.Name
+    ui.CodeBox.TextEditable = false
+
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local properties = {}
+    pcall(function()
+        properties = inst:GetProperties()
+    end)
+
+    if #properties == 0 then
+        ui.CodeBox.Text = "-- No properties accessible"
+        return
+    end
+
+    for _, prop in ipairs(properties) do
+        local success, val = pcall(function() return inst[prop] end)
+        if success then
+            local propRow = Instance.new("Frame", ui.Grid)
+            propRow.Size = UDim2.new(1, -10, 0, 35)
+            propRow.BackgroundTransparency = 1
+
+            local label = Instance.new("TextLabel", propRow)
+            label.Size = UDim2.new(0.4, 0, 1, 0)
+            label.Text = " " .. prop
+            label.TextColor3 = Color3.fromRGB(150, 200, 255)
+            label.Font = Enum.Font.Code
+            label.TextSize = 8
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.BackgroundTransparency = 1
+            label.ClipsDescendants = true
+
+            if type(val) == "number" then
+                local box = Instance.new("TextBox", propRow)
+                box.Size = UDim2.new(0, 80, 0, 24)
+                box.Position = UDim2.fromScale(0.42, 0.15)
+                box.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+                box.Text = tostring(val)
+                box.TextColor3 = Color3.fromRGB(100, 200, 255)
+                box.Font = Enum.Font.Code
+                box.TextSize = 8
+                self:_applyStyle(box, 2)
+
+                box.FocusLost:Connect(function(enter)
+                    if enter then
+                        pcall(function()
+                            inst[prop] = tonumber(box.Text) or val
+                        end)
+                    end
+                end)
+
+                local hookBtn = Instance.new("TextButton", propRow)
+                hookBtn.Size = UDim2.new(0, 45, 0, 24)
+                hookBtn.Position = UDim2.fromScale(0.545, 0.15)
+                hookBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
+                hookBtn.Text = "HOOK"
+                hookBtn.TextColor3 = self.Config.HOOK_COLOR
+                hookBtn.Font = Enum.Font.Code
+                hookBtn.TextSize = 7
+                self:_applyStyle(hookBtn, 2)
+
+                hookBtn.MouseButton1Click:Connect(function()
+                    local newVal = tonumber(box.Text) or val
+                    self:_hookProperty(inst, prop, newVal)
+                    hookBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+                    hookBtn.Text = "HOOKED"
+                    task.wait(0.5)
+                    hookBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
+                    hookBtn.Text = "HOOK"
+                end)
+            else
+                local label2 = Instance.new("TextLabel", propRow)
+                label2.Size = UDim2.new(0.5, 0, 1, 0)
+                label2.Position = UDim2.fromScale(0.42, 0)
+                label2.Text = tostring(val)
+                label2.TextColor3 = Color3.fromRGB(150, 150, 150)
+                label2.Font = Enum.Font.Code
+                label2.TextSize = 8
+                label2.TextXAlignment = Enum.TextXAlignment.Left
+                label2.BackgroundTransparency = 1
+                label2.ClipsDescendants = true
+            end
+        end
+    end
+end
+
+function Modules.Overseer:LoadDex()
+    if self.State.IsLoadingDex then return end
+    self.State.IsLoadingDex = true
+
+    task.spawn(function()
+        local success, dexObjects = pcall(function()
+            return game:GetObjects("rbxassetid://9553291002")
+        end)
+
+        if not success or not dexObjects or #dexObjects == 0 then
+            self.State.IsLoadingDex = false
+            return
+        end
+
+        local dexUI = dexObjects[1]
+        dexUI.Name = self:_generateObfuscatedName()
+
+        if get_hidden_gui or (syn and syn.protect_gui) then
+            local protect = get_hidden_gui or syn.protect_gui
+            protect(dexUI)
+        end
+        dexUI.Parent = CoreGui
+
+        local function loadScripts(parent)
+            for _, child in ipairs(parent:GetChildren()) do
+                if child:IsA("LuaSourceContainer") then
+                    task.spawn(function()
+                        local func, err = loadstring(child.Source, "=" .. child:GetFullName())
+                        if func then
+                            self:_applyEnvironment(func, child)()
+                        end
+                    end)
+                end
+                loadScripts(child)
+            end
+        end
+
+        loadScripts(dexUI)
+        self.State.IsLoadingDex = false
+    end)
+end
+
+function Modules.Overseer:_generatePoisonedVersion(originalCode: string)
+    local poisonedCode = [[
+
+local ORIGINAL_SCRIPT = [[
+]] .. originalCode .. [[
+]]
+
+-- Execute original script
+local success, result = pcall(function()
+    local func, err = loadstring(ORIGINAL_SCRIPT, "PoisonedScript")
+    if func then
+        return func()
+    else
+        error("Failed to compile: " .. tostring(err))
+    end
+end)
+
+if not success then
+    warn("Poisoned Script Error: " .. tostring(result))
+end
+
+    return poisonedCode
+end
+
+function Modules.Overseer:_generateAdvancedPoisonVersion(originalCode: string, options: table)
+    options = options or {}
+    local poisonedCode = "-- ============================================================================\n"
+    poisonedCode = poisonedCode .. "-- ADVANCED POISONED VERSION\n"
+    poisonedCode = poisonedCode .. "-- With custom patches and hooks\n"
+    poisonedCode = poisonedCode .. "-- ============================================================================\n\n"
+    poisonedCode = poisonedCode .. "local PATCHES_ENABLED = " .. (options.patchesEnabled and "true" or "false") .. "\n\n"
+    poisonedCode = poisonedCode .. "local ORIGINAL_SCRIPT = [[\n"
+    poisonedCode = poisonedCode .. originalCode .. "\n]]\n\n"
+    poisonedCode = poisonedCode .. "-- Active patches from Overseer\n"
+    poisonedCode = poisonedCode .. "local ACTIVE_PATCHES = {\n"
+
+    if options.includePatches then
+        for tbl, keys in pairs(self.State.ActivePatches) do
+            for key, data in pairs(keys) do
+                poisonedCode = poisonedCode .. "    -- [" .. tostring(key) .. "] = " .. tostring(data.Value) .. "\n"
+            end
+        end
+    end
+
+    poisonedCode = poisonedCode .. "}\n\n"
+    poisonedCode = poisonedCode .. "local HOOKED_VALUES = {\n"
+
+    if options.includeHooks then
+        for hookKey, hook in pairs(self.State.ValueHooks) do
+            if hook.enabled then
+                poisonedCode = poisonedCode .. "    -- " .. hookKey .. " = " .. tostring(hook.value) .. "\n"
+            end
+        end
+    end
+
+    poisonedCode = poisonedCode .. "}\n\n"
+    poisonedCode = poisonedCode .. "-- Apply patches before execution\n"
+    poisonedCode = poisonedCode .. "if PATCHES_ENABLED then\n"
+    poisonedCode = poisonedCode .. "    -- Your patches would be applied here\n"
+    poisonedCode = poisonedCode .. "    -- This is a stub - implement custom patch logic as needed\n"
+    poisonedCode = poisonedCode .. "end\n\n"
+    poisonedCode = poisonedCode .. "-- Execute original script\n"
+    poisonedCode = poisonedCode .. "local success, result = pcall(function()\n"
+    poisonedCode = poisonedCode .. "    local func, err = loadstring(ORIGINAL_SCRIPT, 'PoisonedScript')\n"
+    poisonedCode = poisonedCode .. "    if func then\n"
+    poisonedCode = poisonedCode .. "        return func()\n"
+    poisonedCode = poisonedCode .. "    else\n"
+    poisonedCode = poisonedCode .. "        error('Failed to compile: ' .. tostring(err))\n"
+    poisonedCode = poisonedCode .. "    end\n"
+    poisonedCode = poisonedCode .. "end)\n\n"
+    poisonedCode = poisonedCode .. "if success then\n"
+    poisonedCode = poisonedCode .. "    print('✓ Poisoned script executed successfully')\n"
+    poisonedCode = poisonedCode .. "else\n"
+    poisonedCode = poisonedCode .. "    warn('✗ Poisoned Script Error: ' .. tostring(result))\n"
+    poisonedCode = poisonedCode .. "end\n"
+
+    return poisonedCode
+end
+
+function Modules.Overseer:_showPoisonOptions()
+    local ui = self.State.UI
+    
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    ui.CodeFrame.Visible = false
+    ui.Grid.Visible = true
+    ui.Title.Text = "POISON OPTIONS"
+
+    local titleLabel = Instance.new("TextLabel", ui.Grid)
+    titleLabel.Size = UDim2.new(1, -10, 0, 30)
+    titleLabel.Text = "Generate Poisoned Version - Select Options:"
+    titleLabel.TextColor3 = Color3.fromRGB(200, 100, 255)
+    titleLabel.BackgroundColor3 = Color3.fromRGB(40, 20, 60)
+    titleLabel.Font = Enum.Font.Code
+    titleLabel.TextSize = 10
+    self:_applyStyle(titleLabel, 2)
+
+    local options = {
+        {name = "Simple Wrapper", desc = "Wrap in basic execution", value = "simple"},
+        {name = "Include Patches", desc = "Include active patches", value = "patches"},
+        {name = "Include Hooks", desc = "Include value hooks", value = "hooks"},
+        {name = "Advanced (All)", desc = "Patches + Hooks + Comments", value = "advanced"}
+    }
+
+    for _, option in ipairs(options) do
+        local optRow = Instance.new("Frame", ui.Grid)
+        optRow.Size = UDim2.new(1, -10, 0, 35)
+        optRow.BackgroundTransparency = 1
+
+        local optLabel = Instance.new("TextLabel", optRow)
+        optLabel.Size = UDim2.new(0.6, 0, 1, 0)
+        optLabel.Text = " " .. option.name .. "\n " .. option.desc
+        optLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
+        optLabel.Font = Enum.Font.Code
+        optLabel.TextSize = 9
+        optLabel.TextXAlignment = Enum.TextXAlignment.Left
+        optLabel.TextYAlignment = Enum.TextYAlignment.Center
+        optLabel.BackgroundTransparency = 1
+
+        local execBtn = Instance.new("TextButton", optRow)
+        execBtn.Size = UDim2.new(0, 70, 0, 24)
+        execBtn.Position = UDim2.fromScale(0.62, 0.25)
+        execBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
+        execBtn.Text = "GENERATE"
+        execBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+        execBtn.Font = Enum.Font.Code
+        execBtn.TextSize = 8
+        self:_applyStyle(execBtn, 2)
+
+        execBtn.MouseButton1Click:Connect(function()
+            local codeBox = ui.CodeBox
+            local originalCode = codeBox.Text
+            
+            local poisonedCode = ""
+            if option.value == "simple" then
+                poisonedCode = self:_generatePoisonedVersion(originalCode)
+            else
+                local opts = {
+                    patchesEnabled = true,
+                    includePatches = (option.value == "patches" or option.value == "advanced"),
+                    includeHooks = (option.value == "hooks" or option.value == "advanced")
+                }
+                poisonedCode = self:_generateAdvancedPoisonVersion(originalCode, opts)
+            end
+
+            self:_showPoisonedCode(poisonedCode, option.name)
+        end)
+    end
+end
+
+function Modules.Overseer:_showPoisonedCode(poisonedCode: string, optionName: string)
+    local ui = self.State.UI
+    
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.Title.Text = "POISONED VERSION (" .. optionName .. ")"
+    ui.CodeBox.Text = poisonedCode
+    ui.CodeBox.TextEditable = false
+
+    -- Update button visibility
+    local children = ui.CodeFrame:GetChildren()
+    for _, btn in ipairs(children) do
+        if btn:IsA("TextButton") then
+            if btn.Text == "COPY" then
+                btn.Visible = true
+            elseif btn.Text == "EDIT" then
+                btn.Visible = true
+            elseif btn.Text == "APPLY" then
+                btn.Visible = true
+                btn.Text = "EXECUTE"
+                btn.BackgroundColor3 = Color3.fromRGB(150, 80, 20)
+                btn.TextColor3 = Color3.new(1, 1, 1)
+            end
+        end
+    end
+end
+
+function Modules.Overseer:_showPatchManager()
+    local ui = self.State.UI
+    self.State.ViewingCode = true
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.Title.Text = "PATCH MANAGER"
+    ui.CodeBox.TextEditable = false
+
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local active, valueHooks, propHooks = self:_getPatchStatus()
+
+    local headerLabel = Instance.new("TextLabel", ui.Grid)
+    headerLabel.Size = UDim2.new(1, 0, 0, 30)
+    headerLabel.Text = "ACTIVE PATCHES: " .. active .. " | VALUE HOOKS: " .. valueHooks .. " | PROPERTY HOOKS: " .. propHooks
+    headerLabel.TextColor3 = self.Config.HOOK_COLOR
+    headerLabel.BackgroundColor3 = Color3.fromRGB(20, 30, 20)
+    headerLabel.Font = Enum.Font.Code
+    headerLabel.TextSize = 10
+    self:_applyStyle(headerLabel, 2)
+
+    if valueHooks > 0 then
+        local vhLabel = Instance.new("TextLabel", ui.Grid)
+        vhLabel.Size = UDim2.new(1, 0, 0, 20)
+        vhLabel.Text = " -- VALUE HOOKS --"
+        vhLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+        vhLabel.BackgroundTransparency = 1
+        vhLabel.Font = Enum.Font.Code
+        vhLabel.TextSize = 9
+
+        for hookKey, hook in pairs(self.State.ValueHooks) do
+            if hook.enabled then
+                local hookRow = Instance.new("Frame", ui.Grid)
+                hookRow.Size = UDim2.new(1, -10, 0, 35)
+                hookRow.BackgroundTransparency = 1
+
+                local hookLabel = Instance.new("TextLabel", hookRow)
+                hookLabel.Size = UDim2.new(0.7, 0, 1, 0)
+                hookLabel.Text = " " .. hookKey .. " = " .. tostring(hook.value)
+                hookLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+                hookLabel.Font = Enum.Font.Code
+                hookLabel.TextSize = 8
+                hookLabel.TextXAlignment = Enum.TextXAlignment.Left
+                hookLabel.BackgroundTransparency = 1
+                hookLabel.ClipsDescendants = true
+
+                local toggleBtn = Instance.new("TextButton", hookRow)
+                toggleBtn.Size = UDim2.new(0, 50, 0, 24)
+                toggleBtn.Position = UDim2.fromScale(0.72, 0.15)
+                toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+                toggleBtn.Text = "DISABLE"
+                toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+                toggleBtn.Font = Enum.Font.Code
+                toggleBtn.TextSize = 7
+                self:_applyStyle(toggleBtn, 2)
+
+                toggleBtn.MouseButton1Click:Connect(function()
+                    hook.enabled = false
+                    hookRow:Destroy()
+                end)
+            end
+        end
+    end
+
+    if propHooks > 0 then
+        local phLabel = Instance.new("TextLabel", ui.Grid)
+        phLabel.Size = UDim2.new(1, 0, 0, 20)
+        phLabel.Text = " -- PROPERTY HOOKS --"
+        phLabel.TextColor3 = Color3.fromRGB(255, 180, 100)
+        phLabel.BackgroundTransparency = 1
+        phLabel.Font = Enum.Font.Code
+        phLabel.TextSize = 9
+
+        for propKey, hook in pairs(self.State.PropertyHooks) do
+            if hook.enabled then
+                local hookRow = Instance.new("Frame", ui.Grid)
+                hookRow.Size = UDim2.new(1, -10, 0, 35)
+                hookRow.BackgroundTransparency = 1
+
+                local hookLabel = Instance.new("TextLabel", hookRow)
+                hookLabel.Size = UDim2.new(0.7, 0, 1, 0)
+                hookLabel.Text = " " .. hook.property .. " = " .. tostring(hook.value)
+                hookLabel.TextColor3 = Color3.fromRGB(255, 180, 100)
+                hookLabel.Font = Enum.Font.Code
+                hookLabel.TextSize = 8
+                hookLabel.TextXAlignment = Enum.TextXAlignment.Left
+                hookLabel.BackgroundTransparency = 1
+                hookLabel.ClipsDescendants = true
+
+                local toggleBtn = Instance.new("TextButton", hookRow)
+                toggleBtn.Size = UDim2.new(0, 50, 0, 24)
+                toggleBtn.Position = UDim2.fromScale(0.72, 0.15)
+                toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+                toggleBtn.Text = "DISABLE"
+                toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+                toggleBtn.Font = Enum.Font.Code
+                toggleBtn.TextSize = 7
+                self:_applyStyle(toggleBtn, 2)
+
+                toggleBtn.MouseButton1Click:Connect(function()
+                    self:_unhookProperty(hook.instance, hook.property)
+                    hookRow:Destroy()
+                end)
+            end
+        end
+    end
+
+    if active > 0 then
+        local patchLabel = Instance.new("TextLabel", ui.Grid)
+        patchLabel.Size = UDim2.new(1, 0, 0, 20)
+        patchLabel.Text = " -- TABLE PATCHES --"
+        patchLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        patchLabel.BackgroundTransparency = 1
+        patchLabel.Font = Enum.Font.Code
+        patchLabel.TextSize = 9
+
+        for tbl, keys in pairs(self.State.ActivePatches) do
+            for key, data in pairs(keys) do
+                local patchRow = Instance.new("Frame", ui.Grid)
+                patchRow.Size = UDim2.new(1, -10, 0, 35)
+                patchRow.BackgroundTransparency = 1
+
+                local patchLabel2 = Instance.new("TextLabel", patchRow)
+                patchLabel2.Size = UDim2.new(0.7, 0, 1, 0)
+                patchLabel2.Text = " [" .. key .. "] = " .. tostring(data.Value)
+                patchLabel2.TextColor3 = Color3.fromRGB(150, 100, 255)
+                patchLabel2.Font = Enum.Font.Code
+                patchLabel2.TextSize = 8
+                patchLabel2.TextXAlignment = Enum.TextXAlignment.Left
+                patchLabel2.BackgroundTransparency = 1
+                patchLabel2.ClipsDescendants = true
+
+                local clearBtn = Instance.new("TextButton", patchRow)
+                clearBtn.Size = UDim2.new(0, 50, 0, 24)
+                clearBtn.Position = UDim2.fromScale(0.72, 0.15)
+                clearBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+                clearBtn.Text = "CLEAR"
+                clearBtn.TextColor3 = Color3.new(1, 1, 1)
+                clearBtn.Font = Enum.Font.Code
+                clearBtn.TextSize = 7
+                self:_applyStyle(clearBtn, 2)
+
+                clearBtn.MouseButton1Click:Connect(function()
+                    if self.State.ActivePatches[tbl] then
+                        self.State.ActivePatches[tbl][key] = nil
+                    end
+                    patchRow:Destroy()
+                end)
+            end
+        end
+    end
+end
+
+-- ============================================================================
+-- UI CREATION
+-- ============================================================================
+
+function Modules.Overseer:CreateUI()
+    if self.State.UI then self.State.UI.Main.Visible = true return end
+
+    local screenGui = Instance.new("ScreenGui", CoreGui)
+    screenGui.Name = "Overseer_Merged_V1"
+    screenGui.ResetOnSpawn = false
+
+    local main = Instance.new("Frame", screenGui)
+    main.Size = UDim2.fromOffset(850, 550)
+    main.Position = UDim2.new(0.5, -425, 0.5, -275)
+    main.BackgroundColor3 = self.Config.BG_COLOR
+    main.BackgroundTransparency = 0.4
+    main.BorderSizePixel = 0
+    main.ClipsDescendants = true
+    self:_applyStyle(main, 6)
+
+    local header = Instance.new("Frame", main)
+    header.Size = UDim2.new(1, 0, 0, 35)
+    header.BackgroundColor3 = self.Config.HEADER_COLOR
+
+    local title = Instance.new("TextLabel", header)
+    title.Size = UDim2.new(1, -280, 1, 0)
+    title.Position = UDim2.fromOffset(10, 0)
+    title.Text = "Overseer - Unified Module & Instance Explorer"
+    title.TextColor3 = self.Config.ACCENT_COLOR
+    title.Font = Enum.Font.Code
+    title.TextSize = 11
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.BackgroundTransparency = 1
+
+    local modeBtn = Instance.new("TextButton", header)
+    modeBtn.Size = UDim2.new(0, 70, 0, 24)
+    modeBtn.Position = UDim2.new(1, -190, 0.5, -11)
+    modeBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+    modeBtn.Text = "EXPLORER"
+    modeBtn.TextColor3 = Color3.new(1, 1, 1)
+    modeBtn.Font = Enum.Font.Code
+    modeBtn.TextSize = 9
+    self:_applyStyle(modeBtn, 2)
+
+    local patchBtn = Instance.new("TextButton", header)
+    patchBtn.Size = UDim2.new(0, 70, 0, 24)
+    patchBtn.Position = UDim2.new(1, -265, 0.5, -11)
+    patchBtn.BackgroundColor3 = Color3.fromRGB(80, 60, 40)
+    patchBtn.Text = "PATCHES"
+    patchBtn.TextColor3 = Color3.fromRGB(255, 180, 100)
+    patchBtn.Font = Enum.Font.Code
+    patchBtn.TextSize = 9
+    self:_applyStyle(patchBtn, 2)
+
+    local searchBtn = Instance.new("TextButton", header)
+    searchBtn.Size = UDim2.new(0, 70, 0, 24)
+    searchBtn.Position = UDim2.new(1, -340, 0.5, -11)
+    searchBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 60)
+    searchBtn.Text = "SEARCH"
+    searchBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+    searchBtn.Font = Enum.Font.Code
+    searchBtn.TextSize = 9
+    self:_applyStyle(searchBtn, 2)
+
+    local backBtn = Instance.new("TextButton", header)
+    backBtn.Size = UDim2.new(0, 60, 0, 24)
+    backBtn.Position = UDim2.new(1, -415, 0.5, -11)
+    backBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    backBtn.Text = "< BACK"
+    backBtn.TextColor3 = Color3.new(1, 1, 1)
+    backBtn.Font = Enum.Font.Code
+    backBtn.TextSize = 10
+    self:_applyStyle(backBtn, 2)
+
+    local dexBtn = Instance.new("TextButton", header)
+    dexBtn.Size = UDim2.new(0, 60, 0, 24)
+    dexBtn.Position = UDim2.new(1, -115, 0.5, -12)
+    dexBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 80)
+    dexBtn.Text = "DEX"
+    dexBtn.TextColor3 = Color3.fromRGB(150, 100, 255)
+    dexBtn.Font = Enum.Font.Code
+    dexBtn.TextSize = 10
+    self:_applyStyle(dexBtn, 2)
+
+    local closeBtn = Instance.new("TextButton", header)
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0, 0)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.Font = Enum.Font.Code
+
+    local content = Instance.new("Frame", main)
+    content.Size = UDim2.new(1, 0, 1, -35)
+    content.Position = UDim2.fromOffset(0, 35)
+    content.BackgroundTransparency = 1
+
+    local searchInput = Instance.new("TextBox", content)
+    searchInput.Size = UDim2.new(0, 230, 0, 30)
+    searchInput.Position = UDim2.fromOffset(10, 10)
+    searchInput.BackgroundColor3 = self.Config.SECONDARY_COLOR
+    searchInput.PlaceholderText = "SEARCH..."
+    searchInput.Text = ""
+    searchInput.TextColor3 = self.Config.ACCENT_COLOR
+    searchInput.Font = Enum.Font.Code
+    searchInput.TextSize = 10
+    self:_applyStyle(searchInput, 4)
+
+    local sidebar = Instance.new("ScrollingFrame", content)
+    sidebar.Size = UDim2.new(0, 230, 1, -60)
+    sidebar.Position = UDim2.fromOffset(10, 50)
+    sidebar.BackgroundTransparency = 1
+    sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    sidebar.ScrollBarThickness = 2
+    local sidebarList = Instance.new("UIListLayout", sidebar)
+    sidebarList.Padding = UDim.new(0, 4)
+
+    local grid = Instance.new("ScrollingFrame", content)
+    grid.Size = UDim2.new(1, -270, 1, -20)
+    grid.Position = UDim2.fromOffset(260, 10)
+    grid.BackgroundColor3 = self.Config.SECONDARY_COLOR
+    grid.BackgroundTransparency = 0.3
+    grid.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    grid.ScrollBarThickness = 2
+    self:_applyStyle(grid, 4)
+    local gridList = Instance.new("UIListLayout", grid)
+    gridList.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local codeFrame = Instance.new("Frame", content)
+    codeFrame.Size = grid.Size
+    codeFrame.Position = grid.Position
+    codeFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+    codeFrame.Visible = false
+    self:_applyStyle(codeFrame, 4)
+
+    local codeScroller = Instance.new("ScrollingFrame", codeFrame)
+    codeScroller.Size = UDim2.new(1, -20, 1, -60)
+    codeScroller.Position = UDim2.fromOffset(10, 10)
+    codeScroller.BackgroundTransparency = 1
+    codeScroller.ScrollBarThickness = 2
+    codeScroller.AutomaticCanvasSize = Enum.AutomaticSize.XY
+
+    local codeBox = Instance.new("TextBox", codeScroller)
+    codeBox.Size = UDim2.new(1, 0, 1, 0)
+    codeBox.BackgroundColor3 = Color3.fromRGB(5, 5, 7)
+    codeBox.TextColor3 = Color3.fromRGB(200, 200, 200)
+    codeBox.Font = Enum.Font.Code
+    codeBox.TextSize = 10
+    codeBox.TextXAlignment = Enum.TextXAlignment.Left
+    codeBox.TextYAlignment = Enum.TextYAlignment.Top
+    codeBox.ClearTextOnFocus = false
+    codeBox.TextEditable = false
+    codeBox.MultiLine = true
+    codeBox.AutomaticSize = Enum.AutomaticSize.XY
+    self:_applyStyle(codeBox, 4)
+
+    local copyBtn = Instance.new("TextButton", codeFrame)
+    copyBtn.Size = UDim2.new(0, 90, 0, 30)
+    copyBtn.Position = UDim2.new(1, -280, 1, -40)
+    copyBtn.BackgroundColor3 = self.Config.ACCENT_COLOR
+    copyBtn.Text = "COPY"
+    copyBtn.TextColor3 = Color3.new(0, 0, 0)
+    copyBtn.Font = Enum.Font.Code
+    copyBtn.TextSize = 10
+    self:_applyStyle(copyBtn, 4)
+
+    local editBtn = Instance.new("TextButton", codeFrame)
+    editBtn.Size = UDim2.new(0, 90, 0, 30)
+    editBtn.Position = UDim2.new(1, -185, 1, -40)
+    editBtn.BackgroundColor3 = Color3.fromRGB(100, 70, 50)
+    editBtn.Text = "EDIT"
+    editBtn.TextColor3 = Color3.fromRGB(255, 180, 100)
+    editBtn.Font = Enum.Font.Code
+    editBtn.TextSize = 10
+    self:_applyStyle(editBtn, 4)
+
+    local applyBtn = Instance.new("TextButton", codeFrame)
+    applyBtn.Size = UDim2.new(0, 90, 0, 30)
+    applyBtn.Position = UDim2.new(1, -280, 1, -40)
+    applyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+    applyBtn.Text = "APPLY"
+    applyBtn.TextColor3 = Color3.new(1, 1, 1)
+    applyBtn.Font = Enum.Font.Code
+    applyBtn.TextSize = 10
+    applyBtn.Visible = false
+    self:_applyStyle(applyBtn, 4)
+
+    local discardBtn = Instance.new("TextButton", codeFrame)
+    discardBtn.Size = UDim2.new(0, 90, 0, 30)
+    discardBtn.Position = UDim2.new(1, -185, 1, -40)
+    discardBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    discardBtn.Text = "DISCARD"
+    discardBtn.TextColor3 = Color3.new(1, 1, 1)
+    discardBtn.Font = Enum.Font.Code
+    discardBtn.TextSize = 10
+    discardBtn.Visible = false
+    self:_applyStyle(discardBtn, 4)
+
+    local closeCode = Instance.new("TextButton", codeFrame)
+    closeCode.Size = UDim2.new(0, 90, 0, 30)
+    closeCode.Position = UDim2.new(0, 10, 1, -40)
+    closeCode.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    closeCode.Text = "EXIT"
+    closeCode.TextColor3 = Color3.new(1, 1, 1)
+    closeCode.Font = Enum.Font.Code
+    closeCode.TextSize = 10
+    self:_applyStyle(closeCode, 4)
+
+    local poisonBtn = Instance.new("TextButton", codeFrame)
+    poisonBtn.Size = UDim2.new(0, 90, 0, 30)
+    poisonBtn.Position = UDim2.new(1, -90, 1, -40)
+    poisonBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 100)
+    poisonBtn.Text = "POISON"
+    poisonBtn.TextColor3 = Color3.fromRGB(200, 100, 255)
+    poisonBtn.Font = Enum.Font.Code
+    poisonBtn.TextSize = 10
+    self:_applyStyle(poisonBtn, 4)
+
+    self.State.UI = {
+        ScreenGui = screenGui,
+        Main = main,
+        Title = title,
+        Grid = grid,
+        Sidebar = sidebar,
+        CodeFrame = codeFrame,
+        CodeBox = codeBox,
+        Search = searchInput,
+        EditMode = false,
+        EditTarget = nil,
+        OriginalCode = ""
+    }
+
+    local scannedModules = {}
+
+    local function RescanModules()
+        for btn, _ in pairs(self.State.SidebarButtons) do
+            btn:Destroy()
+        end
+        self.State.SidebarButtons = {}
+        scannedModules = {}
+        
+        local function scan(root)
+            for _, m in ipairs(root:GetDescendants()) do
+                if m:IsA("ModuleScript") and not scannedModules[m] then
+                    scannedModules[m] = true
+                    self:AddModuleToList(m)
+                end
+            end
+        end
+        
+        scan(ReplicatedStorage)
+        scan(Players.LocalPlayer)
+        
+        if getloadedmodules then
+            for _, m in ipairs(getloadedmodules()) do
+                if not scannedModules[m] then
+                    scannedModules[m] = true
+                    self:AddModuleToList(m)
+                end
+            end
+        end
+    end
+
+    local rescanBtn = Instance.new("TextButton")
+    rescanBtn.Size = UDim2.new(0, 70, 0, 22)
+    rescanBtn.Position = UDim2.new(1, -351, 0.5, -10)
+    rescanBtn.BackgroundColor3 = Color3.fromRGB(30, 50, 40)
+    rescanBtn.Text = "RESCAN"
+    rescanBtn.TextColor3 = Color3.fromRGB(0, 255, 170)
+    rescanBtn.Font = Enum.Font.Code
+    rescanBtn.TextSize = 10
+    self:_applyStyle(rescanBtn, 3)
+    rescanBtn.Parent = header
+
+    modeBtn.MouseButton1Click:Connect(function()
+        if self.State.CurrentMode == "modules" then
+            self.State.CurrentMode = "explorer"
+            self.State.ExplorerPath = {}
+            modeBtn.Text = "MODULES"
+            modeBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 60)
+            self:PopulateExplorer(game)
+        else
+            self.State.CurrentMode = "modules"
+            modeBtn.Text = "EXPLORER"
+            modeBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+            RescanModules()
+        end
+    end)
+
+    patchBtn.MouseButton1Click:Connect(function()
+        self:_showPatchManager()
+    end)
+
+    searchBtn.MouseButton1Click:Connect(function()
+        self:_showGlobalTypeSearch()
+    end)
+
+    rescanBtn.MouseButton1Click:Connect(RescanModules)
+
+    backBtn.MouseButton1Click:Connect(function()
+        if self.State.CurrentMode == "modules" then
+            if #self.State.PathStack > 0 then
+                local prev = table.remove(self.State.PathStack)
+                self:PopulateGrid(prev, "Parent")
+            end
+        else
+            if #self.State.ExplorerPath > 0 then
+                local prev = table.remove(self.State.ExplorerPath)
+                self:PopulateExplorer(prev)
+            end
+        end
+    end)
+
+    dexBtn.MouseButton1Click:Connect(function()
+        self:LoadDex()
+    end)
+
+    closeBtn.MouseButton1Click:Connect(function()
+        main.Visible = false
+    end)
+
+    closeCode.MouseButton1Click:Connect(function()
+        self.State.ViewingCode = false
+        codeFrame.Visible = false
+        grid.Visible = true
+        codeBox.TextEditable = false
+        copyBtn.Visible = true
+        editBtn.Visible = true
+        applyBtn.Visible = false
+        discardBtn.Visible = false
+        self.State.UI.EditMode = false
+        title.Text = "PATH: " .. (self.State.SelectedModule and self.State.SelectedModule.Name or "Main")
+    end)
+
+    poisonBtn.MouseButton1Click:Connect(function()
+        self:_showPoisonOptions()
+    end)
+
+    copyBtn.MouseButton1Click:Connect(function()
+        self:_setClipboard(codeBox.Text)
+        copyBtn.Text = "COPIED!"
+        task.wait(1)
+        copyBtn.Text = "COPY"
+    end)
+
+    editBtn.MouseButton1Click:Connect(function()
+        self.State.UI.EditMode = true
+        self.State.UI.OriginalCode = codeBox.Text
+        codeBox.TextEditable = true
+        copyBtn.Visible = false
+        editBtn.Visible = false
+        applyBtn.Visible = true
+        discardBtn.Visible = true
+        title.Text = title.Text .. " [EDITING]"
+    end)
+
+    applyBtn.MouseButton1Click:Connect(function()
+        local editedCode = codeBox.Text
+        
+        local success, result = pcall(function()
+            local compiled = load(editedCode, "EditedModule")
+            if compiled then
+                compiled()
+                return true
+            end
+            return false
+        end)
+        
+        if success and result then
+            applyBtn.Text = "APPLIED!"
+            applyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+            task.wait(1.5)
+            applyBtn.Text = "APPLY"
+            applyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+            
+            if self.State.EditTarget then
+                self.State.ActivePatches[self.State.EditTarget] = self.State.ActivePatches[self.State.EditTarget] or {}
+                self.State.ActivePatches[self.State.EditTarget]["_EditedCode"] = {
+                    Value = editedCode,
+                    Locked = false,
+                    IsFunction = false,
+                    IsEdit = true
+                }
+            end
+        else
+            applyBtn.Text = "ERROR!"
+            applyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            codeBox.Text = "-- [ERROR] " .. tostring(result) .. "\n\n" .. editedCode
+            task.wait(2)
+            applyBtn.Text = "APPLY"
+            applyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+        end
+    end)
+
+    discardBtn.MouseButton1Click:Connect(function()
+        self.State.UI.EditMode = false
+        codeBox.Text = self.State.UI.OriginalCode
+        codeBox.TextEditable = false
+        copyBtn.Visible = true
+        editBtn.Visible = true
+        applyBtn.Visible = false
+        discardBtn.Visible = false
+        title.Text = title.Text:gsub(" %[EDITING%]", "")
+    end)
+
+    searchInput:GetPropertyChangedSignal("Text"):Connect(function()
+        local filter = searchInput.Text:lower()
+        for container, name in pairs(self.State.SidebarButtons) do
+            container.Visible = name:lower():find(filter) ~= nil
+        end
+    end)
+
+    local dragging, dragStart, startPos
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    task.spawn(function()
+        local paths = {ReplicatedStorage, Players.LocalPlayer, Workspace}
+        for _, p in ipairs(paths) do
+            for _, m in ipairs(p:GetDescendants()) do
+                if m:IsA("ModuleScript") then
+                    self:AddModuleToList(m)
+                end
+            end
+            task.wait()
+        end
+    end)
+end
+
+-- ============================================================================
+-- INITIALIZATION
+-- ============================================================================
+
+function Modules.Overseer:Initialize()
+    local module = self
+
+    RunService.Heartbeat:Connect(function()
+        for tbl, keys in pairs(module.State.ActivePatches) do
+            for key, data in pairs(keys) do
+                if data.Locked then
+                    pcall(function()
+                        if setreadonly then setreadonly(tbl, false) elseif make_writeable then make_writeable(tbl) end
+                        if data.IsFunction then
+                            if data.Value == "TRUE" then
+                                rawset(tbl, key, function() return true end)
+                            elseif data.Value == "FALSE" then
+                                rawset(tbl, key, function() return false end)
+                            end
+                        else
+                            rawset(tbl, key, data.Value)
+                        end
+                        if setreadonly then setreadonly(tbl, true) end
+                    end)
+                end
+            end
+        end
+    end)
+
+    RegisterCommand({
+        Name = "dex2",
+        Aliases = {},
+        Description = "Opens the unified Overseer - Module Poisoner & Instance Explorer UI."
+    }, function()
+        module:CreateUI()
+    end)
+end
+
+
+
+--[[Modules.ForensicExplorer = {
     State = {
         IsLoading = false
     },
@@ -10337,9 +12420,7 @@ Modules.ForensicExplorer = {
     Services = {}
 }
 
---[[
-    Internal Utility: Generates a random string to obfuscate the UI name.
---]]
+
 function Modules.ForensicExplorer:_generateObfuscatedName()
     local charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     local length = math.random(10, 20)
@@ -10351,9 +12432,6 @@ function Modules.ForensicExplorer:_generateObfuscatedName()
     return result
 end
 
---[[
-    Internal Utility: Sets up the custom execution environment for Dex's internal scripts.
---]]
 function Modules.ForensicExplorer:_applyEnvironment(func, scriptInstance)
     local fenv = {}
     local realFenv = {script = scriptInstance}
@@ -10376,9 +12454,7 @@ function Modules.ForensicExplorer:_applyEnvironment(func, scriptInstance)
     return func
 end
 
---[[
-    Main Execution Logic.
---]]
+
 function Modules.ForensicExplorer:Load()
     if self.State.IsLoading then return end
     self.State.IsLoading = true
@@ -10444,7 +12520,7 @@ function Modules.ForensicExplorer:Initialize()
     }, function()
         module:Load()
     end)
-end
+end--]]
 
 Modules.CreepSequence = {
     State = {
@@ -15552,7 +17628,7 @@ end
 
 local rescanBtn = Instance.new("TextButton")
 rescanBtn.Size = UDim2.new(0, 70, 0, 22)
-rescanBtn.Position = UDim2.new(1, -140, 0.5, -11)  -- Positioned left of the back button
+rescanBtn.Position = UDim2.new(1, -351, 0.5, -10)  -- Positioned left of the back button
 rescanBtn.BackgroundColor3 = Color3.fromRGB(30, 50, 40)
 rescanBtn.Text = "RESCAN"
 rescanBtn.TextColor3 = Color3.fromRGB(0, 255, 170)
@@ -17949,7 +20025,8 @@ RegisterCommand({
     Modules.IdentityPhantom:Toggle(args[1])
 end)
 
-
+local Players: Players = game:GetService("Players")
+local LocalPlayer: Player = Players.LocalPlayer
 
 Modules.ClassicSwordAnim = {
     State = {
