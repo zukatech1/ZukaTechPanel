@@ -20,14 +20,9 @@ local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
 local PathService = game:GetService("PathfindingService")
 local MarketplaceService = game:GetService("MarketplaceService")
-
+local ContentProvider = game:GetService("ContentProvider")
 
 do
-    local TweenService = game:GetService("TweenService")
-    local CoreGui = game:GetService("CoreGui")
-    local Lighting = game:GetService("Lighting")
-    local ContentProvider = game:GetService("ContentProvider")
-
     local THEME = {
         Title = "Welcome back king.",
         Subtitle = "Made by @OverZuka — We're so back...",
