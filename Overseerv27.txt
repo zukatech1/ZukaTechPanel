@@ -133,15 +133,6 @@ local function InitiateInterception()
         local method = getnamecallmethod()
         local args = {...}
 
-        -- [NEW] Intercepting the modern Raycast API (Silent Aim)
-        if method == "Raycast" and self == workspace and not checkcaller() then
-            local target = ArchitectSuite.GetBestTarget(500)
-            if target then
-                -- Redirect the direction vector to face the target
-                args[2] = (target.Position - args[1]).Unit * 1000 
-                return old_namecall(self, unpack(args))
-            end
-        end
 
         -- [ORIGINAL] Remote Interception logic
         if (method == "FireServer" or method == "InvokeServer") and GhostRegistry.BlockedRemotes[self.Name] then
