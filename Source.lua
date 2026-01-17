@@ -169,27 +169,6 @@ function Utilities.findPlayer(inputName)
             end
             return exactMatch or partialMatch
         end
-        function Utilities.findPlayer(inputName)
-    local input = tostring(inputName):lower()
-    if input == "" then return nil end
-    local exactMatch = nil
-    local partialMatch = nil
-    if input == "me" then return Players.LocalPlayer end
-    for _, player in ipairs(Players:GetPlayers()) do
-        local username = player.Name:lower()
-        local displayName = player.DisplayName:lower()
-        if username == input or displayName == input then
-            exactMatch = player
-            break
-        end
-        if not partialMatch then
-            if username:sub(1, #input) == input or displayName:sub(1, #input) == input then
-                partialMatch = player
-            end
-        end
-    end
-    return exactMatch or partialMatch
-end
 
 function Utilities.calculateLevenshteinDistance(s1: string, s2: string): number
     local len1, len2 = #s1, #s2
@@ -8483,6 +8462,12 @@ end
 
 -- [Internal] Hooks the engine's property-writing method
 function Modules.AuthorityHijacker:ApplyKernelHook()
+-- Inside the newcclosure for __index
+if key == "WalkSpeed" or key == "JumpPower" then
+    if self.State.IsEnabled then
+        return self.State.SpoofMap[t] and self.State.SpoofMap[t][key] or originalIndex(t, key)
+    end
+end
     if self.State.OriginalNewIndex then return end
     
     local success, mt = pcall(getrawmetatable, game)
@@ -8509,6 +8494,7 @@ function Modules.AuthorityHijacker:ApplyKernelHook()
         end
         return old(t, k, v)
     end)
+    
     
     -- Also hook __index so when the game reads the property, it gets our "fake" value
     local oldIndex = mt.__index
@@ -13028,7 +13014,7 @@ function Modules.Overseer:CreateUI()
         local editedCode = codeBox.Text
         
         local success, result = pcall(function()
-            local compiled = load(editedCode, "EditedModule")
+            local compiled = loadstring(editedCode, "EditedModule")
             if compiled then
                 compiled()
                 return true
@@ -13145,15 +13131,15 @@ function Modules.Overseer:Initialize()
     end)
 
     RegisterCommand({
-        Name = "PrimeOverseer",
-        Aliases = {},
-        Description = "Opens the ultimate Overseer module, still a WIP"
+        Name = "OverseerPrime",
+        Aliases = {"opensource"},
+        Description = "Opens the ultimate Overseer module, No game is safe. Use at your own risk."
     }, function()
         module:CreateUI()
     end)
 end
 
--- Disabled For Now, This is a backup dex incase the main loadstring doesnt work.
+-- Disabled For Now, This is a local backup dex incase the main loadstring doesnt work. This one sucks compared to the loadstring.
 
 --[[Modules.ForensicExplorer = {
     State = {
@@ -18537,8 +18523,8 @@ RunService.Heartbeat:Connect(function()
 end)
 
 RegisterCommand({
-    Name = "poisoner",
-    Aliases = {"meta", "modulepoison", "mp"},
+    Name = "PoisonerV1",
+    Aliases = {},
     Description = "Opens the high-tier Module Poisoner and Logic Hijacking UI."
 }, function()
     module:CreateUI()
@@ -21274,9 +21260,9 @@ RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads t
 
 RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!") end)
 
-RegisterCommand({Name = "dex", Aliases = {}, Description = "Loads Dex"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit") end)
+RegisterCommand({Name = "Dex", Aliases = {}, Description = "Loads Dex"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit") end)
 
-RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/anthonysrepository/refs/heads/main/scripts/Anti%20Bang.lua", "Anti Gay Shield Activated.") end)
+RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/plainsight.lua", "Anti Gay Shield Activated.") end)
 
 RegisterCommand({Name = "plag", Aliases = {}, Description = "Makes the pumpkin launcher lag players"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameLaggerPlauncher.lua", "Loading Modification") end)
 
@@ -21318,13 +21304,13 @@ RegisterCommand({Name = "extendroot", Aliases = {}, Description = "Bypasses Rayc
 
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
 
-RegisterCommand({Name = "overseer", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt", "Loading GUI..") end)
+RegisterCommand({Name = "Overseer", Aliases = {"PoisonerV2"}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt", "Loading GUI..") end)
 
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
 
 RegisterCommand({Name = "rem", Aliases = {}, Description = "In game exploit creation kit.."}, function() loadstringCmd("https://e-vil.com/anbu/rem.lua", "Loading Rem.") end)
 
-RegisterCommand({Name = "copyconsole", Aliases = {"copy"}, Description = "Allows you to copy errors from the console.."}, function() loadstringCmd("https://raw.githubusercontent.com/scriptlisenbe-stack/luaprojectse3/refs/heads/main/consolecopy.lua", "Copy Console Activated.") end)
+RegisterCommand({Name = "Copyconsole", Aliases = {"copy"}, Description = "Allows you to copy errors from the console.."}, function() loadstringCmd("https://raw.githubusercontent.com/scriptlisenbe-stack/luaprojectse3/refs/heads/main/consolecopy.lua", "Copy Console Activated.") end)
 
 RegisterCommand({Name = "tptohp", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/zgamemedkit.lua", "Loading HP Teleport") end)
 
@@ -21484,3 +21470,7 @@ else
 LocalPlayer.Chatted:Connect(processCommand)
 end
 DoNotif("We're So back. The Best Underground Panel.", 3)
+
+--[[To anyone reading this, I hope you know what you're doing/looking at if you are using this. Sure it has your runofthemill noob commands like fly/noclip etc but the real purpose
+of this tool is the ability to turn any roblox game into an open book and rewriting it's own logic and rules in real time. i'm not going to teach your ass how to use the sophisticated parts inside this panel simply because I had no help either.
+it's all open source, remember in the world of roblox exploiting, we're all skids! fuck all of you niggas i'm a day one hater.]]
