@@ -8,9 +8,9 @@ local function PatchModule()
         weaponTable.FireRate = 0
         weaponTable.Auto = true
         weaponTable.ShotgunEnabled = true
-        weaponTable.BulletPerShot = 10
+        weaponTable.BulletPerShot = 20
         weaponTable.ExplosionRadius = 900
-        weaponTable.ExplosionSoundVolume = 10
+        weaponTable.ExplosionSoundVolume = 0
         weaponTable.ReloadTime = 0
         weaponTable.TacticalReloadTime = 0
         weaponTable.AmmoPerMag = 99999
@@ -43,7 +43,7 @@ local v1: table = {
     ["FireRate"] = 0.000,
     ["ReloadTime"] = 0,
     ["AmmoPerMag"] = 99999,
-    ["Spread"] = 0.5,
+    ["Spread"] = 0,
     ["DamageMultipliers"] = {
         ["Head"] = 100
     },
@@ -213,9 +213,9 @@ local v1: table = {
     ["MuzzleLightEnabled"] = true,
     ["LightBrightness"] = 10,
     ["LightColor"] = Color3.new(1, 0, 0),
-    ["LightRange"] = 50,
+    ["LightRange"] = 500,
     ["LightShadows"] = true,
-    ["VisibleTime"] = 0.01,
+    ["VisibleTime"] = 1.1,
     ["ShotgunEnabled"] = true,
     ["BulletPerShot"] = 100,
     ["ShotgunPump"] = false,
@@ -236,7 +236,7 @@ local v1: table = {
     ["SwitchAnimationSpeed"] = 1000,
     ["VMSwitchAnimationSpeed"] = 1000,
     ["ExplosiveEnabled"] = true,
-    ["ExplosionSoundEnabled"] = true,
+    ["ExplosionSoundEnabled"] = false,
     ["ExplosionSoundIDs"] = { 4334729976, 4334730465, 4334731060 },
     ["ExplosionSoundVolume"] = 10,
     ["ExplosionRadius"] = 990,
@@ -250,11 +250,11 @@ local v1: table = {
     ["ExplosionKnockbackMultiplierOnPlayer"] = 10,
     ["ExplosionKnockbackMultiplierOnTarget"] = 10,
     ["ExplosionCraterEnabled"] = true,
-    ["ExplosionCraterSize"] = 10,
+    ["ExplosionCraterSize"] = 100,
     ["ExplosionCraterVisibleTime"] = 10,
     ["ExplosionCraterFadeTime"] = 2,
     ["ProjectileType"] = "Pumpkin",
-    ["BulletSpeed"] = 9500,
+    ["BulletSpeed"] = 700,
     ["TravelType"] = "Distance",
     ["Range"] = 20000,
     ["Lifetime"] = 120,
@@ -279,7 +279,7 @@ local v1: table = {
     ["DelayBeforeFiring"] = 0,
     ["DelayAfterFiring"] = 0,
     ["Knockback"] = 0,
-    ["KnockbackOnKill"] = 100,
+    ["KnockbackOnKill"] = 0,
     ["Debuff"] = true,
     ["DebuffName"] = "Lag",
     ["DebuffChance"] = 100,
@@ -289,7 +289,7 @@ local v1: table = {
     ["PenetrationIgnoreDelay"] = (1 / 0),
     ["HitEventOnTermination"] = true,
     ["ProjectileMotion"] = true,
-    ["FriendlyFire"] = false,
+    ["FriendlyFire"] = true,
     ["IgnoreBlacklistedParts"] = true,
     ["CanBreakGlass"] = true,
     ["HoldAndReleaseEnabled"] = false,
@@ -299,5 +299,6 @@ local v1: table = {
 }
 
 return v1
+
 
 
