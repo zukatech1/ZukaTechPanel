@@ -6,31 +6,51 @@ For Reverse Engineering.
 Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
 --]]
 
-local HttpService = game:GetService("HttpService")
-local ProximityPromptService = game:GetService("ProximityPromptService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
+local _GC_START = collectgarbage("count")
+local _TIMESTAMP = os.clock()
+local function get_memory_signature(target_name)
+    local found = 0
+    for _, obj in ipairs(getgc(true)) do
+        if type(obj) == "function" and debug.getinfo(obj).name == target_name then
+            found = found + 1
+        end
+    end
+    return found
+end
+print(string.format("--> [INTERNAL]: Memory Baseline: %.2f KB | Active Objects: %d", _GC_START, #getgc()))
+
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
-local TextChatService = game:GetService("TextChatService")
-local TeleportService = game:GetService("TeleportService")
-local TextService = game:GetService("TextService")
-local PhysicsService = game:GetService("PhysicsService")
+local TweenService = game:GetService("TweenService")
+local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
+local HapticService = game:GetService("HapticService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
+local ServerStorage = game:GetService("ServerStorage")
+local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
+local StarterGui = game:GetService("StarterGui")
+local CoreGui = game:GetService("CoreGui")
+local TextChatService = game:GetService("TextChatService")
+local TextService = game:GetService("TextService")
+local NotificationService = game:GetService("NotificationService")
+local PathfindingService = game:GetService("PathfindingService")
+local PhysicsService = game:GetService("PhysicsService")
+local CollectionService = game:GetService("CollectionService")
+local SoundService = game:GetService("SoundService")
 local Lighting = game:GetService("Lighting")
-local PathService = game:GetService("PathfindingService")
+local Debris = game:GetService("Debris")
+local LogService = game:GetService("LogService")
+local Stats = game:GetService("Stats")
+local TestService = game:GetService("TestService")
+local TeleportService = game:GetService("TeleportService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local MarketplaceService = game:GetService("MarketplaceService")
-
+local ContentProvider = game:GetService("ContentProvider")
 
 do
-    local TweenService = game:GetService("TweenService")
-    local CoreGui = game:GetService("CoreGui")
-    local Lighting = game:GetService("Lighting")
-    local ContentProvider = game:GetService("ContentProvider")
-
     local THEME = {
         Title = "Welcome back king.",
         Subtitle = "Made by @OverZuka — We're so back...",
@@ -200,7 +220,7 @@ function Utilities.calculateLevenshteinDistance(s1: string, s2: string): number
 
     return matrix[len1][len2]
 end
-        local Prefix = "."
+        local Prefix = ";"
         local Commands = {}
         local CommandInfo = {}
         local Modules = {}
@@ -3914,317 +3934,148 @@ hell yeah this is an example that works for zombie game upd3, this can work for 
 
 --]]
 
-Modules.ForceEquip = {
+Modules.NetCommander = {
     State = {
-        IsRemoteFunction = false,
-        RemotePath = nil
+        PinnedRemote = nil,
+        PinnedPath = "",
+        LastResult = nil
     },
-    Dependencies = {"Players"}
+    Dependencies = {"HttpService", "ReplicatedStorage"}
 }
 
+--// --- Internal Forensic Utilities ---
 
-function Modules.ForceEquip:_getInstanceFromPath(path)
+function Modules.NetCommander:_resolvePath(path)
+    if not path or path == "" then return nil end
     local current = game
-    for component in string.gmatch(path, "[^%.]+") do
-        if string.find(component, ":GetService") then
-            local serviceName = component:match("'(.-)'") or component:match('"(.-)"')
-            if serviceName then
-                current = current:GetService(serviceName)
-            else
-                return nil
-            end
+    -- Handle shorthand for common services
+    path = path:gsub("^RS%.", "ReplicatedStorage."):gsub("^WS%.", "Workspace.")
+    
+    for segment in string.gmatch(path, "[^%.]+") do
+        local serviceMatch = segment:match(":GetService%(['\"](.+)['\"]%)")
+        if serviceMatch then
+            current = game:GetService(serviceMatch)
         else
-            if current then
-                current = current:FindFirstChild(component)
-            else
-                return nil
-            end
+            current = current and current:FindFirstChild(segment)
         end
+        if not current then break end
     end
     return current
 end
 
--- [Internal] The original execution logic for force equipping a single weapon.
-function Modules.ForceEquip:Execute(weaponName)
-    if not self.State.RemotePath then
-        return DoNotif("Error: Remote path has not been set. Use ;setremotepath first.", 3)
-    end
-    if not weaponName then
-        return DoNotif("Usage: ;forceequip <WeaponName>", 3)
-    end
-
-    -- For simplicity, this function now just calls the new generic one.
-    self:ExecuteWithArgs({weaponName})
-end
-
---- [NEW] Executes a fire/invoke on the configured remote with a variable number of arguments.
--- @param customArgs <table> An array of arguments to be sent.
-function Modules.ForceEquip:ExecuteWithArgs(customArgs)
-    if not self.State.RemotePath then
-        return DoNotif("Error: Remote path has not been set. Use ;setremotepath first.", 3)
-    end
-
-    local remote = self:_getInstanceFromPath(self.State.RemotePath)
-    if not remote then
-        return DoNotif("Error: Remote not found at path: " .. self.State.RemotePath, 4)
-    end
-
-    -- Argument processing: Converts strings to their likely intended types.
-    local fireArgs = {}
-    for _, argStr in ipairs(customArgs or {}) do
-        if tonumber(argStr) then
-            table.insert(fireArgs, tonumber(argStr))
-        elseif argStr:lower() == "true" then
-            table.insert(fireArgs, true)
-        elseif argStr:lower() == "false" then
-            table.insert(fireArgs, false)
-        elseif argStr:lower() == "nil" then
-            table.insert(fireArgs, nil)
+function Modules.NetCommander:_parseArgs(argsTable)
+    local processed = {}
+    for _, arg in ipairs(argsTable) do
+        local lower = arg:lower()
+        -- 1. Numbers
+        if tonumber(arg) then
+            table.insert(processed, tonumber(arg))
+        -- 2. Booleans
+        elseif lower == "true" then
+            table.insert(processed, true)
+        elseif lower == "false" then
+            table.insert(processed, false)
+        -- 3. Nil
+        elseif lower == "nil" then
+            table.insert(processed, nil)
+        -- 4. JSON Tables (e.g. {"Amount":500})
+        elseif arg:sub(1,1) == "{" and arg:sub(-1,-1) == "}" then
+            local success, tbl = pcall(function() 
+                return game:GetService("HttpService"):JSONDecode(arg) 
+            end)
+            table.insert(processed, success and tbl or arg)
+        -- 5. LocalPlayer Shorthand
+        elseif lower == "me" or lower == "localplayer" then
+            table.insert(processed, game:GetService("Players").LocalPlayer)
+        -- 6. String (Default)
         else
-            table.insert(fireArgs, argStr)
+            table.insert(processed, arg)
         end
     end
-
-    -- Validate that the found remote matches the configured type.
-    if self.State.IsRemoteFunction and not remote:IsA("RemoteFunction") then
-        return DoNotif("Config Error: Remote is not a RemoteFunction. Use ;setremotetype.", 3)
-    elseif not self.State.IsRemoteFunction and not remote:IsA("RemoteEvent") then
-        return DoNotif("Config Error: Remote is not a RemoteEvent. Use ;setremotetype.", 3)
-    end
-
-    if self.State.IsRemoteFunction then
-        DoNotif(string.format("Invoking with %d custom arguments...", #fireArgs), 2)
-        local success, result = pcall(function() return remote:InvokeServer(unpack(fireArgs)) end)
-        if not success then
-            warn("--> [FireRemote] Invoke FAILED:", tostring(result))
-            DoNotif("Invoke failed. See console (F9).", 3)
-        else
-            print("--> [FireRemote] Invoke SUCCESS. Result:", result)
-            DoNotif("Invoke successful. Result printed to console.", 2)
-        end
-    else
-        DoNotif(string.format("Firing with %d custom arguments...", #fireArgs), 2)
-        local success, err = pcall(function() remote:FireServer(unpack(fireArgs)) end)
-        if not success then
-            warn("--> [FireRemote] Fire FAILED:", tostring(err))
-            DoNotif("Fire failed. See console (F9).", 3)
-        end
-    end
+    return processed
 end
 
+--// --- Core Execution ---
 
--- Initializes the module and registers its commands.
-function Modules.ForceEquip:Initialize()
-    local module = self
-    module.Services = {}
-    for _, serviceName in ipairs(module.Dependencies or {}) do
-        module.Services[serviceName] = game:GetService(serviceName)
+function Modules.NetCommander:Execute(path, args, isInvoke)
+    local target = self:_resolvePath(path)
+    if not target then 
+        return DoNotif("Target not found: " .. tostring(path), 3) 
     end
 
-    RegisterCommand({
-        Name = "forceequip",
-        Aliases = {"give"},
-        Description = "Fires the configured remote to equip a weapon."
-    }, function(args)
-        module:Execute(args[1])
-    end)
-
-    -- [NEW] Command for firing the same remote path with custom arguments.
-    RegisterCommand({
-        Name = "firepath",
-        Aliases = {"fpath", "fire"},
-        Description = "Fires the configured remote with custom arguments."
-    }, function(args)
-        module:ExecuteWithArgs(args)
-    end)
-
-    RegisterCommand({
-        Name = "setremotepath",
-        Aliases = {"setpath"},
-        Description = "Sets the path for the ForceEquip module."
-    }, function(args)
-        if not args[1] then
-            return DoNotif("Usage: ;setremotepath <path>", 3)
-        end
-        module.State.RemotePath = args[1]
-        DoNotif("ForceEquip remote path set to: " .. args[1], 3)
-    end)
-
-    RegisterCommand({
-        Name = "setremotetype",
-        Aliases = {"settype"},
-        Description = "Sets the remote type for ForceEquip."
-    }, function(args)
-        local typeStr = args[1] and args[1]:lower()
-        if typeStr == "function" then
-            module.State.IsRemoteFunction = true
-            DoNotif("ForceEquip remote type set to: RemoteFunction", 3)
-        elseif typeStr == "event" then
-            module.State.IsRemoteFunction = false
-            DoNotif("ForceEquip remote type set to: RemoteEvent", 3)
-        else
-            return DoNotif("Usage: ;setremotetype <event|function>", 3)
-        end
-    end)
-end
-
-
-
-
-Modules.NpcEsp = {
-    State = {
-        IsEnabled = false,
-        Connections = {},
-        TrackedNpcs = {} -- Key: Model, Value: {Highlight, Billboard, Humanoid, RootPart}
-    },
-    Dependencies = {"Players", "RunService", "Workspace"}
-}
-
--- [Internal] Creates and manages the visual elements for a single NPC.
-function Modules.NpcEsp:_createEspForNpc(npcModel)
-    if self.State.TrackedNpcs[npcModel] then return end -- Already tracking
-
-    local humanoid = npcModel:FindFirstChildOfClass("Humanoid")
-    local rootPart = npcModel:FindFirstChild("HumanoidRootPart") or npcModel.PrimaryPart
+    local cleanArgs = self:_parseArgs(args)
     
-    if not (humanoid and rootPart and humanoid.Health > 0) then return end
-    
-    -- 1. Create the Highlight
-    local highlight = Instance.new("Highlight", npcModel)
-    highlight.FillColor = Color3.fromRGB(255, 255, 0) -- Yellow for NPCs
-    highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
-    highlight.FillTransparency = 0.7
-    highlight.OutlineTransparency = 0.4
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-
-    -- 2. Create the Billboard GUI
-    local billboard = Instance.new("BillboardGui", rootPart)
-    billboard.Name = "NpcEspBillboard"
-    billboard.Adornee = rootPart
-    billboard.AlwaysOnTop = true
-    billboard.Size = UDim2.fromOffset(150, 40)
-    billboard.StudsOffset = Vector3.new(0, 2, 0)
-    
-    -- Name Label
-    local nameLabel = Instance.new("TextLabel", billboard)
-    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    nameLabel.Text = npcModel.Name
-    nameLabel.Font = Enum.Font.Code
-    nameLabel.TextSize = 16
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.BackgroundTransparency = 1
-    
-    -- Health & Distance Label
-    local infoLabel = Instance.new("TextLabel", billboard)
-    infoLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    infoLabel.Position = UDim2.new(0, 0, 0.5, 0)
-    infoLabel.Text = "" -- Will be updated by the loop
-    infoLabel.Font = Enum.Font.Code
-    infoLabel.TextSize = 14
-    infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    infoLabel.BackgroundTransparency = 1
-
-    -- 3. Store the created objects for tracking and cleanup
-    self.State.TrackedNpcs[npcModel] = {
-        Highlight = highlight,
-        Billboard = billboard,
-        InfoLabel = infoLabel,
-        Humanoid = humanoid,
-        RootPart = rootPart
-    }
-end
-
--- [Internal] Safely destroys the visual elements for a single NPC.
-function Modules.NpcEsp:_removeEspForNpc(npcModel)
-    local trackedData = self.State.TrackedNpcs[npcModel]
-    if not trackedData then return end
-    
-    pcall(function() trackedData.Highlight:Destroy() end)
-    pcall(function() trackedData.Billboard:Destroy() end)
-    
-    self.State.TrackedNpcs[npcModel] = nil
-end
-
--- [Internal] The main loop that updates visuals and finds new NPCs.
-function Modules.NpcEsp:_onHeartbeat()
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-    
-    -- Update existing NPCs and clean up dead/removed ones
-    for npcModel, data in pairs(self.State.TrackedNpcs) do
-        if not (npcModel and npcModel.Parent and data.Humanoid and data.Humanoid.Health > 0) then
-            self:_removeEspForNpc(npcModel)
-        else
-            -- Update distance and health
-            local distance = math.floor((myRoot.Position - data.RootPart.Position).Magnitude)
-            data.InfoLabel.Text = string.format("HP: %.0f | Dist: %d", data.Humanoid.Health, distance)
-        end
-    end
-    
-    -- Scan for new NPCs
-    for _, model in ipairs(self.Services.Workspace:GetChildren()) do
-        if model:IsA("Model") and model:FindFirstChildOfClass("Humanoid") then
-            -- Check if it's not a player and not already tracked
-            if not self.Services.Players:GetPlayerFromCharacter(model) and not self.State.TrackedNpcs[model] then
-                self:_createEspForNpc(model)
+    if target:IsA("RemoteEvent") then
+        pcall(function() target:FireServer(unpack(cleanArgs)) end)
+        DoNotif("Fired Event: " .. target.Name, 2)
+    elseif target:IsA("RemoteFunction") then
+        DoNotif("Invoking Function...", 1.5)
+        task.spawn(function()
+            local success, result = pcall(function() return target:InvokeServer(unpack(cleanArgs)) end)
+            if success then
+                print("--> [NET]: Invoke Result for " .. target.Name .. ":", result)
+                self.State.LastResult = result
+                DoNotif("Invoke Success. Result in F9.", 3)
+            else
+                warn("--> [NET]: Invoke Failed:", result)
+                DoNotif("Invoke FAILED.", 3)
             end
-        end
-    end
-end
-
---- Enables the NPC ESP system.
-function Modules.NpcEsp:Enable()
-    if self.State.IsEnabled then return end
-    self.State.IsEnabled = true
-    
-    self.State.Connections.Heartbeat = self.Services.RunService.Heartbeat:Connect(function() self:_onHeartbeat() end)
-    
-    DoNotif("NPC ESP: ENABLED.", 2)
-end
-
---- Disables the NPC ESP system and cleans up all visuals.
-function Modules.NpcEsp:Disable()
-    if not self.State.IsEnabled then return end
-    self.State.IsEnabled = false
-    
-    if self.State.Connections.Heartbeat then
-        self.State.Connections.Heartbeat:Disconnect()
-        self.State.Connections.Heartbeat = nil
-    end
-    
-    for npcModel, _ in pairs(self.State.TrackedNpcs) do
-        self:_removeEspForNpc(npcModel)
-    end
-    table.clear(self.State.TrackedNpcs)
-    
-    DoNotif("NPC ESP: DISABLED.", 2)
-end
-
---- Toggles the NPC ESP state.
-function Modules.NpcEsp:Toggle()
-    if self.State.IsEnabled then
-        self:Disable()
+        end)
     else
-        self:Enable()
+        DoNotif("Error: Target is not a Remote.", 3)
     end
 end
 
---- Initializes the module, loads services, and registers the command.
-function Modules.NpcEsp:Initialize()
+--// --- Command Registration ---
+
+function Modules.NetCommander:Initialize()
     local module = self
-    module.Services = {}
-    for _, serviceName in ipairs(module.Dependencies or {}) do
-        module.Services[serviceName] = game:GetService(serviceName)
-    end
-    
+
+    -- Command: One-off Fire (Usage: ;fire RS.Remotes.Eat Apple 1 true)
     RegisterCommand({
-        Name = "npcesp",
-        Aliases = {"aiesp"},
-        Description = "Toggles ESP for non-player characters (NPCs) in the workspace."
-    }, function()
-        module:Toggle()
+        Name = "fire",
+        Aliases = {"fremote", "rf"},
+        Description = "Fires any RemoteEvent. Usage: ;fire [Path] [Args...]"
+    }, function(args)
+        if #args < 1 then return DoNotif("Usage: ;fire [Path] [Args]", 3) end
+        local path = table.remove(args, 1)
+        module:Execute(path, args, false)
+    end)
+
+    -- Command: One-off Invoke (Usage: ;inv RS.Functions.GetData true)
+    RegisterCommand({
+        Name = "invoke",
+        Aliases = {"inv", "rfcall"},
+        Description = "Invokes any RemoteFunction. Usage: ;inv [Path] [Args...]"
+    }, function(args)
+        if #args < 1 then return DoNotif("Usage: ;inv [Path] [Args]", 3) end
+        local path = table.remove(args, 1)
+        module:Execute(path, args, true)
+    end)
+
+    -- Command: Pin a Remote for quick spamming/usage
+    RegisterCommand({
+        Name = "pin",
+        Aliases = {"setremote", "mark"},
+        Description = "Pins a remote path for the ;run command."
+    }, function(args)
+        if not args[1] then return DoNotif("Usage: ;pin [Path]", 3) end
+        module.State.PinnedPath = args[1]
+        DoNotif("Pinned: " .. args[1], 2)
+    end)
+
+    -- Command: Run the pinned remote
+    RegisterCommand({
+        Name = "runpin",
+        Aliases = {"r", "execpin"},
+        Description = "Fires/Invokes the pinned remote with new args."
+    }, function(args)
+        if module.State.PinnedPath == "" then return DoNotif("No remote pinned. Use ;pin", 3) end
+        module:Execute(module.State.PinnedPath, args)
     end)
 end
+
+
 
 RegisterCommand({
     Name = "antireset",
@@ -7366,9 +7217,6 @@ Modules.AdBlock = {
     Services = {}
 }
 
--- =========================
--- [PRIVATE] AD DETECTION
--- =========================
 
 local AD_KEYWORDS = {
     "ad", "ads", "advert", "sponsor", "promo", "promotion"
@@ -7426,9 +7274,6 @@ function Modules.AdBlock:_processObject(obj)
     end
 end
 
--- =========================
--- ENABLE
--- =========================
 
 function Modules.AdBlock:Enable()
     if self.State.IsEnabled then
@@ -7473,10 +7318,6 @@ function Modules.AdBlock:Enable()
     end
 end
 
--- =========================
--- DISABLE
--- =========================
-
 function Modules.AdBlock:Disable()
     if not self.State.IsEnabled then
         DoNotif("AdBlock not active.", 2)
@@ -7500,10 +7341,6 @@ function Modules.AdBlock:Toggle()
         self:Enable()
     end
 end
-
--- =========================
--- INIT
--- =========================
 
 function Modules.AdBlock:Initialize()
     for _, serviceName in ipairs(self.Dependencies) do
@@ -7807,7 +7644,7 @@ function Modules.AntiPlayerPhysics:Initialize()
     local module = self
     RegisterCommand({
         Name = "nocollide",
-        Aliases = {},
+        Aliases = {"nofling"},
         Description = "Toggles a simple anti-fling that makes other players non-collidable."
     }, function()
         module:Toggle()
@@ -10927,6 +10764,25 @@ function Modules.ForceRespawn:Initialize()
         Modules.ForceRespawn:Execute()
     end)
 end
+
+RegisterCommand({
+    Name = "gclog",
+    Aliases = {"memcheck", "gcinfo"},
+    Description = "Dumps current Garbage Collector stats to the console."
+}, function()
+    local current = collectgarbage("count")
+    local objects = #getgc()
+    local diff = current - _GC_START
+    
+    print("--- [GC] ---")
+    print(string.format("Baseline Memory: %.2f KB", _GC_START))
+    print(string.format("Current Memory: %.2f KB", current))
+    print(string.format("Memory Delta: %.2f KB", diff))
+    print(string.format("Live Lua Objects: %d", objects))
+    print("----------------------------")
+    
+    DoNotif(string.format("Memory Usage: %.2f KB", current), 2)
+end)
 
 Modules.Overseer = {
     State = {
@@ -14271,6 +14127,119 @@ function Modules.Aura:Initialize()
                 module:Enable()
             end
         end
+    end)
+end
+
+Modules.VoodooDoll = {
+    State = { IsActive = false, Target = nil, Connection = nil },
+    Config = { OFFSET = Vector3.new(0, 5, 0) },
+    Dependencies = {"Players", "RunService"}
+}
+
+function Modules.VoodooDoll:Possess(targetName)
+    local targetPlr = Utilities.findPlayer(targetName)
+    if not targetPlr or not targetPlr.Character then return DoNotif("Target not found.", 2) end
+    
+    self.State.IsActive = true
+    self.State.Target = targetPlr.Character
+    
+    self.State.Connection = RunService.Heartbeat:Connect(function()
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local tRoot = self.State.Target:FindFirstChild("HumanoidRootPart")
+        
+        if myRoot and tRoot then
+            -- The Netless Trick: Setting velocity to high numbers forces ownership in some engines
+            tRoot.Velocity = Vector3.new(0, 30, 0) 
+            tRoot.CFrame = myRoot.CFrame * CFrame.new(self.Config.OFFSET)
+        end
+    end)
+    DoNotif("Voodoo: Possessing " .. targetPlr.Name, 2)
+end
+
+function Modules.VoodooDoll:Initialize()
+    RegisterCommand({
+        Name = "voodoo",
+        Aliases = {"possess", "control"},
+        Description = "Locally possess an unanchored character/object."
+    }, function(args)
+        if self.State.IsActive then
+            self.State.Connection:Disconnect()
+            self.State.IsActive = false
+            DoNotif("Voodoo: Released target.", 2)
+        else
+            self:Possess(args[1])
+        end
+    end)
+end
+
+Modules.MapStripper = {
+    State = { IsEnabled = false, Connection = nil },
+    Dependencies = {"Players", "UserInputService"}
+}
+
+function Modules.MapStripper:Initialize()
+    local lp = Players.LocalPlayer
+    local mouse = lp:GetMouse()
+
+    RegisterCommand({
+        Name = "strip",
+        Aliases = {"del", "erase"},
+        Description = "Toggle: Click any object to delete it locally."
+    }, function()
+        self.State.IsEnabled = not self.State.IsEnabled
+        
+        if self.State.IsEnabled then
+            self.State.Connection = mouse.Button1Down:Connect(function()
+                local target = mouse.Target
+                if target and not target:IsDescendantOf(lp.Character) then
+                    print("--> [STRIPPER]: Removed " .. target:GetFullName())
+                    target:Destroy()
+                end
+            end)
+            DoNotif("(Click to delete)", 2)
+        else
+            if self.State.Connection then self.State.Connection:Disconnect() end
+            DoNotif("Map Stripper: DISABLED", 2)
+        end
+    end)
+end
+
+Modules.AdminWatcher = {
+    State = { Detected = {} },
+    Config = { SIGNATURES = {"Adonis", "HDAdmin", "Kohl", "Cmdr", "Flux"} }
+}
+
+function Modules.AdminWatcher:Scan()
+    local found = {}
+    -- Scan the global environments
+    for key, _ in pairs(_G) do
+        for _, sig in ipairs(self.Config.SIGNATURES) do
+            if tostring(key):find(sig) then table.insert(found, tostring(key)) end
+        end
+    end
+    
+    for key, _ in pairs(shared) do
+        for _, sig in ipairs(self.Config.SIGNATURES) do
+            if tostring(key):find(sig) then table.insert(found, tostring(key)) end
+        end
+    end
+
+    if #found > 0 then
+        DoNotif("ADMIN SYSTEMS DETECTED: " .. table.concat(found, ", "), 5)
+        print("--- [ADMIN FORENSICS] ---")
+        for _, name in ipairs(found) do print(" [!] Warning: " .. name .. " is active.") end
+    else
+        DoNotif("No common admin systems found.", 2)
+    end
+end
+
+function Modules.AdminWatcher:Initialize()
+    RegisterCommand({
+        Name = "checkadmin",
+        Aliases = {"scanenv"},
+        Description = "Scans game memory for active admin systems."
+    }, function()
+        self:Scan()
     end)
 end
 
@@ -17846,16 +17815,15 @@ Modules.CallumAI = {
         ExplorationBuffer = {}
     },
     Config = {
-        -- REPLACEMENT REQUIRED: Insert your OpenRouter key here
         API_KEY = "", 
-        MODEL = "qwen/qwen3-coder:free",
+        MODEL = "",
         ACCENT_COLOR = Color3.fromRGB(0, 255, 200),
         SCAN_KEYWORDS = {"network", "remote", "data", "store", "inventory", "purchase", "handler", "event", "admin", "combat", "security", "anti", "function", "state", "check", "weapon", "skill", "mana", "stamina", "health", "damage"},
         MAX_CONTEXT_LINES = 150
     }
 }
 
--- Private utility: Formulates the capability manifest for the AI
+
 function Modules.CallumAI:_getPanelContext(): string
     local manifest: string = "Exploit Panel Capability Manifest:\n"
     for name: string, _ in pairs(Modules) do
@@ -20349,8 +20317,6 @@ function Modules.AnimSynth:GenerateCustomPose(poseType)
     
     local hash = "rbxassetid://0" -- Fallback
 
-    -- Build a "Broken" pose (Arms behind back, character tilted)
-    -- This is great for making your hitboxes harder to read.
     local root = Instance.new("Pose")
     root.Name = "HumanoidRootPart"
     root.Weight = 1
@@ -20500,6 +20466,1880 @@ RegisterCommand({
     Modules.ToolAnimForensics:Set(args[1], args[2])
 end)
 
+Modules.Guardian = {
+    State = {
+        IsEnabled = false,
+        PlayerData = {}, -- [Player] = {LastPos, AirTime, Hits, LastUpdate}
+        Connections = {},
+        UI = nil
+    },
+    Config = {
+        MAX_AIR_TIME = 4.5,      -- Seconds before flight detection
+        TP_THRESHOLD = 85,       -- Max studs per frame (accounts for lag)
+        HIT_THRESHOLD = 3,       -- Consecutive detections needed to flag
+        GRACE_PERIOD = 5,        -- Seconds to ignore after spawning
+        TOOL_COOLDOWN = 0.5,
+        ACCENT_COLOR = Color3.fromRGB(255, 50, 50)
+    },
+    Dependencies = {"Players", "RunService", "Workspace", "CoreGui"},
+    Services = {}
+}
+
+-- [Internal] Cleans up tracking for a specific player
+function Modules.Guardian:_cleanupPlayer(player)
+    self.State.PlayerData[player] = nil
+end
+
+-- [Internal] Advanced validation to prevent false positives
+function Modules.Guardian:_isValidTarget(player, character, root, humanoid)
+    if not character or not root or not humanoid then return false end
+    if humanoid.Health <= 0 then return false end
+    if humanoid.Sit or root:FindFirstChildOfClass("Weld") then return false end -- Ignore if seated/welded
+    
+    local data = self.State.PlayerData[player]
+    if not data or (tick() - data.SpawnTime < self.Config.GRACE_PERIOD) then return false end
+    
+    return true
+end
+
+function Modules.Guardian:Monitor()
+    for _, player in ipairs(self.Services.Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        
+        local character = player.Character
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        
+        if not self:_isValidTarget(player, character, root, humanoid) then continue end
+        
+        local data = self.State.PlayerData[player]
+        local currentPos = root.Position
+        local now = tick()
+        local dt = now - data.LastUpdate
+        
+        -- 1. Velocity-Aware Teleport Check
+        if data.LastPosition then
+            local distance = (currentPos - data.LastPosition).Magnitude
+            -- Adjust threshold based on character speed
+            local maxReasonable = (humanoid.WalkSpeed * dt) + 20 
+            
+            if distance > self.Config.TP_THRESHOLD and distance > maxReasonable then
+                data.Hits += 1
+                if data.Hits >= self.Config.HIT_THRESHOLD then
+                    DoNotif("[DETECTION] " .. player.Name .. ": CFrame TP (" .. math.floor(distance) .. " studs)", 4)
+                    self:_flagPlayer(player)
+                end
+            else
+                data.Hits = math.max(0, data.Hits - 0.1) -- Slow decay
+            end
+        end
+
+        -- 2. Enhanced Flight/Hover Check
+        if humanoid.FloorMaterial == Enum.Material.Air then
+            -- Check if they are actually moving vertically (falling)
+            local verticalVel = math.abs(root.AssemblyLinearVelocity.Y)
+            if verticalVel < 2 then -- They are hovering or moving horizontally in air
+                data.AirTime += dt
+                if data.AirTime > self.Config.MAX_AIR_TIME then
+                    DoNotif("[DETECTION] " .. player.Name .. ": Sustained Hover/Flight", 4)
+                    self:_flagPlayer(player)
+                    data.AirTime = 0 -- Reset to prevent spam
+                end
+            end
+        else
+            data.AirTime = 0
+        end
+
+        data.LastPosition = currentPos
+        data.LastUpdate = now
+    end
+end
+
+function Modules.Guardian:_flagPlayer(player)
+    -- Visual marker using the existing Highlight logic
+    if Modules.HighlightPlayer then
+        Modules.HighlightPlayer:ApplyHighlight(player.Character)
+    end
+    -- Log to the panel's terminal
+    if Modules.CommandBar then
+        Modules.CommandBar:AddOutput("CRITICAL: Flagged " .. player.Name .. " for physics manipulation.", self.Config.ACCENT_COLOR)
+    end
+end
+
+function Modules.Guardian:Enable()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+    
+    local function initPlayer(p)
+        self.State.PlayerData[p] = {
+            LastPosition = nil,
+            LastUpdate = tick(),
+            AirTime = 0,
+            Hits = 0,
+            SpawnTime = tick()
+        }
+        p.CharacterAdded:Connect(function()
+            if self.State.PlayerData[p] then
+                self.State.PlayerData[p].SpawnTime = tick()
+                self.State.PlayerData[p].AirTime = 0
+            end
+        end)
+    end
+
+    for _, p in ipairs(self.Services.Players:GetPlayers()) do initPlayer(p) end
+    
+    self.State.Connections.Added = self.Services.Players.PlayerAdded:Connect(initPlayer)
+    self.State.Connections.Removing = self.Services.Players.PlayerRemoving:Connect(function(p) 
+        self:_cleanupPlayer(p) 
+    end)
+    
+    self.State.Connections.Loop = self.Services.RunService.Heartbeat:Connect(function()
+        self:Monitor()
+    end)
+
+    DoNotif("Guardian Forensic Monitor: ONLINE", 2)
+end
+
+function Modules.Guardian:Disable()
+    self.State.IsEnabled = false
+    for _, conn in pairs(self.State.Connections) do conn:Disconnect() end
+    table.clear(self.State.Connections)
+    table.clear(self.State.PlayerData)
+    DoNotif("Guardian Forensic Monitor: OFFLINE", 2)
+end
+
+function Modules.Guardian:Initialize()
+    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+    
+    RegisterCommand({
+        Name = "logs",
+        Aliases = {},
+        Description = "Toggles automated detection for teleports and flight on other players."
+    }, function()
+        if self.State.IsEnabled then self:Disable() else self:Enable() end
+    end)
+end
+
+Modules.Aggressor = {
+    State = {
+        IsEnabled = false,
+        TargetPlayer = nil,
+        LoopThread = nil,
+        Index = 0
+    },
+    Config = {
+        Frequency = 0.35,
+        OffsetDistance = 1.5,
+        VerticalAdjustment = 1 -- Extra height to prevent floor clipping
+    },
+    Dependencies = {"Players", "RunService"},
+    Services = {}
+}
+
+function Modules.Aggressor:Stop()
+    self.State.IsEnabled = false
+    if self.State.LoopThread then
+        task.cancel(self.State.LoopThread)
+        self.State.LoopThread = nil
+    end
+    
+    -- Restore Humanoid properties
+    local char = game:GetService("Players").LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+    end
+    
+    self.State.TargetPlayer = nil
+    DoNotif("Aggressor sequence terminated.", 2)
+end
+
+function Modules.Aggressor:Start(targetPlayer)
+    if self.State.IsEnabled then self:Stop() end
+    
+    local lp = game:GetService("Players").LocalPlayer
+    local char = lp.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if not (hum and root) then return DoNotif("Character not found.", 3) end
+    
+    self.State.IsEnabled = true
+    self.State.TargetPlayer = targetPlayer
+    self.State.Index = 0
+    
+    -- Disable seating to prevent the target's seat (if any) from hijacking you
+    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+    hum.Sit = false
+
+    self.State.LoopThread = task.spawn(function()
+        while self.State.IsEnabled do
+            local tChar = targetPlayer.Character
+            local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
+            local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+            
+            -- Validation: Ensure target and self are still alive and valid
+            if not (tChar and tHum and tRoot and char.Parent and hum.Health > 0) then
+                self:Stop()
+                break
+            end
+
+            self.State.Index += self.Config.Frequency
+            
+            -- Sync Jump logic (if target is airborne, we jump to match)
+            if tHum.FloorMaterial == Enum.Material.Air and hum.FloorMaterial ~= Enum.Material.Air and not tHum.Sit then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+
+            -- Calculate oscillating position
+            local sinValue = math.sin(self.State.Index) * self.Config.OffsetDistance
+            local offset
+            
+            if tHum.Sit then
+                -- Move in front if they are sitting
+                offset = CFrame.new(0, 0, -self.Config.OffsetDistance + sinValue)
+            else
+                -- Move behind if they are standing
+                offset = CFrame.new(0, 0, self.Config.OffsetDistance + sinValue)
+            end
+
+            -- Move and Rotate
+            local targetGoal = tRoot.CFrame * offset
+            root.CFrame = CFrame.new(targetGoal.Position, Vector3.new(tRoot.Position.X, root.Position.Y, tRoot.Position.Z))
+            
+            task.wait() -- Match engine step
+        end
+    end)
+    
+    DoNotif("Aggressor sequence started on " .. targetPlayer.Name, 2)
+end
+
+--// --- Command Registration ---
+RegisterCommand({
+    Name = "bang",
+    Aliases = {},
+    Description = "Starts a baby making process."
+}, function(args)
+    local target = Utilities.findPlayer(args[1] or "")
+    if target and target ~= game:GetService("Players").LocalPlayer then
+        Modules.Aggressor:Start(target)
+    else
+        DoNotif("Invalid player target.", 3)
+    end
+end)
+
+RegisterCommand({
+    Name = "unbang",
+    Aliases = {},
+    Description = "Stops the baby making process."
+}, function()
+    Modules.Aggressor:Stop()
+end)
+
+Modules.Hugger = {
+    State = {
+        IsEnabled = false,
+        FromFront = false,
+        Target = nil,
+        Tracks = {},
+        Walls = {},
+        UI = nil,
+        Connections = {}
+    },
+    Config = {
+        ANIM_1 = "rbxassetid://283545583",
+        ANIM_2 = "rbxassetid://225975820",
+        OFFSET = 1.5
+    },
+    Dependencies = {"Players", "RunService", "CoreGui", "UserInputService"},
+    Services = {}
+}
+
+--// --- Internal Utilities ---
+
+function Modules.Hugger:_clearCurrent()
+    -- Stop Animations
+    for _, track in pairs(self.State.Tracks) do
+        pcall(function() track:Stop() end)
+    end
+    self.State.Tracks = {}
+
+    -- Destroy Walls
+    for _, part in pairs(self.State.Walls) do
+        pcall(function() part:Destroy() end)
+    end
+    self.State.Walls = {}
+
+    -- Disconnect Loops
+    if self.State.Connections.Loop then
+        self.State.Connections.Loop:Disconnect()
+        self.State.Connections.Loop = nil
+    end
+    
+    self.State.Target = nil
+end
+
+function Modules.Hugger:_createCage(root)
+    local thick = 0.2
+    local size = 4
+    local height = 6
+    
+    local wallData = {
+        {off = CFrame.new(0, 0, 2), sz = Vector3.new(size, height, thick)},
+        {off = CFrame.new(0, 0, -2), sz = Vector3.new(size, height, thick)},
+        {off = CFrame.new(2, 0, 0), sz = Vector3.new(thick, height, size)},
+        {off = CFrame.new(-2, 0, 0), sz = Vector3.new(thick, height, size)},
+        {off = CFrame.new(0, 3, 0), sz = Vector3.new(size, thick, size)},
+        {off = CFrame.new(0, -3, 0), sz = Vector3.new(size, thick, size)}
+    }
+
+    for _, data in ipairs(wallData) do
+        local p = Instance.new("Part")
+        p.Size = data.sz
+        p.Transparency = 1
+        p.Anchored = true
+        p.CanCollide = true
+        p.Parent = workspace
+        table.insert(self.State.Walls, p)
+    end
+
+    -- Loop to keep cage synced with player
+    self.State.Connections.Cage = self.Services.RunService.Stepped:Connect(function()
+        if not self.State.IsEnabled or not root.Parent then return end
+        for i, data in ipairs(wallData) do
+            local part = self.State.Walls[i]
+            if part then part.CFrame = root.CFrame * data.off end
+        end
+    end)
+end
+
+--// --- Core Logic ---
+
+function Modules.Hugger:Apply(targetChar)
+    local lp = self.Services.Players.LocalPlayer
+    local myChar = lp.Character
+    local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    
+    local tRoot = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not (myHum and myRoot and tRoot) then return end
+    
+    self:_clearCurrent()
+    self.State.Target = targetChar
+    
+    -- Load Animations
+    local a1, a2 = Instance.new("Animation"), Instance.new("Animation")
+    a1.AnimationId = self.Config.ANIM_1
+    a2.AnimationId = self.Config.ANIM_2
+    
+    local tr1 = myHum:LoadAnimation(a1)
+    local tr2 = myHum:LoadAnimation(a2)
+    table.insert(self.State.Tracks, tr1)
+    table.insert(self.State.Tracks, tr2)
+    
+    tr1:Play()
+    tr2:Play()
+
+    -- Build defensive cage
+    self:_createCage(myRoot)
+
+    -- Primary Follow Loop
+    self.State.Connections.Loop = self.Services.RunService.Heartbeat:Connect(function()
+        if not self.State.IsEnabled or not tRoot.Parent or myHum.Health <= 0 then
+            self:Toggle() -- Auto-shutoff
+            return 
+        end
+
+        local look = tRoot.CFrame.LookVector
+        local offset = self.State.FromFront and (look * self.Config.OFFSET) or (-look * self.Config.OFFSET)
+        
+        myRoot.CFrame = CFrame.lookAt(tRoot.Position + offset, tRoot.Position)
+    end)
+end
+
+--// --- UI Management ---
+
+function Modules.Hugger:CreateUI()
+    if self.State.UI then self.State.UI.Enabled = true return end
+    
+    local sg = Instance.new("ScreenGui", self.Services.CoreGui)
+    sg.Name = "HugController_Zuka"
+    self.State.UI = sg
+
+    local frame = Instance.new("Frame", sg)
+    frame.Size = UDim2.fromOffset(200, 100)
+    frame.Position = UDim2.new(0.5, -100, 0.1, 0)
+    frame.BackgroundColor3 = Color3.new(0,0,0)
+    frame.BackgroundTransparency = 0.5
+    Instance.new("UICorner", frame)
+
+    local toggle = Instance.new("TextButton", frame)
+    toggle.Size = UDim2.new(1, -10, 0, 40)
+    toggle.Position = UDim2.fromOffset(5, 5)
+    toggle.Text = "Hug Mode: OFF"
+    toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    toggle.TextColor3 = Color3.new(1,1,1)
+    toggle.Font = Enum.Font.Code
+    
+    local side = toggle:Clone()
+    side.Parent = frame
+    side.Position = UDim2.fromOffset(5, 50)
+    side.Text = "Hug Side: Back"
+
+    toggle.MouseButton1Click:Connect(function()
+        self.State.IsEnabled = not self.State.IsEnabled
+        toggle.Text = "Hug Mode: " .. (self.State.IsEnabled and "ON" or "OFF")
+        toggle.TextColor3 = self.State.IsEnabled and Color3.new(0, 1, 0.5) or Color3.new(1,1,1)
+        if not self.State.IsEnabled then self:_clearCurrent() end
+    end)
+
+    side.MouseButton1Click:Connect(function()
+        self.State.FromFront = not self.State.FromFront
+        side.Text = "Hug Side: " .. (self.State.FromFront and "Front" or "Back")
+    end)
+
+    -- Click-to-Hug Listener
+    local mouse = self.Services.Players.LocalPlayer:GetMouse()
+    self.State.Connections.Click = mouse.Button1Down:Connect(function()
+        if not self.State.IsEnabled then return end
+        local target = mouse.Target
+        if target and target.Parent then
+            local p = self.Services.Players:GetPlayerFromCharacter(target.Parent)
+            if p and p ~= self.Services.Players.LocalPlayer then
+                self:Apply(p.Character)
+            end
+        end
+    end)
+    
+    DoNotif("Hugger UI Loaded. Enable and Click a player.", 3)
+end
+
+--// --- Initialization ---
+
+function Modules.Hugger:Initialize()
+    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+    
+    RegisterCommand({
+        Name = "hug",
+        Aliases = {"huggies", "clickhug"},
+        Description = "Toggles a UI for physical character interaction (R6 Only)."
+    }, function()
+        local lp = game:GetService("Players").LocalPlayer
+        local hum = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
+        
+        if hum and hum.RigType == Enum.HumanoidRigType.R6 then
+            self:CreateUI()
+        else
+            DoNotif("This command requires an R6 Avatar.", 3)
+        end
+    end)
+
+    RegisterCommand({
+        Name = "unhug",
+        Description = "Force stops all hug interactions and UI."
+    }, function()
+        self.State.IsEnabled = false
+        self:_clearCurrent()
+        if self.State.UI then self.State.UI:Destroy(); self.State.UI = nil end
+        if self.State.Connections.Click then self.State.Connections.Click:Disconnect() end
+    end)
+end
+
+Modules.TeamChanger = {
+    State = {
+        IsExecuting = false
+    },
+    Dependencies = {"Teams", "Players", "Workspace"},
+    Services = {}
+}
+
+-- [Internal] Logic to find and trigger the appropriate spawn
+function Modules.TeamChanger:Execute(teamNameInput)
+    if not teamNameInput or teamNameInput == "" then
+        return DoNotif("Usage: ;team <TeamName>", 3)
+    end
+
+    local Teams = self.Services.Teams
+    if not Teams then return end
+
+    local targetTeam = nil
+    local lookup = teamNameInput:lower()
+
+    -- 1. Find the target team
+    for _, team in ipairs(Teams:GetChildren()) do
+        if team:IsA("Team") and team.Name:lower():find(lookup, 1, true) then
+            targetTeam = team
+            break
+        end
+    end
+
+    if not targetTeam then
+        return DoNotif("Invalid team: '" .. teamNameInput .. "'", 3)
+    end
+
+    local lp = self.Services.Players.LocalPlayer
+    local char = lp.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+
+    local function forceClientSide()
+        pcall(function()
+            lp.Neutral = false
+            lp.Team = targetTeam
+        end)
+    end
+
+    -- 2. Physical Bypass (Touch Emulation)
+    -- This works on games that use standard SpawnLocations for team selection
+    if typeof(firetouchinterest) == "function" and root then
+        local foundSpawn = false
+        for _, obj in ipairs(self.Services.Workspace:GetDescendants()) do
+            if obj:IsA("SpawnLocation") and obj.BrickColor == targetTeam.TeamColor and obj.AllowTeamChangeOnTouch then
+                -- Simulation of physical contact
+                firetouchinterest(root, obj, 0)
+                task.wait()
+                firetouchinterest(root, obj, 1)
+                foundSpawn = true
+                break
+            end
+        end
+        
+        if foundSpawn then
+            DoNotif("Spawn sequence triggered for " .. targetTeam.Name, 2)
+        end
+    end
+
+    -- 3. Property Override
+    forceClientSide()
+    DoNotif("Joined Team: " .. targetTeam.Name, 2)
+end
+
+function Modules.TeamChanger:Initialize()
+    local module = self
+    for _, s in ipairs(self.Dependencies) do 
+        module.Services[s] = game:GetService(s) 
+    end
+
+    RegisterCommand({
+        Name = "team",
+        Aliases = {"setteam", "join"},
+        Description = "Forces a team change via spawn-touch emulation or property spoofing."
+    }, function(args)
+        module:Execute(table.concat(args, " "))
+    end)
+end
+
+Modules.BadgeViewer = {
+    State = {
+        IsEnabled = false,
+        UI = nil,
+        OwnershipCache = {}, -- [UserId] = {[BadgeId] = {v = bool, t = timestamp}}
+        CurrentData = {},
+        ActiveConnections = {}
+    },
+    Config = {
+        CACHE_TTL = 600,
+        MAX_CONCURRENT_CHECKS = 12,
+        PROXY_URL = "https://badges.roproxy.com/v1/universes/%d/badges?limit=100&sortOrder=Asc%s"
+    },
+    Dependencies = {"BadgeService", "HttpService", "TweenService", "Players", "RunService", "CoreGui"},
+    Services = {}
+}
+
+--// --- Internal Helpers ---
+
+local function getHttpRequest()
+    return (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
+end
+
+function Modules.BadgeViewer:_cacheGet(userId, badgeId)
+    local u = self.State.OwnershipCache[userId]
+    if not u then return nil end
+    local e = u[badgeId]
+    if not e or (os.time() - e.t > self.Config.CACHE_TTL) then return nil end
+    return e.v
+end
+
+function Modules.BadgeViewer:_cachePut(userId, badgeId, value)
+    self.State.OwnershipCache[userId] = self.State.OwnershipCache[userId] or {}
+    self.State.OwnershipCache[userId][badgeId] = { v = value, t = os.time() }
+end
+
+--// --- Core Logic ---
+
+function Modules.BadgeViewer:FetchBadges()
+    local requestFunc = getHttpRequest()
+    if not requestFunc then return nil end
+
+    local allBadges, cursor = {}, ""
+    local gameId = game.GameId
+
+    repeat
+        local url = self.Config.PROXY_URL:format(gameId, cursor ~= "" and "&cursor="..self.Services.HttpService:UrlEncode(cursor) or "")
+        local res = requestFunc({Url = url, Method = "GET"})
+        
+        if not res or res.StatusCode ~= 200 then break end
+        local body = self.Services.HttpService:JSONDecode(res.Body)
+        
+        for _, b in ipairs(body.data or {}) do
+            table.insert(allBadges, {
+                id = b.id,
+                name = b.name,
+                desc = b.displayDescription or b.description or "No description.",
+                icon = b.iconImageId,
+                rarity = (b.statistics and b.statistics.winRatePercentage) or 0,
+                awarded = (b.statistics and b.statistics.awardedCount) or 0,
+                pastDay = (b.statistics and b.statistics.pastDayAwardedCount) or 0
+            })
+        end
+        cursor = body.nextPageCursor or ""
+    until cursor == ""
+    
+    return allBadges
+end
+
+function Modules.BadgeViewer:CheckOwnership(userId, badgeId)
+    local cached = self:_cacheGet(userId, badgeId)
+    if cached ~= nil then return true, cached end
+
+    local tries, delay = 0, 0.5
+    while tries < 3 do
+        tries = tries + 1
+        local ok, has = pcall(self.Services.BadgeService.UserHasBadgeAsync, self.Services.BadgeService, userId, badgeId)
+        if ok then
+            self:_cachePut(userId, badgeId, has)
+            return true, has
+        end
+        task.wait(delay)
+        delay = delay * 1.5
+    end
+    return false, nil
+end
+
+--// --- UI Construction ---
+
+function Modules.BadgeViewer:Open(targetPlayer)
+    if self.State.UI then self.State.UI:Destroy() end
+    
+    local target = targetPlayer or self.Services.Players.LocalPlayer
+    DoNotif("Fetching Badges for " .. target.Name .. "...", 2)
+    
+    task.spawn(function()
+        local badgeData = self:FetchBadges()
+        if not badgeData or #badgeData == 0 then
+            return DoNotif("Failed to retrieve badge data or game has no badges.", 3)
+        end
+
+        -- Construct the UI (matching Zuka theme)
+        local sg = Instance.new("ScreenGui", self.Services.CoreGui)
+        sg.Name = "ZukaBadgeViewer"
+        self.State.UI = sg
+
+        local main = Instance.new("Frame", sg)
+        main.Size = UDim2.fromOffset(500, 400)
+        main.Position = UDim2.fromScale(0.5, 0.5)
+        main.AnchorPoint = Vector2.new(0.5, 0.5)
+        main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+        Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+        
+        local topBar = Instance.new("Frame", main)
+        topBar.Size = UDim2.new(1, 0, 0, 35)
+        topBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+        Instance.new("UICorner", topBar)
+
+        local title = Instance.new("TextLabel", topBar)
+        title.Size = UDim2.new(1, -40, 1, 0)
+        title.Position = UDim2.fromOffset(10, 0)
+        title.Text = "BADGE ANALYSIS: " .. target.Name:upper()
+        title.TextColor3 = Color3.fromRGB(0, 255, 255)
+        title.Font = Enum.Font.Code
+        title.BackgroundTransparency = 1
+        title.TextXAlignment = "Left"
+
+        local close = Instance.new("TextButton", topBar)
+        close.Size = UDim2.fromOffset(30, 30)
+        close.Position = UDim2.new(1, -35, 0, 2)
+        close.Text = "X"; close.TextColor3 = Color3.new(1,0,0)
+        close.BackgroundTransparency = 1
+        close.MouseButton1Click:Connect(function() sg:Destroy() end)
+
+        local scroll = Instance.new("ScrollingFrame", main)
+        scroll.Size = UDim2.new(1, -20, 1, -50)
+        scroll.Position = UDim2.fromOffset(10, 45)
+        scroll.BackgroundTransparency = 1
+        scroll.ScrollBarThickness = 2
+        scroll.AutomaticCanvasSize = "Y"
+        
+        local layout = Instance.new("UIListLayout", scroll)
+        layout.Padding = UDim.new(0, 5)
+
+        -- Populate Badges
+        for _, b in ipairs(badgeData) do
+            local card = Instance.new("Frame", scroll)
+            card.Size = UDim2.new(1, -5, 0, 60)
+            card.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+            Instance.new("UICorner", card)
+
+            local icon = Instance.new("ImageLabel", card)
+            icon.Size = UDim2.fromOffset(50, 50)
+            icon.Position = UDim2.fromOffset(5, 5)
+            icon.Image = "rbxthumb://type=Asset&id="..b.icon.."&w=150&h=150"
+            Instance.new("UICorner", icon)
+
+            local nameL = Instance.new("TextLabel", card)
+            nameL.Size = UDim2.new(1, -150, 0, 20)
+            nameL.Position = UDim2.fromOffset(65, 5)
+            nameL.Text = b.name
+            nameL.TextColor3 = Color3.new(1,1,1)
+            nameL.Font = Enum.Font.GothamBold
+            nameL.TextXAlignment = "Left"; nameL.BackgroundTransparency = 1
+
+            local infoL = Instance.new("TextLabel", card)
+            infoL.Size = UDim2.new(1, -150, 0, 30)
+            infoL.Position = UDim2.fromOffset(65, 25)
+            infoL.Text = string.format("ID: %d | Rarity: %.1f%%", b.id, b.rarity)
+            infoL.TextColor3 = Color3.fromRGB(150, 150, 150)
+            infoL.Font = Enum.Font.Code; infoL.TextSize = 10
+            infoL.TextXAlignment = "Left"; infoL.BackgroundTransparency = 1
+
+            local status = Instance.new("TextLabel", card)
+            status.Size = UDim2.fromOffset(80, 30)
+            status.Position = UDim2.new(1, -85, 0, 15)
+            status.Text = "CHECKING..."
+            status.TextColor3 = Color3.fromRGB(200, 200, 100)
+            status.Font = Enum.Font.Code; status.TextSize = 10
+            status.BackgroundColor3 = Color3.new(0,0,0)
+            Instance.new("UICorner", status)
+
+            -- Async ownership check
+            task.spawn(function()
+                local ok, has = self:CheckOwnership(target.UserId, b.id)
+                if ok then
+                    status.Text = has and "OWNED" or "LOCKED"
+                    status.TextColor3 = has and Color3.fromRGB(0, 255, 120) or Color3.fromRGB(255, 80, 80)
+                    if has then
+                        Instance.new("UIStroke", card).Color = Color3.fromRGB(0, 255, 120)
+                    end
+                else
+                    status.Text = "ERR"
+                end
+            end)
+        end
+    end)
+end
+
+--// --- Initialization ---
+
+function Modules.BadgeViewer:Initialize()
+    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+    
+    RegisterCommand({
+        Name = "badgeviewer",
+        Aliases = {"bv", "checkbadges", "badgelist"},
+        Description = "Opens a UI to analyze game badges and player ownership. Usage: ;bv [player]"
+    }, function(args)
+        local target = args[1] and Utilities.findPlayer(args[1]) or game:GetService("Players").LocalPlayer
+        self:Open(target)
+    end)
+end
+
+Modules.BadgeSpoofer = {
+    State = {
+        IsEnabled = false,
+        OriginalNamecall = nil,
+        SpoofAll = true,
+        SpecificBadges = {}
+    },
+    Dependencies = {"BadgeService"},
+    Services = {}
+}
+
+function Modules.BadgeSpoofer:Toggle()
+    local success, mt = pcall(getrawmetatable, game)
+    if not success then return DoNotif("Metatable access denied.", 3) end
+    
+    self.State.IsEnabled = not self.State.IsEnabled
+    
+    if self.State.IsEnabled then
+        self.State.OriginalNamecall = mt.__namecall
+        local original = self.State.OriginalNamecall
+        
+        setreadonly(mt, false)
+        
+        -- Use newcclosure to prevent detection and recursion issues
+        mt.__namecall = newcclosure(function(selfArg, ...)
+            local method = getnamecallmethod()
+            
+            -- FIX: Check method string first. It's faster and avoids recursion.
+            if method == "UserHasBadgeAsync" or method == "userHasBadgeAsync" then
+                -- FIX: Check ClassName property directly instead of calling :IsA()
+                local isBadgeService = false
+                pcall(function()
+                    if selfArg.ClassName == "BadgeService" then
+                        isBadgeService = true
+                    end
+                end)
+
+                if isBadgeService then
+                    local args = {...}
+                    local badgeId = args[1] -- First arg after selfArg is the ID
+                    
+                    if Modules.BadgeSpoofer.State.SpoofAll or Modules.BadgeSpoofer.State.SpecificBadges[badgeId] then
+                        return true
+                    end
+                end
+            end
+            
+            return original(selfArg, ...)
+        end)
+        
+        setreadonly(mt, true)
+        DoNotif("Badge Spoofer: ACTIVE (Safe Mode)", 2)
+    else
+        if self.State.OriginalNamecall then
+            setreadonly(mt, false)
+            mt.__namecall = self.State.OriginalNamecall
+            setreadonly(mt, true)
+            self.State.OriginalNamecall = nil
+        end
+        DoNotif("Badge Spoofer: DISABLED", 2)
+    end
+end
+
+--// --- Command Registration (Same as before) ---
+
+RegisterCommand({
+    Name = "spoofbadges",
+    Aliases = {"fakebadges"},
+    Description = "Tricks local scripts into thinking you own all game badges."
+}, function()
+    Modules.BadgeSpoofer:Toggle()
+end)
+
+RegisterCommand({
+    Name = "spoofbadge",
+    Description = "Spoofs a specific badge ID. Usage: ;spoofbadge [ID]"
+}, function(args)
+    local id = tonumber(args[1])
+    if id then
+        Modules.BadgeSpoofer.State.SpoofAll = false
+        Modules.BadgeSpoofer.State.SpecificBadges[id] = true
+        DoNotif("Now spoofing Badge ID: " .. id, 2)
+        if not Modules.BadgeSpoofer.State.IsEnabled then
+            Modules.BadgeSpoofer:Toggle()
+        end
+    else
+        DoNotif("Usage: ;spoofbadge [badge_id]", 3)
+    end
+end)
+
+Modules.ScriptSearcher = {
+    State = {
+        IsEnabled = false,
+        UI = {},
+        Connections = {},
+        IsSearching = false
+    },
+    Config = {
+        ACCENT = Color3.fromRGB(0, 255, 255),
+        BG = Color3.fromRGB(20, 20, 20),
+        API_URL = "https://scriptblox.com/api/script/search?q=%s&mode=free&max=20"
+    },
+    Dependencies = {"HttpService", "Players", "CoreGui", "UserInputService", "RunService"},
+    Services = {}
+}
+
+--// --- Internal Logic: API Fetching ---
+
+function Modules.ScriptSearcher:PerformSearch(query)
+    if self.State.IsSearching then return end
+    self.State.IsSearching = true
+    
+    local scroll = self.State.UI.ResultScroll
+    for _, v in ipairs(scroll:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local status = Instance.new("TextLabel", scroll)
+    status.Size = UDim2.new(1, 0, 0, 30); status.BackgroundTransparency = 1
+    status.Text = "Searching database..."; status.TextColor3 = self.Config.ACCENT
+    status.Font = Enum.Font.Code; status.TextSize = 14
+
+    task.spawn(function()
+        local requestFunc = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
+        if not requestFunc then 
+            status.Text = "ERR: NO HTTP CAPABILITY"
+            self.State.IsSearching = false
+            return 
+        end
+
+        local url = self.Config.API_URL:format(self.Services.HttpService:UrlEncode(query))
+        local success, res = pcall(function() return requestFunc({Url = url, Method = "GET"}) end)
+
+        if success and res.StatusCode == 200 then
+            status:Destroy()
+            local data = self.Services.HttpService:JSONDecode(res.Body)
+            if data.result and data.result.scripts then
+                for _, scriptData in ipairs(data.result.scripts) do
+                    self:_createResultCard(scriptData)
+                end
+            else
+                status.Text = "No results found."
+            end
+        else
+            status.Text = "API Link Failed."
+        end
+        self.State.IsSearching = false
+    end)
+end
+
+--// --- UI Construction: RC7 Style Results ---
+
+function Modules.ScriptSearcher:_createResultCard(data)
+    local scroll = self.State.UI.ResultScroll
+    
+    local card = Instance.new("Frame", scroll)
+    card.Size = UDim2.new(1, -10, 0, 65)
+    card.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    card.BorderSizePixel = 1; card.BorderColor3 = Color3.fromRGB(60, 60, 60)
+    
+    local title = Instance.new("TextLabel", card)
+    title.Size = UDim2.new(1, -100, 0, 25); title.Position = UDim2.fromOffset(5, 5)
+    title.Text = data.title; title.TextColor3 = Color3.new(1,1,1)
+    title.Font = Enum.Font.Code; title.TextSize = 13; title.TextXAlignment = "Left"
+    title.BackgroundTransparency = 1; title.ClipsDescendants = true
+
+    local gameLabel = Instance.new("TextLabel", card)
+    gameLabel.Size = UDim2.new(1, -100, 0, 20); gameLabel.Position = UDim2.fromOffset(5, 30)
+    gameLabel.Text = "Game: " .. (data.game.name or "Universal")
+    gameLabel.TextColor3 = Color3.fromRGB(150, 150, 150); gameLabel.Font = Enum.Font.Code
+    gameLabel.TextSize = 11; gameLabel.TextXAlignment = "Left"; gameLabel.BackgroundTransparency = 1
+
+    -- Control Buttons
+    local function mkBtn(text, xPos, color, callback)
+        local b = Instance.new("TextButton", card)
+        b.Size = UDim2.fromOffset(80, 22); b.Position = UDim2.new(1, xPos, 0, 20)
+        b.BackgroundColor3 = Color3.fromRGB(20, 20, 20); b.BorderSizePixel = 1; b.BorderColor3 = color
+        b.Text = text; b.TextColor3 = color; b.Font = Enum.Font.Code; b.TextSize = 10
+        b.MouseButton1Click:Connect(callback)
+        return b
+    end
+
+    mkBtn("EXECUTE", -85, self.Config.ACCENT, function()
+        local func, err = loadstring(data.script)
+        if func then task.spawn(func); DoNotif("Executed: " .. data.title, 2)
+        else warn(err); DoNotif("Syntax Error in script.", 3) end
+    end)
+
+    mkBtn("VIEW", -170, Color3.fromRGB(200, 100, 255), function()
+        print("--- [SOURCE: " .. data.title .. "] ---")
+        print(data.script)
+        print("--------------------------------------")
+        DoNotif("Source printed to F9 Console.", 2)
+    end)
+end
+
+function Modules.ScriptSearcher:CreateUI()
+    if self.State.UI.Main then self.State.UI.Main.Visible = true return end
+
+    local sg = Instance.new("ScreenGui", self.Services.CoreGui)
+    sg.Name = "Zuka_ScriptHub_RC7"
+    
+    local main = Instance.new("Frame", sg)
+    main.Size = UDim2.fromOffset(500, 450)
+    main.Position = UDim2.fromScale(0.5, 0.5)
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    main.BorderSizePixel = 2; main.BorderColor3 = self.Config.ACCENT; main.Active = true
+
+    local header = Instance.new("Frame", main)
+    header.Size = UDim2.new(1, 0, 0, 30); header.BackgroundColor3 = Color3.fromRGB(30, 30, 30); header.BorderSizePixel = 0
+    
+    local title = Instance.new("TextLabel", header)
+    title.Size = UDim2.new(1, -60, 1, 0); title.Position = UDim2.fromOffset(10, 0)
+    title.Text = "DATABASE BROWSER - SCRIPTBLOX"; title.TextColor3 = self.Config.ACCENT
+    title.Font = Enum.Font.Code; title.TextSize = 14; title.TextXAlignment = "Left"; title.BackgroundTransparency = 1
+
+    local close = Instance.new("TextButton", header)
+    close.Size = UDim2.fromOffset(30, 30); close.Position = UDim2.new(1, -30, 0, 0)
+    close.Text = "X"; close.TextColor3 = Color3.new(1,0,0); close.BackgroundTransparency = 1
+    close.MouseButton1Click:Connect(function() sg:Destroy(); self.State.UI = {} end)
+
+    -- Search Input
+    local searchBar = Instance.new("TextBox", main)
+    searchBar.Size = UDim2.new(1, -110, 0, 30); searchBar.Position = UDim2.fromOffset(10, 40)
+    searchBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20); searchBar.BorderSizePixel = 1; searchBar.BorderColor3 = Color3.fromRGB(80, 80, 80)
+    searchBar.PlaceholderText = "Enter keywords (e.g. Prison Life)..."; searchBar.Text = ""
+    searchBar.TextColor3 = Color3.new(1,1,1); searchBar.Font = Enum.Font.Code; searchBar.TextSize = 14
+
+    local searchBtn = Instance.new("TextButton", main)
+    searchBtn.Size = UDim2.fromOffset(80, 30); searchBtn.Position = UDim2.new(1, -90, 0, 40)
+    searchBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); searchBtn.BorderSizePixel = 1; searchBtn.BorderColor3 = self.Config.ACCENT
+    searchBtn.Text = "SEARCH"; searchBtn.TextColor3 = self.Config.ACCENT; searchBtn.Font = Enum.Font.Code
+    searchBtn.MouseButton1Click:Connect(function() self:PerformSearch(searchBar.Text) end)
+
+    -- Results Area
+    local scroll = Instance.new("ScrollingFrame", main)
+    scroll.Size = UDim2.new(1, -20, 1, -90); scroll.Position = UDim2.fromOffset(10, 80)
+    scroll.BackgroundColor3 = Color3.fromRGB(15, 15, 15); scroll.BorderSizePixel = 1; scroll.BorderColor3 = Color3.fromRGB(50, 50, 50)
+    scroll.ScrollBarThickness = 3; scroll.ScrollBarImageColor3 = self.Config.ACCENT; scroll.AutomaticCanvasSize = "Y"
+
+    local layout = Instance.new("UIListLayout", scroll)
+    layout.Padding = UDim.new(0, 5); layout.HorizontalAlignment = "Center"
+
+    -- Panel Dragging
+    local dragging, dragStart, startPos
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging, dragStart, startPos = true, input.Position, main.Position
+        end
+    end)
+    self.Services.UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    self.Services.UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+
+    self.State.UI = {Main = main, ResultScroll = scroll}
+    DoNotif("ScriptHub Initialized.", 2)
+end
+
+function Modules.ScriptSearcher:Initialize()
+    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+    RegisterCommand({
+        Name = "hub",
+        Aliases = {"search", "scripts"},
+        Description = "Opens the ScriptBlox database searcher."
+    }, function()
+        self:CreateUI()
+    end)
+end
+
+Modules.Toolbox = {
+    State = {
+        IsEnabled = false,
+        UI = {},
+        CurrentCategory = "Models",
+        IsSearching = false
+    },
+    Config = {
+        ACCENT = Color3.fromRGB(0, 255, 255),
+        BG = Color3.fromRGB(15, 15, 15),
+        -- Official Toolbox Service Category IDs
+        CATEGORIES = {
+            ["Models"] = "Models",
+            ["Decals"] = "Decals",
+            ["Audio"] = "Audio"
+        },
+        -- THE FIX: Official Toolbox Service Endpoint (Used by Studio)
+        SEARCH_URL = "https://apis.roproxy.com/toolbox-service/v1/marketplace/items?category=%s&keyword=%s&num=20"
+    },
+    Dependencies = {"HttpService", "Players", "CoreGui", "UserInputService", "RunService", "InsertService"},
+    Services = {}
+}
+
+--// --- Internal Logic: Asset Handling ---
+
+function Modules.Toolbox:InsertAsset(assetId)
+    DoNotif("Processing Asset ID: " .. assetId, 1.5)
+    
+    task.spawn(function()
+        -- Attempt physical spawn (Requires executor support for GetObjects)
+        local success, result = pcall(function()
+            return game:GetObjects("rbxassetid://" .. assetId)
+        end)
+
+        if success and result and result[1] then
+            local asset = result[1]
+            asset.Parent = workspace
+            
+            local lp = self.Services.Players.LocalPlayer
+            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                -- Spawn 10 studs in front of player
+                local spawnPos = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10)
+                if asset:IsA("Model") then
+                    asset:PivotTo(spawnPos)
+                elseif asset:IsA("BasePart") then
+                    asset.CFrame = spawnPos
+                end
+            end
+            DoNotif("Asset Spawned Successfully.", 2)
+        else
+            -- If the game/executor blocks insertion, copy ID for manual use
+            setclipboard(tostring(assetId))
+            DoNotif("Insertion blocked. ID copied to clipboard.", 4)
+        end
+    end)
+end
+
+function Modules.Toolbox:Search(query)
+    if self.State.IsSearching then return end
+    if #query < 2 then return DoNotif("Search query too short.", 2) end
+    
+    self.State.IsSearching = true
+    local scroll = self.State.UI.ResultGrid
+    
+    -- Clear current results
+    for _, v in ipairs(scroll:GetChildren()) do
+        if v:IsA("Frame") then v:Destroy() end
+    end
+
+    local status = Instance.new("TextLabel", scroll)
+    status.Size = UDim2.new(1, 0, 0, 30); status.BackgroundTransparency = 1
+    status.Text = "Querying Marketplace..."; status.TextColor3 = self.Config.ACCENT
+    status.Font = Enum.Font.Code; status.TextSize = 12
+
+    task.spawn(function()
+        local requestFunc = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
+        if not requestFunc then 
+            status.Text = "ERR: NO HTTP CAPABILITY"
+            self.State.IsSearching = false
+            return 
+        end
+
+        local category = self.Config.CATEGORIES[self.State.CurrentCategory]
+        local url = self.Config.SEARCH_URL:format(category, self.Services.HttpService:UrlEncode(query))
+        
+        local success, res = pcall(function() return requestFunc({Url = url, Method = "GET"}) end)
+
+        if success and res.StatusCode == 200 then
+            status:Destroy()
+            local decoded = self.Services.HttpService:JSONDecode(res.Body)
+            
+            -- Toolbox Service returns 'data' which contains 'item' objects
+            if decoded and decoded.data then
+                for _, entry in ipairs(decoded.data) do
+                    local item = entry.item
+                    if item then
+                        self:_createItemCard(item.assetId, item.name)
+                    end
+                end
+            else
+                status.Text = "No assets found."
+            end
+        else
+            status.Text = "API Error: " .. (res and res.StatusCode or "Failed")
+            warn("Toolbox API Error:", res and res.Body)
+        end
+        self.State.IsSearching = false
+    end)
+end
+
+--// --- UI Construction (RC7 Aesthetic) ---
+
+function Modules.Toolbox:_createItemCard(id, nameText)
+    local grid = self.State.UI.ResultGrid
+    
+    local card = Instance.new("Frame", grid)
+    card.Size = UDim2.fromOffset(100, 130)
+    card.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    card.BorderSizePixel = 1; card.BorderColor3 = Color3.fromRGB(60, 60, 60)
+    
+    local thumb = Instance.new("ImageLabel", card)
+    thumb.Size = UDim2.fromOffset(90, 90); thumb.Position = UDim2.fromOffset(5, 5)
+    thumb.BackgroundColor3 = Color3.fromRGB(20, 20, 20); thumb.BorderSizePixel = 0
+    -- Standard high-quality thumbnail endpoint
+    thumb.Image = "rbxthumb://type=Asset&id=" .. id .. "&w=150&h=150"
+
+    local name = Instance.new("TextLabel", card)
+    name.Size = UDim2.new(1, -10, 0, 15); name.Position = UDim2.fromOffset(5, 95)
+    name.Text = nameText or "Asset"; name.TextColor3 = Color3.new(1,1,1); name.TextSize = 8
+    name.Font = Enum.Font.Code; name.TextXAlignment = "Left"; name.BackgroundTransparency = 1; name.ClipsDescendants = true
+
+    local btn = Instance.new("TextButton", card)
+    btn.Size = UDim2.new(1, -10, 0, 15); btn.Position = UDim2.fromOffset(5, 112)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); btn.BorderSizePixel = 1; btn.BorderColor3 = self.Config.ACCENT
+    btn.Text = "INSERT"; btn.TextColor3 = self.Config.ACCENT; btn.Font = Enum.Font.Code; btn.TextSize = 10
+    
+    btn.MouseButton1Click:Connect(function()
+        self:InsertAsset(id)
+    end)
+end
+
+function Modules.Toolbox:CreateUI()
+    if self.State.UI.Main then self.State.UI.Main.Visible = true return end
+
+    local sg = Instance.new("ScreenGui", self.Services.CoreGui)
+    sg.Name = "Zuka_Toolbox_V3"
+    
+    local main = Instance.new("Frame", sg)
+    main.Size = UDim2.fromOffset(450, 500); main.Position = UDim2.fromScale(0.1, 0.5)
+    main.AnchorPoint = Vector2.new(0, 0.5); main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    main.BorderSizePixel = 2; main.BorderColor3 = self.Config.ACCENT; main.Active = true
+
+    local header = Instance.new("Frame", main)
+    header.Size = UDim2.new(1, 0, 0, 30); header.BackgroundColor3 = Color3.fromRGB(30, 30, 30); header.BorderSizePixel = 0
+    
+    local title = Instance.new("TextLabel", header)
+    title.Size = UDim2.new(1, -40, 1, 0); title.Position = UDim2.fromOffset(10, 0)
+    title.Text = "FORENSIC TOOLBOX - V3"; title.TextColor3 = self.Config.ACCENT
+    title.Font = Enum.Font.Code; title.TextSize = 14; title.TextXAlignment = "Left"; title.BackgroundTransparency = 1
+
+    local close = Instance.new("TextButton", header)
+    close.Size = UDim2.fromOffset(30, 30); close.Position = UDim2.new(1, -30, 0, 0)
+    close.Text = "X"; close.TextColor3 = Color3.new(1,0,0); close.BackgroundTransparency = 1
+    close.MouseButton1Click:Connect(function() sg:Destroy(); self.State.UI = {} end)
+
+    local searchBar = Instance.new("TextBox", main)
+    searchBar.Size = UDim2.new(1, -120, 0, 25); searchBar.Position = UDim2.fromOffset(10, 40)
+    searchBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25); searchBar.BorderSizePixel = 1; searchBar.BorderColor3 = Color3.fromRGB(80, 80, 80)
+    searchBar.PlaceholderText = "Search Keywords..."; searchBar.TextColor3 = Color3.new(1,1,1); searchBar.Font = Enum.Font.Code; searchBar.Text = ""
+
+    local catBtn = Instance.new("TextButton", main)
+    catBtn.Size = UDim2.fromOffset(90, 25); catBtn.Position = UDim2.new(1, -100, 0, 40)
+    catBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); catBtn.BorderSizePixel = 1; catBtn.BorderColor3 = self.Config.ACCENT
+    catBtn.Text = "MODELS"; catBtn.TextColor3 = self.Config.ACCENT; catBtn.Font = Enum.Font.Code
+
+    local catList = {"Models", "Decals", "Audio"}
+    local catIndex = 1
+    catBtn.MouseButton1Click:Connect(function()
+        catIndex = (catIndex % #catList) + 1
+        self.State.CurrentCategory = catList[catIndex]
+        catBtn.Text = self.State.CurrentCategory:upper()
+        if #searchBar.Text > 1 then self:Search(searchBar.Text) end
+    end)
+
+    searchBar.FocusLost:Connect(function(enter)
+        if enter then self:Search(searchBar.Text) end
+    end)
+
+    local scroll = Instance.new("ScrollingFrame", main)
+    scroll.Size = UDim2.new(1, -20, 1, -85); scroll.Position = UDim2.fromOffset(10, 75)
+    scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 20); scroll.BorderSizePixel = 1; scroll.BorderColor3 = Color3.fromRGB(50, 50, 50)
+    scroll.ScrollBarThickness = 3; scroll.ScrollBarImageColor3 = self.Config.ACCENT; scroll.AutomaticCanvasSize = "Y"
+
+    local layout = Instance.new("UIGridLayout", scroll)
+    layout.CellPadding = UDim2.new(0, 8, 0, 8); layout.CellSize = UDim2.fromOffset(100, 135); layout.HorizontalAlignment = "Center"
+
+    -- Manual Dragging
+    local dragging, dragStart, startPos
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging, dragStart, startPos = true, input.Position, main.Position
+        end
+    end)
+    self.Services.UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    self.Services.UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+
+    self.State.UI = {Main = main, ResultGrid = scroll}
+    DoNotif("Toolbox V3 Initialized.", 2)
+end
+
+function Modules.Toolbox:Initialize()
+    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+    RegisterCommand({
+        Name = "toolbox",
+        Aliases = {"toolsearch", "tb"},
+        Description = "Opens the in-game asset searcher (V3 Fixed)."
+    }, function()
+        self:CreateUI()
+    end)
+end
+
+Modules.Manipulator = {
+    State = {
+        IsEnabled = false,
+        ActiveTool = nil,
+        HoverTarget = nil,
+        DraggingPart = nil,
+
+        -- Visuals & Local Physics
+        Highlight = nil,
+        AnchorPart = nil,
+        GrabOffset = nil,
+        OriginalAnchored = false, -- To restore state after drag
+
+        Connections = {}
+    },
+    Config = {
+        ACCENT = Color3.fromRGB(0, 255, 255),
+        LOCKED_COLOR = Color3.fromRGB(255, 50, 50),
+        UNLOCKED_COLOR = Color3.fromRGB(0, 255, 150),
+        LERP_SPEED = 0.25 -- Smoothness of the drag
+    },
+    Dependencies = {"Players", "RunService", "UserInputService", "Workspace", "CoreGui"},
+    Services = {}
+}
+
+--// --- Internal Helper: Cleanup ---
+
+function Modules.Manipulator:_stopDragging()
+    local data = self.State
+    if data.DraggingPart then
+        pcall(function()
+            -- Restore the part to its real physical state
+            data.DraggingPart.Anchored = data.OriginalAnchored
+            data.DraggingPart.CanCollide = true
+        end)
+    end
+
+    data.DraggingPart = nil
+    data.GrabOffset = nil
+    if data.Highlight then data.Highlight.Adornee = nil end
+end
+
+--// --- Core Execution ---
+
+function Modules.Manipulator:Toggle()
+    local lp = self.Services.Players.LocalPlayer
+    local mouse = lp:GetMouse()
+
+    self.State.IsEnabled = not self.State.IsEnabled
+
+    if self.State.IsEnabled then
+        -- 1. Create the persistent Highlight
+        local h = Instance.new("Highlight")
+        h.Name = "Zuka_LocalManipulator_Highlight"
+        h.FillTransparency = 0.5
+        h.OutlineTransparency = 0
+        h.Parent = self.Services.CoreGui
+        self.State.Highlight = h
+
+        -- 2. Create the Physical Tool
+        local tool = Instance.new("Tool")
+        tool.Name = "[LOCAL MANIPULATOR]"
+        tool.RequiresHandle = false
+        
+        -- Invisible Handle to satisfy tool requirements
+        local handle = Instance.new("Part", tool)
+        handle.Name = "Handle"; handle.Transparency = 1; handle.CanCollide = false
+        
+        tool.Parent = lp.Backpack
+        self.State.ActiveTool = tool
+
+        -- 3. The Main Update Loop (Direct CFrame Manipulation)
+        self.State.Connections.Main = self.Services.RunService.RenderStepped:Connect(function()
+            if not tool.Parent or (tool.Parent ~= lp.Character and tool.Parent ~= lp.Backpack) then
+                h.Adornee = nil
+                return
+            end
+
+            -- Update Hover Target
+            local target = mouse.Target
+            if target and target:IsA("BasePart") and not target:IsDescendantOf(lp.Character) then
+                self.State.HoverTarget = target
+                if not self.State.DraggingPart then
+                    h.Adornee = target
+                    h.FillColor = target.Anchored and self.Config.LOCKED_COLOR or self.Config.UNLOCKED_COLOR
+                    h.OutlineColor = h.FillColor
+                end
+            elseif not self.State.DraggingPart then
+                self.State.HoverTarget = nil
+                h.Adornee = nil
+            end
+
+            -- LOCAL-SIDED DRAG LOGIC
+            -- This moves the part directly without using NetworkOwner or Physics constraints
+            if self.State.DraggingPart and self.State.GrabOffset then
+                local targetCFrame = mouse.Hit * self.State.GrabOffset
+                -- Smoothly Lerp to mouse position
+                self.State.DraggingPart.CFrame = self.State.DraggingPart.CFrame:Lerp(targetCFrame, self.Config.LERP_SPEED)
+                
+                -- Force it to stay highlighted during drag
+                h.Adornee = self.State.DraggingPart
+                h.FillColor = self.Config.ACCENT
+            end
+        end)
+
+        -- 4. Interaction Events
+        tool.Equipped:Connect(function()
+            DoNotif("Manipulator: LMB to Drag (Local) | 'E' to Toggle Anchor", 3)
+            
+            -- Tool Activated (Click)
+            self.State.Connections.Click = tool.Activated:Connect(function()
+                local target = self.State.HoverTarget
+                if target then
+                    self:_stopDragging()
+                    
+                    self.State.DraggingPart = target
+                    self.State.OriginalAnchored = target.Anchored
+                    self.State.GrabOffset = target.CFrame:ToObjectSpace(mouse.Hit)
+                    
+                    -- CRITICAL: Locally anchor the part so the server doesn't fight the movement
+                    target.Anchored = true
+                    target.CanCollide = false
+                end
+            end)
+
+            -- Tool Deactivated (Release)
+            self.State.Connections.Release = tool.Deactivated:Connect(function()
+                self:_stopDragging()
+            end)
+
+            -- Key Listener (Local Anchor Toggle)
+            self.State.Connections.Key = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
+                if gpe then return end
+                if input.KeyCode == Enum.KeyCode.E and self.State.HoverTarget then
+                    local target = self.State.HoverTarget
+                    target.Anchored = not target.Anchored
+                    DoNotif(target.Name .. " Anchor: " .. tostring(target.Anchored), 1)
+                end
+            end)
+        end)
+
+        tool.Unequipped:Connect(function()
+            self:_stopDragging()
+        end)
+
+        DoNotif("Local Manipulator Ready.", 2)
+    else
+        -- Cleanup
+        if self.State.ActiveTool then self.State.ActiveTool:Destroy() end
+        if self.State.Highlight then self.State.Highlight:Destroy() end
+        for _, conn in pairs(self.State.Connections) do pcall(function() conn:Disconnect() end) end
+        self:_stopDragging()
+        table.clear(self.State.Connections)
+        DoNotif("Manipulator Disabled.", 2)
+    end
+end
+
+function Modules.Manipulator:Initialize()
+    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+    
+    RegisterCommand({
+        Name = "manipulate",
+        Aliases = {"drag"},
+        Description = "Locally drag and anchor parts without network errors."
+    }, function()
+        self:Toggle()
+    end)
+end
+
+
+Modules.InternalExecutor = {
+    State = {
+        IsEnabled = false,
+        UI = {},
+        Connections = {}
+    },
+    Config = {
+        ACCENT = Color3.fromRGB(0, 255, 255), -- Classic RC7 Cyan
+        BG = Color3.fromRGB(20, 20, 20),
+        KEYWORDS = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while", "execute", "syn", "HttpGet", "HttpPost"},
+        GLOBALS = {"getrawmetatable", "game", "Workspace", "script", "math", "string", "table", "print", "wait", "Instance", "Vector3", "CFrame", "Enum", "loadstring", "getgenv", "getrenv", "getreg", "getgc"},
+        REMOTES = {"FireServer", "InvokeServer"},
+        TOKENS = {["="]=true, ["."]=true, [","]=true, ["("]=true, [")"]=true, ["["]=true, ["]"]=true, ["{"]=true, ["}"]=true, [":"]=true, ["*"]=true, ["/"]=true, ["+"]=true, ["-"]=true, ["%"]=true, [";"]=true, ["~"]=true}
+    },
+    Dependencies = {"Players", "CoreGui", "UserInputService", "RunService", "TextService"},
+    Services = {}
+}
+
+--// --- Syntax Engine (Optimized for RC7 Style) ---
+
+function Modules.InternalExecutor:_process(str, keywordList)
+    local K = {}
+    for _, v in pairs(keywordList) do K[v] = true end
+    local S = str:gsub(".", function(c) return self.Config.TOKENS[c] and " " or c end)
+    S = S:gsub("%S+", function(c) return K[c] and c or (" "):rep(#c) end)
+    return S
+end
+
+function Modules.InternalExecutor:_update()
+    local ui = self.State.UI
+    local source = ui.Source
+    local text = source.Text:gsub("\r", ""):gsub("\t", "    ")
+    
+    -- Sync heights and Canvas
+    local textHeight = self.Services.TextService:GetTextSize(text, 14, Enum.Font.Code, Vector2.new(ui.EditorScroll.AbsoluteSize.X - 40, math.huge)).Y
+    local finalHeight = math.max(textHeight + 50, ui.EditorScroll.AbsoluteSize.Y)
+    
+    ui.EditorScroll.CanvasSize = UDim2.new(0, 0, 0, finalHeight)
+    source.Size = UDim2.new(1, -40, 0, finalHeight)
+    
+    -- Update Overlays
+    ui.Keywords.Text = self:_process(text, self.Config.KEYWORDS)
+    ui.Globals.Text = self:_process(text, self.Config.GLOBALS)
+    ui.Remotes.Text = self:_process(text, self.Config.REMOTES)
+    
+    -- Update Line Numbers
+    local _, lineCount = text:gsub("\n", "")
+    ui.Lines.Text = ""
+    for i = 1, lineCount + 1 do
+        ui.Lines.Text ..= i .. "\n"
+    end
+end
+
+--// --- UI Construction (Classic Exploit Look) ---
+
+function Modules.InternalExecutor:CreateUI()
+    if self.State.UI.Main then self.State.UI.Main.Visible = true return end
+
+    local sg = Instance.new("ScreenGui", self.Services.CoreGui)
+    sg.Name = "Zuka_RC7_Editor"
+    
+    -- Main Window
+    local main = Instance.new("Frame", sg)
+    main.Size = UDim2.fromOffset(600, 420)
+    main.Position = UDim2.fromScale(0.5, 0.5)
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    main.BackgroundTransparency = 0.32
+    main.BorderSizePixel = 1
+    main.BorderColor3 = self.Config.ACCENT
+    main.ClipsDescendants = true
+    main.Active = true
+
+    -- RC7 Top Header
+    local header = Instance.new("Frame", main)
+    header.Size = UDim2.new(1, 0, 0, 30)
+    header.BackgroundColor3 = Color3.fromRGB(255, 85, 127)
+    header.BorderSizePixel = 0
+    
+    local title = Instance.new("TextLabel", header)
+    title.Size = UDim2.new(1, -60, 1, 0)
+    title.Position = UDim2.fromOffset(10, 0)
+    title.Text = "Zuka's Internal"
+    title.TextColor3 = self.Config.ACCENT
+    title.Font = Enum.Font.Code
+    title.TextSize = 14
+    title.TextXAlignment = "Left"; title.BackgroundTransparency = 1
+
+    local close = Instance.new("TextButton", header)
+    close.Size = UDim2.fromOffset(30, 30)
+    close.Position = UDim2.new(1, -30, 0, 0)
+    close.Text = "X"; close.TextColor3 = Color3.new(1,0,0); close.BackgroundTransparency = 1
+    close.MouseButton1Click:Connect(function() sg:Destroy(); self.State.UI = {} end)
+
+    -- Editor Scroll Area
+    local scroll = Instance.new("ScrollingFrame", main)
+    scroll.Size = UDim2.new(1, -10, 1, -85)
+    scroll.Position = UDim2.fromOffset(5, 35)
+    scroll.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    scroll.BackgroundTransparency = 0.4
+    scroll.BorderSizePixel = 1
+    scroll.BorderColor3 = Color3.fromRGB(50, 50, 50)
+    scroll.ScrollBarThickness = 4
+    scroll.ScrollBarImageColor3 = self.Config.ACCENT
+
+    local lines = Instance.new("TextLabel", scroll)
+    lines.Size = UDim2.new(0, 30, 1, 0)
+    lines.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    lines.BorderSizePixel = 0
+    lines.Text = "1"; lines.TextColor3 = Color3.fromRGB(100, 100, 100)
+    lines.Font = Enum.Font.Code; lines.TextSize = 14; lines.TextYAlignment = "Top"
+
+    local source = Instance.new("TextBox", scroll)
+    source.Size = UDim2.new(1, -35, 1, 0)
+    source.Position = UDim2.fromOffset(35, 0)
+    source.BackgroundTransparency = 1
+    source.TextColor3 = Color3.fromRGB(220, 220, 220)
+    source.Font = Enum.Font.Code
+    source.TextSize = 14
+    source.TextXAlignment = "Left"; source.TextYAlignment = "Top"
+    source.MultiLine = true; source.ClearTextOnFocus = false
+    source.Text = ""
+
+    -- Syntax Overlays (Must be children of Source to scroll with it)
+    local function mkOverlay(name, color)
+        local l = Instance.new("TextLabel", source)
+        l.Name = name; l.Size = UDim2.fromScale(1, 1); l.BackgroundTransparency = 1
+        l.Font = Enum.Font.Code; l.TextSize = 14; l.TextXAlignment = "Left"; l.TextYAlignment = "Top"
+        l.TextColor3 = color; l.Text = ""; l.ZIndex = 3
+        return l
+    end
+
+    local kw = mkOverlay("Keywords", Color3.fromRGB(255, 80, 80))
+    local gb = mkOverlay("Globals", Color3.fromRGB(80, 180, 255))
+    local rm = mkOverlay("Remotes", Color3.fromRGB(0, 255, 150))
+
+    -- Footer Buttons
+    local footer = Instance.new("Frame", main)
+    footer.Size = UDim2.new(1, 0, 0, 45)
+    footer.Position = UDim2.new(0, 0, 1, -45)
+    footer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    footer.BorderSizePixel = 0
+
+    local function mkBtn(text, pos, color, cb)
+        local b = Instance.new("TextButton", footer)
+        b.Size = UDim2.fromOffset(100, 30)
+        b.Position = pos
+        b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        b.BorderSizePixel = 1; b.BorderColor3 = color
+        b.Text = text; b.TextColor3 = color; b.Font = Enum.Font.Code; b.TextSize = 13
+        b.MouseButton1Click:Connect(cb)
+        return b
+    end
+
+    mkBtn("EXECUTE", UDim2.fromOffset(10, 7), self.Config.ACCENT, function()
+        local f, e = loadstring(source.Text)
+        if f then task.spawn(f); DoNotif("Executed.", 1) else warn(e); DoNotif("Error in F9", 2) end
+    end)
+
+    mkBtn("CLEAR", UDim2.fromOffset(120, 7), Color3.fromRGB(255, 150, 0), function()
+        source.Text = ""
+    end)
+
+    -- Logic Connections
+    source:GetPropertyChangedSignal("Text"):Connect(function()
+        self:_update()
+    end)
+
+    -- Panel-Style Dragging
+    local dragging, dragStart, startPos
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging, dragStart, startPos = true, input.Position, main.Position
+        end
+    end)
+    self.Services.UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    self.Services.UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+
+    self.State.UI = {Main = main, Source = source, EditorScroll = scroll, Lines = lines, Keywords = kw, Globals = gb, Remotes = rm}
+    DoNotif("RC7 Editor Initialized.", 2)
+end
+
+function Modules.InternalExecutor:Initialize()
+    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+    RegisterCommand({
+        Name = "editor",
+        Aliases = {"exe", "lua"},
+        Description = "Opens a legacy-style script editor."
+    }, function()
+        self:CreateUI()
+    end)
+end
+
+Modules.Disarmer = {
+    State = {
+        IsEnabled = false,
+        Connections = {}
+    },
+    Config = {
+        -- Limb names for both R6 and R15 rigs
+        ARM_PARTS = {
+            "Left Arm", "Right Arm", -- R6
+            "LeftUpperArm", "LeftLowerArm", "LeftHand", -- R15
+            "RightUpperArm", "RightLowerArm", "RightHand" -- R15
+        }
+    },
+    Dependencies = {"Players", "Workspace", "RunService"},
+    Services = {}
+}
+
+-- [Internal] Logic to strip arms from a specific model
+function Modules.Disarmer:_strip(model)
+    if not model or not self.State.IsEnabled then return end
+    
+    -- Safety check: Don't disarm yourself
+    local player = self.Services.Players:GetPlayerFromCharacter(model)
+    if player == self.Services.Players.LocalPlayer then return end
+
+    -- Verify it's a character/NPC by checking for HumanoidRootPart
+    if not model:FindFirstChild("HumanoidRootPart") then return end
+
+    for _, limbName in ipairs(self.Config.ARM_PARTS) do
+        local limb = model:FindFirstChild(limbName)
+        if limb then
+            pcall(function()
+                limb:Destroy()
+            end)
+        end
+    end
+end
+
+function Modules.Disarmer:Enable()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+
+    -- 1. Initial Sweep of Workspace
+    for _, obj in ipairs(self.Services.Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+            self:_strip(obj)
+        end
+    end
+
+    -- 2. Listen for new NPCs or Players appearing in Workspace
+    self.State.Connections.DescendantAdded = self.Services.Workspace.DescendantAdded:Connect(function(obj)
+        if obj:IsA("Model") then
+            -- Wait a frame for limbs to load in
+            task.defer(function()
+                if obj:FindFirstChildOfClass("Humanoid") then
+                    self:_strip(obj)
+                end
+            end)
+        end
+    end)
+
+    DoNotif("Disarmer: ENABLED (Limbs Purged)", 2)
+end
+
+function Modules.Disarmer:Disable()
+    if not self.State.IsEnabled then return end
+    self.State.IsEnabled = false
+
+    -- Disconnect listeners
+    for _, conn in pairs(self.State.Connections) do
+        conn:Disconnect()
+    end
+    table.clear(self.State.Connections)
+
+    DoNotif("Disarmer: DISABLED (Requires respawn to restore)", 2)
+end
+
+function Modules.Disarmer:Initialize()
+    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+
+    RegisterCommand({
+        Name = "disarm",
+        Aliases = {"noarms"},
+        Description = "Removes arms from every player and NPC in the game except you."
+    }, function()
+        if self.State.IsEnabled then
+            self:Disable()
+        else
+            self:Enable()
+        end
+    end)
+end
+
+Modules.Harvester = {
+    State = {
+        IsScanning = false,
+        DiscoveredGivers = {}, -- [Part] = {Name, Path}
+        ActiveConnection = nil
+    },
+    Config = {
+        -- Keywords used to identify Givers vs. regular touch bricks
+        GIVER_KEYWORDS = {"give", "tool", "get", "take", "handle", "weapon", "buy", "equip", "gear", "item", "chest"},
+        -- Keywords to EXCLUDE (to prevent false positives like killbricks)
+        DANGER_KEYWORDS = {"kill", "lava", "dead", "damage", "hurt", "void", "teleport", "portal", "warp"},
+        SCAN_DELAY = 0.1
+    },
+    Dependencies = {"Workspace", "Players", "RunService"},
+    Services = {}
+}
+
+-- [Internal] Logic to determine if a part is likely a Giver
+function Modules.Harvester:_isLikelyGiver(part)
+    if not part:FindFirstChildWhichIsA("TouchInterest") then return false end
+    
+    local name = part.Name:lower()
+    local parentName = part.Parent and part.Parent.Name:lower() or ""
+    local combine = name .. " " .. parentName
+    
+    -- Check for danger first
+    for _, danger in ipairs(self.Config.DANGER_KEYWORDS) do
+        if combine:find(danger) then return false end
+    end
+    
+    -- Check for giver keywords
+    for _, keyword in ipairs(self.Config.GIVER_KEYWORDS) do
+        if combine:find(keyword) then return true end
+    end
+    
+    return false
+end
+
+-- [Internal] Remote-triggers the touch event
+function Modules.Harvester:_trigger(part)
+    local lp = self.Services.Players.LocalPlayer
+    local char = lp.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if not root or not part or not part.Parent then return end
+    
+    if firetouchinterest then
+        pcall(function()
+            firetouchinterest(root, part, 0) -- Touch Start
+            task.wait()
+            firetouchinterest(root, part, 1) -- Touch End
+        end)
+    else
+        -- Fallback for environments without firetouchinterest
+        local oldCF = root.CFrame
+        root.CFrame = part.CFrame
+        task.wait(0.1)
+        root.CFrame = oldCF
+    end
+end
+
+function Modules.Harvester:Scan(silent)
+    if self.State.IsScanning then return end
+    self.State.IsScanning = true
+    table.clear(self.State.DiscoveredGivers)
+    
+    if not silent then DoNotif("Harvester: Scanning Workspace for Givers...", 2) end
+    
+    local count = 0
+    for _, obj in ipairs(self.Services.Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and self:_isLikelyGiver(obj) then
+            self.State.DiscoveredGivers[obj] = true
+            count = count + 1
+        end
+    end
+    
+    self.State.IsScanning = false
+    if not silent then DoNotif("Harvester: Found " .. count .. " potential items.", 3) end
+    return count
+end
+
+function Modules.Harvester:Collect(targetName)
+    self:Scan(true)
+    
+    local collected = 0
+    local lookup = targetName and targetName:lower() or nil
+    
+    for part, _ in pairs(self.State.DiscoveredGivers) do
+        if not part or not part.Parent then continue end
+        
+        local match = true
+        if lookup then
+            match = part.Name:lower():find(lookup) or (part.Parent and part.Parent.Name:lower():find(lookup))
+        end
+        
+        if match then
+            self:_trigger(part)
+            collected = collected + 1
+            task.wait(self.Config.SCAN_DELAY) -- Throttling to prevent server lag-kicks
+        end
+    end
+    
+    DoNotif("Harvester: Triggered " .. collected .. " givers.", 2)
+end
+
+function Modules.Harvester:Initialize()
+    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+    
+    RegisterCommand({
+        Name = "tgivers",
+        Aliases = {"getgivers"},
+        Description = "Remotely triggers all identified 'Giver' parts. Usage: ;harvest [optional_name]"
+    }, function(args)
+        local query = args[1] and table.concat(args, " ") or nil
+        self:Collect(query)
+    end)
+    
+    RegisterCommand({
+        Name = "scangivers",
+        Description = "Lists all detected touch-givers in the console (F9)."
+    }, function()
+        self:Scan(true)
+        print("--- [Harvester: Discovered Givers] ---")
+        for part, _ in pairs(self.State.DiscoveredGivers) do
+            print("Item: " .. part.Name .. " | Path: " .. part:GetFullName())
+        end
+        DoNotif("Giver list printed to console.", 2)
+    end)
+end
+
 -- Loadstrings.
 local function loadstringCmd(url, notif)
     pcall(function()
@@ -20520,7 +22360,7 @@ RegisterCommand({Name = "zgui", Aliases = {"upd3", "zui"}, Description = "For ht
 RegisterCommand({Name = "creepyanim", Aliases = {"canim"}, Description = "Uncanny Animation GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/uncannyanim.lua", "Loaded GUI") end)
 RegisterCommand({Name = "swordbot", Aliases = {"sf", "sfbot"}, Description = "Auto Sword Fighter, use E and R"}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/swordnpc", "Bot loaded.") end)
 RegisterCommand({Name = "touchfling", Aliases = {}, Description = "Loads the touchfling GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SimpleTouchFlingGui.lua", "Loaded") end)
---RegisterCommand({Name = "zoneui", Aliases = {}, Description = "For https://www.roblox.com/games/99381597249674/Zombie-Zone" }, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/Nice.lua", "Loaded") end)
+RegisterCommand({Name = "zoneui", Aliases = {}, Description = "For https://www.roblox.com/games/99381597249674/Zombie-Zone" }, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/Nice.lua", "Loaded") end)
 RegisterCommand({Name = "inbypass", Aliases = {}, Description = "Instance Bypasser" }, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/instancebypass.lua", "Loaded") end)
 RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded Gui For Btools"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/fixedbtools.lua", "Loading Revamped Btools Gui") end)
 RegisterCommand({Name = "ketamine", Aliases = {}, Description = "Updated remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/remotes.lua", "Loading rSpy...") end)
