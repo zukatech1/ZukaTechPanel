@@ -2484,7 +2484,7 @@ end)
                                             end
                                             RegisterCommand({
                                             Name = "freezeanim",
-                                            Aliases = {"noanim", "fa"},
+                                            Aliases = {},
                                             Description = "Freezes all local character animations to skip delays (e.g., weapon swings)."
                                             }, function()
                                             Modules.AnimationFreezer:Toggle()
@@ -3103,14 +3103,6 @@ end
 
 RegisterCommand({ Name = "reachgui", Aliases = { "reachcontroller" }, Description = "Toggles a GUI for advanced tool reach modification." }, function() Modules.ReachController:Toggle() end)
 
-
-RegisterCommand({
-Name = "antifling",
-Aliases = {"anf"},
-Description = "Prevents flinging and disables collision with other players."
-}, function()
-Modules.FlingProtection:Toggle()
-end)
 Modules.Reach = {
 Connections = {},
 State = {
@@ -5963,16 +5955,12 @@ function Modules.StalkerBot:Disable()
 end
 
 function Modules.StalkerBot:Initialize()
-    self.Services.Players = game:GetService("Players")
-    self.Services.RunService = game:GetService("RunService")
-    self.Services.Workspace = game:GetService("Workspace")
-    self.Services.PathfindingService = game:GetService("PathfindingService")
-    self.Services.LocalPlayer = self.Services.Players.LocalPlayer
+
 
     RegisterCommand({
-        Name = "null",
+        Name = "stalkstare",
         Aliases = {},
-        Description = "Stalks a player with uncanny pathfinding."
+        Description = "Follow a player + Stare"
     }, function(args)
         local argument = args[1]
         if not argument or (argument:lower() == "stop" or argument:lower() == "off") then
@@ -6732,87 +6720,147 @@ end)
 Modules.AntiVoid = {
     State = {
         IsEnabled = false,
-        Connection = nil
+        Connection = nil,
     },
     Config = {
-        -- How many studs above the void kill-height to trigger the teleport.
-        -- A higher value is safer but might trigger on maps with very low areas.
-        SafetyBuffer = 15 
+        SafetyBuffer = 20, -- Distance above the "Kill Zone" to trigger
     }
 }
 
---- Finds a safe spawn point, with a fallback to a default coordinate.
--- @return CFrame - The CFrame of a safe location to teleport to.
-function Modules.AntiVoid:_getSafeSpawnPoint()
-    local spawnLocations = {}
-    -- Search the entire workspace for any available SpawnLocation
-    for _, descendant in ipairs(game:GetService("Workspace"):GetDescendants()) do
-        if descendant:IsA("SpawnLocation") then
-            table.insert(spawnLocations, descendant)
+-- [Internal] Resolves a safe location, prioritizing actual SpawnLocations
+function Modules.AntiVoid:_getSafeCFrame()
+    local spawns = {}
+    for _, desc in ipairs(Workspace:GetDescendants()) do
+        if desc:IsA("SpawnLocation") and desc.Enabled then
+            table.insert(spawns, desc)
         end
     end
-
-    if #spawnLocations > 0 then
-        -- Return the CFrame of the first valid spawn found, with a vertical offset.
-        return spawnLocations[1].CFrame * CFrame.new(0, 3, 0)
-    else
-        -- Fallback in case no SpawnLocation objects exist in the game.
-        return CFrame.new(0, 50, 0)
+    
+    if #spawns > 0 then
+        -- Return the first active spawn with a slight Y offset
+        return spawns[1].CFrame + Vector3.new(0, 5, 0)
     end
+    -- Fallback to world origin if no spawns exist
+    return CFrame.new(0, 100, 0)
 end
 
---- Enables the anti-void check.
 function Modules.AntiVoid:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
-
-    -- Bind the check to Heartbeat, which runs after every physics step.
+    
     self.State.Connection = RunService.Heartbeat:Connect(function()
-        local char = LocalPlayer.Character
-        if not char then return end
-        
-        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local char = Players.LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-
-        local voidLevel = Workspace.FallenPartsDestroyHeight
         
-        -- Check if the player has fallen below the trigger height
-        if hrp.Position.Y < (voidLevel + self.Config.SafetyBuffer) then
-            local safeCFrame = self:_getSafeSpawnPoint()
+        -- Detect if we are below the world's kill height + our safety buffer
+        local killHeight = Workspace.FallenPartsDestroyHeight
+        if hrp.Position.Y < (killHeight + self.Config.SafetyBuffer) then
             
-            -- Teleport the character and reset their velocity to stabilize them.
-            hrp.CFrame = safeCFrame
-            hrp.Velocity = Vector3.zero
-            hrp.RotVelocity = Vector3.zero
+            -- THE ARCHITECT'S FIX: Zero velocity before teleporting
+            -- This prevents the "Elastic Void" glitch where you keep falling
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            hrp.AssemblyAngularVelocity = Vector3.zero
+            
+            local targetCFrame = self:_getSafeCFrame()
+            hrp.CFrame = targetCFrame
+            
+            DoNotif("Anti-Void: Saved from the abyss!", 2)
         end
     end)
-
-    DoNotif("Anti-Void: ENABLED.", 2)
+    DoNotif("Anti-Void: SECURED", 2)
 end
 
---- Disables the anti-void check and cleans up connections.
 function Modules.AntiVoid:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
-
-    -- Disconnect the Heartbeat connection to prevent resource leaks.
-    if self.State.Connection then
-        self.State.Connection:Disconnect()
-        self.State.Connection = nil
-    end
-
-    DoNotif("Anti-Void: DISABLED.", 2)
+    if self.State.Connection then self.State.Connection:Disconnect() end
+    DoNotif("Anti-Void: UNSECURED", 2)
 end
 
---- Toggles the anti-void state.
 function Modules.AntiVoid:Toggle()
-    if self.State.IsEnabled then
-        self:Disable()
+    if self.State.IsEnabled then self:Disable() else self:Enable() end
+end
+
+--// --- Command Registration ---
+
+RegisterCommand({
+    Name = "antivoid",
+    Aliases = {"av", "novoid", "safety"},
+    Description = "Prevents you from dying to the void by teleporting you to safety."
+}, function()
+    Modules.AntiVoid:Toggle()
+end)
+
+Modules.codedoor = {
+    State = {
+        LastFoundCode = nil
+    },
+    Config = {
+        Paths = {
+            {Root = "CodeDoor", Target = "Code", Property = "Value"},
+            {Root = "Staff_Code", Target = "Code.SurfaceGui.Desc", Property = "Text"}
+        }
+    }
+}
+
+function Modules.codedoor:GetCode()
+    local foundCode = nil
+    local workspaceService = game:GetService("Workspace")
+
+    -- Iterating through known freemodel paths for the codedoor
+    for _, config in ipairs(self.Config.Paths) do
+        local rootObject = workspaceService:FindFirstChild(config.Root)
+        if rootObject then
+            -- Deep search for the target inside the root
+            local current = rootObject
+            local segments = string.split(config.Target, ".")
+            
+            for _, segment in ipairs(segments) do
+                current = current and current:FindFirstChild(segment)
+            end
+
+            if current then
+                local success, val = pcall(function() return current[config.Property] end)
+                if success and val ~= "" then
+                    foundCode = tostring(val)
+                    break
+                end
+            end
+        end
+    end
+
+    if foundCode then
+        self.State.LastFoundCode = foundCode
+        DoNotif("Success: Code extracted.", 3)
+        
+        -- Utilizing the internal notification system for the display
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Door Unlocker",
+            Text = "Code: " .. foundCode,
+            Duration = 9
+        })
+        
+        -- Log to the CommandBar if it's initialized
+        if Modules.CommandBar and Modules.CommandBar.AddOutput then
+            Modules.CommandBar:AddOutput("[DECRYPTED]: Door Code is " .. foundCode, Modules.CommandBar.Theme.Accent)
+        end
     else
-        self:Enable()
+        DoNotif("Error: No codedoor detected in Workspace.", 3)
     end
 end
-RegisterCommand({ Name = "antivoid", Aliases = { "novoid" }, Description = "Toggles an anti-void system that teleports you to spawn before you die." }, function() Modules.AntiVoid:Toggle() end)
+
+function Modules.codedoor:Initialize()
+    local module = self
+    
+    RegisterCommand({
+        Name = "codedoor",
+        Aliases = {"unlock", "getcode", "doorcode"},
+        Description = "Scans and extracts the PIN from common free-model codedoors."
+    }, function()
+        module:GetCode()
+    end)
+end
 
 Modules.AdvancedShiftLock = {
     State = {
@@ -6820,216 +6868,180 @@ Modules.AdvancedShiftLock = {
         IsLocked = false,  
         UI = {},
         Connections = {},
-        Originals = {} 
+        Originals = {},
+        CurrentOffset = Vector3.zero
     },
     Config = {
         Icons = {
             On = "rbxasset://textures/ui/mouseLock_on.png",
             Off = "rbxasset://textures/ui/mouseLock_off.png"
-        }
+        },
+        CameraOffset = Vector3.new(1.75, 0, 0), 
+        Smoothing = 0.25,
+        ToggleKey = Enum.KeyCode.LeftShift
     },
     Dependencies = {"Players", "TweenService", "UserInputService", "RunService", "Workspace", "CoreGui"},
     Services = {}
 }
 
----
--- [FIX] Added the missing _makeDraggable helper function.
---
+--// Missing Draggable Method Fix
 function Modules.AdvancedShiftLock:_makeDraggable(guiObject, dragHandle)
-    local isDragging = false
-    local dragStart, startPosition
+    local UIS = self.Services.UserInputService
+    local dragging = false
+    local dragStart, startPos
 
     dragHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isDragging = true
+            dragging = true
             dragStart = input.Position
-            startPosition = guiObject.Position
+            startPos = guiObject.Position
             
-            local inputEndedConn
-            inputEndedConn = self.Services.UserInputService.InputEnded:Connect(function(endInput)
-                if endInput.UserInputType == input.UserInputType then
-                    isDragging = false
-                    inputEndedConn:Disconnect()
+            local changedConn; changedConn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    changedConn:Disconnect()
                 end
             end)
         end
     end)
 
-    self.Services.UserInputService.InputChanged:Connect(function(input)
-        if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and isDragging then
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             guiObject.Position = UDim2.new(
-                startPosition.X.Scale, startPosition.X.Offset + delta.X,
-                startPosition.Y.Scale, startPosition.Y.Offset + delta.Y
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + delta.Y
             )
         end
     end)
 end
 
-
-function Modules.AdvancedShiftLock:_faceCamera(state)
-    if self.State.Connections.Rotation then
-        self.State.Connections.Rotation:Disconnect()
-        self.State.Connections.Rotation = nil
-    end
-
+function Modules.AdvancedShiftLock:_updateLogic(deltaTime)
     local char = self.Services.Players.LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    
-    if state then 
-        self.State.Originals.AutoRotate = hum.AutoRotate
-        hum.AutoRotate = false
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local camera = self.Services.Workspace.CurrentCamera
+
+    if not (hum and hrp and camera and hum.Health > 0) then return end
+
+    if self.State.IsLocked then
+        local lookVector = camera.CFrame.LookVector
+        local flatVector = Vector3.new(lookVector.X, 0, lookVector.Z)
         
-        self.State.Connections.Rotation = self.Services.RunService.RenderStepped:Connect(function()
-            local hrp = hum.RootPart
-            local camera = self.Services.Workspace.CurrentCamera
-            if not (hrp and camera) then return end
-            
-            local lookVector = camera.CFrame.LookVector
-            local flatVector = Vector3.new(lookVector.X, 0, lookVector.Z)
-            
-            if flatVector.Magnitude > 1e-4 then
-                hrp.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + flatVector.Unit)
-            end
-        end)
-    else 
-        if self.State.Originals.AutoRotate ~= nil then
-            hum.AutoRotate = self.State.Originals.AutoRotate
-            self.State.Originals.AutoRotate = nil
+        if flatVector.Magnitude > 1e-4 then
+            hrp.CFrame = hrp.CFrame:Lerp(CFrame.lookAt(hrp.Position, hrp.Position + flatVector.Unit), 0.4)
+        end
+
+        hum.CameraOffset = hum.CameraOffset:Lerp(self.Config.CameraOffset, self.Config.Smoothing)
+        self.Services.UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+    else
+        if hum.CameraOffset.Magnitude > 0.01 then
+            hum.CameraOffset = hum.CameraOffset:Lerp(Vector3.zero, self.Config.Smoothing)
         end
     end
 end
 
-function Modules.AdvancedShiftLock:_lockMouse(state)
-    if self.Services.UserInputService.MouseEnabled then
-        self.Services.UserInputService.MouseBehavior = state and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
-    end
-end
-
 function Modules.AdvancedShiftLock:_setLockState(newState)
+    local char = self.Services.Players.LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    
+    if newState and hum and hum.Sit then return end
     self.State.IsLocked = newState
     
-    self:_lockMouse(newState)
-    self:_faceCamera(newState)
-
-    local ui = self.State.UI
-    if not ui.Button then return end
-    
-    local tweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-    local targetColor = newState and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(0, 140, 255)
-    local targetThickness = newState and 3 or 2
-    local targetBg = newState and Color3.fromRGB(38, 48, 60) or Color3.fromRGB(34, 34, 38)
-    
-    self.Services.TweenService:Create(ui.Stroke, tweenInfo, {Color = targetColor, Thickness = targetThickness}):Play()
-    self.Services.TweenService:Create(ui.Button, tweenInfo, {BackgroundColor3 = targetBg}):Play()
-    self.Services.TweenService:Create(ui.Icon, tweenInfo, {ImageColor3 = newState and targetColor or Color3.new(1,1,1)}):Play()
-    ui.Icon.Image = newState and self.Config.Icons.On or self.Config.Icons.Off
-end
-
-function Modules.AdvancedShiftLock:_reapplyState()
-    if not self.State.IsEnabled then return end
-    task.defer(function()
-        self:_setLockState(self.State.IsLocked)
-    end)
-end
-
-function Modules.AdvancedShiftLock:Disable()
-    if not self.State.IsEnabled then return end
-
-    if self.State.IsLocked then self:_setLockState(false) end
-    
-    if self.State.Connections.CharacterAdded then self.State.Connections.CharacterAdded:Disconnect() end
-    if self.State.Connections.CameraChanged then self.State.Connections.CameraChanged:Disconnect() end
-    table.clear(self.State.Connections)
-
-    if self.State.UI.ScreenGui then
-        local ui = self.State.UI
-        local tweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-        self.Services.TweenService:Create(ui.Scale, tweenInfo, {Scale = 0}):Play()
-        self.Services.TweenService:Create(ui.Button, tweenInfo, {BackgroundTransparency = 1}):Play()
-        self.Services.TweenService:Create(ui.Stroke, TweenInfo.new(0.12), {Transparency = 1}):Play()
-        task.delay(0.2, function()
-            if ui.ScreenGui then ui.ScreenGui:Destroy() end
-        end)
+    if newState then
+        if hum then
+            self.State.Originals.AutoRotate = hum.AutoRotate
+            hum.AutoRotate = false
+        end
+    else
+        if hum and self.State.Originals.AutoRotate ~= nil then
+            hum.AutoRotate = self.State.Originals.AutoRotate
+        end
+        self.Services.UserInputService.MouseBehavior = Enum.MouseBehavior.Default
     end
 
-    self.State.IsEnabled = false
-    self.State.UI = {}
-    DoNotif("Advanced Shift Lock disabled.", 2)
+    local ui = self.State.UI
+    if ui.Button then
+        local targetColor = newState and Color3.fromRGB(0, 255, 200) or Color3.fromRGB(0, 140, 255)
+        local targetBg = newState and Color3.fromRGB(20, 35, 30) or Color3.fromRGB(25, 25, 30)
+        
+        self.Services.TweenService:Create(ui.Stroke, TweenInfo.new(0.2), {Color = targetColor, Thickness = newState and 3 or 2}):Play()
+        self.Services.TweenService:Create(ui.Button, TweenInfo.new(0.2), {BackgroundColor3 = targetBg}):Play()
+        ui.Icon.Image = newState and self.Config.Icons.On or self.Config.Icons.Off
+    end
 end
 
 function Modules.AdvancedShiftLock:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
 
-    local ui = {}
-    self.State.UI = ui
-    
-    ui.ScreenGui = Instance.new("ScreenGui")
-    ui.ScreenGui.Name = "AdvancedShiftLockUI_Module"
+    local ui = self.State.UI
+    ui.ScreenGui = Instance.new("ScreenGui", self.Services.CoreGui)
+    ui.ScreenGui.Name = "ForensicShiftLock_V2"
     ui.ScreenGui.ResetOnSpawn = false
-    ui.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    ui.ScreenGui.DisplayOrder = 10000
     
-    ui.Button = Instance.new("ImageButton")
-    ui.Button.Name = "LockBtn"
-    ui.Button.AnchorPoint = Vector2.new(0.5, 0.5)
-    ui.Button.Size = UDim2.fromOffset(64, 64)
-    ui.Button.Position = UDim2.new(1, -96, 1, -96)
-    ui.Button.BackgroundColor3 = Color3.fromRGB(34, 34, 38)
-    ui.Button.Parent = ui.ScreenGui
+    ui.Button = Instance.new("ImageButton", ui.ScreenGui)
+    ui.Button.Size = UDim2.fromOffset(55, 55)
+    ui.Button.Position = UDim2.new(1, -75, 1, -150)
+    ui.Button.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     Instance.new("UICorner", ui.Button).CornerRadius = UDim.new(1, 0)
-
-    ui.Stroke = Instance.new("UIStroke", ui.Button)
-    ui.Stroke.Thickness = 2
-    ui.Stroke.Color = Color3.fromRGB(0, 140, 255)
-    ui.Stroke.Transparency = 0.25
-
-    ui.Icon = Instance.new("ImageLabel", ui.Button)
-    ui.Icon.BackgroundTransparency = 1
-    ui.Icon.AnchorPoint = Vector2.new(0.5, 0.5)
-    ui.Icon.Position = UDim2.fromScale(0.5, 0.5)
-    ui.Icon.Size = UDim2.fromScale(0.62, 0.62)
-    ui.Icon.Image = self.Config.Icons.Off
     
-    local closeBtn = Instance.new("TextButton", ui.Button)
-    closeBtn.Name = "CloseButton"
-    closeBtn.AnchorPoint = Vector2.new(1, 0)
-    closeBtn.Position = UDim2.new(1, 6, 0, -6)
-    closeBtn.Size = UDim2.fromOffset(22, 22)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(230, 60, 60)
-    closeBtn.Text = "×"
-    closeBtn.TextScaled = true
-    closeBtn.TextColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1,0)
-
-    ui.Scale = Instance.new("UIScale", ui.Button)
-    ui.Scale.Scale = 0
-    self.Services.TweenService:Create(ui.Scale, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1}):Play()
+    ui.Stroke = Instance.new("UIStroke", ui.Button)
+    ui.Stroke.Color = Color3.fromRGB(0, 140, 255)
+    ui.Stroke.Thickness = 2
+    
+    ui.Icon = Instance.new("ImageLabel", ui.Button)
+    ui.Icon.Size = UDim2.fromScale(0.6, 0.6)
+    ui.Icon.Position = UDim2.fromScale(0.2, 0.2)
+    ui.Icon.BackgroundTransparency = 1
+    ui.Icon.Image = self.Config.Icons.Off
     
     self:_makeDraggable(ui.Button, ui.Button)
 
-    ui.Button.Activated:Connect(function() self:_setLockState(not self.State.IsLocked) end)
-    closeBtn.Activated:Connect(function() self:Disable() end)
-    
-    self.State.Connections.CharacterAdded = self.Services.Players.LocalPlayer.CharacterAdded:Connect(function() self:_reapplyState() end)
-    self.State.Connections.CameraChanged = self.Services.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function() self:_reapplyState() end)
+    self.State.Connections.Main = self.Services.RunService.RenderStepped:Connect(function(dt)
+        self:_updateLogic(dt)
+    end)
 
-    ui.ScreenGui.Parent = self.Services.CoreGui
-    DoNotif("Advanced Shift Lock enabled.", 2)
+    self.State.Connections.Input = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
+        if not gpe and input.KeyCode == self.Config.ToggleKey then
+            self:_setLockState(not self.State.IsLocked)
+        end
+    end)
+
+    ui.Button.Activated:Connect(function()
+        self:_setLockState(not self.State.IsLocked)
+    end)
+
+    DoNotif("Advanced Shift-Lock V2 Enabled.", 3)
 end
 
+function Modules.AdvancedShiftLock:Disable()
+    if not self.State.IsEnabled then return end
+    self:_setLockState(false)
+    
+    for _, conn in pairs(self.State.Connections) do conn:Disconnect() end
+    if self.State.UI.ScreenGui then self.State.UI.ScreenGui:Destroy() end
+    
+    self.State.IsEnabled = false
+    table.clear(self.State.Connections)
+    self.State.UI = {}
+    DoNotif("Shift-Lock Disabled.", 2)
+end
+
+--// Necessary for service loading
 function Modules.AdvancedShiftLock:Initialize()
     local module = self
-    for _, service in ipairs(self.Dependencies) do
-        module.Services[service] = game:GetService(service)
+    module.Services = {}
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
     end
-    
+
     RegisterCommand({
         Name = "shiftlock",
-        Aliases = {"sl", "shiftlockui"},
-        Description = "Toggles a custom UI for a client-sided shift lock."
+        Aliases = {"sl", "lockcam"},
+        Description = "Toggles an advanced Over-The-Shoulder Shift Lock."
     }, function()
         if module.State.IsEnabled then
             module:Disable()
@@ -7056,7 +7068,7 @@ Modules.AntiTrip = {
             Enum.HumanoidStateType.PlatformStanding
         }
     },
-    Dependencies = {"Players", "RunService"},
+    Dependencies = {"Players", "RunService", "ReplicatedService", "ReplicatedStorage"},
     Services = {}
 }
 
@@ -7203,96 +7215,139 @@ end
 Modules.AdBlock = {
     State = {
         IsEnabled = false,
-        -- This connection will listen for new objects being added to the workspace.
-        Connection = nil
+        Connections = {}
     },
-    Dependencies = {"Workspace"},
+    Dependencies = {"Workspace", "Players", "CoreGui"},
     Services = {}
 }
 
----
--- [Private] The core logic to identify and destroy a potential ad object.
--- This function is designed to be called by both the initial scan and the event listener.
---
+-- =========================
+-- [PRIVATE] AD DETECTION
+-- =========================
+
+local AD_KEYWORDS = {
+    "ad", "ads", "advert", "sponsor", "promo", "promotion"
+}
+
+local function nameLooksLikeAd(name)
+    name = name:lower()
+    for _, word in ipairs(AD_KEYWORDS) do
+        if name:find(word) then
+            return true
+        end
+    end
+    return false
+end
+
+function Modules.AdBlock:_destroy(instance)
+    pcall(function()
+        instance:Destroy()
+    end)
+end
+
 function Modules.AdBlock:_processObject(obj)
-    -- The original script's entry point was checking for PackageLinks, which is a good heuristic.
-    if obj:IsA("PackageLink") then
-        local parent = obj.Parent
-        if not parent then return end
+    if not obj or not obj.Parent then return end
 
-        local success, err = pcall(function()
-            if parent:FindFirstChild("ADpart") then
-                -- Direct ad structure, destroy the parent model/part.
-                parent:Destroy()
-            elseif parent:FindFirstChild("AdGuiAdornee") then
-                -- Indirect structure, likely where the ad is a child of a child.
-                local grandParent = parent.Parent
-                if grandParent and grandParent ~= self.Services.Workspace then
-                    grandParent:Destroy()
-                else
-                    parent:Destroy()
-                end
-            end
-        end)
+    -- UI ADS
+    if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
+        self:_destroy(obj)
+        return
+    end
 
-        if not success then
-            warn("[AdBlock] Failed to process a potential ad object:", err)
+    if obj:IsA("ScreenGui") then
+        if nameLooksLikeAd(obj.Name) or obj:FindFirstChildWhichIsA("ImageLabel", true) then
+            self:_destroy(obj)
         end
+        return
+    end
+
+    -- PART-BASED ADS
+    if obj:IsA("BasePart") then
+        if obj:FindFirstChildWhichIsA("BillboardGui") then
+            self:_destroy(obj)
+            return
+        end
+    end
+
+    -- LEGACY / SPONSORED STRUCTURES
+    if nameLooksLikeAd(obj.Name) then
+        self:_destroy(obj)
+        return
+    end
+
+    if obj:FindFirstChild("AdGuiAdornee") then
+        self:_destroy(obj.Parent or obj)
+        return
     end
 end
 
----
--- Enables the ad-blocking system.
---
+-- =========================
+-- ENABLE
+-- =========================
+
 function Modules.AdBlock:Enable()
-    if self.State.IsEnabled then 
-        DoNotif("AdBlock is already enabled.", 2)
-        return 
+    if self.State.IsEnabled then
+        DoNotif("AdBlock already enabled.", 2)
+        return
     end
-    self.State.IsEnabled = true
-    DoNotif("AdBlock enabled. Performing initial scan...", 2)
 
-    -- 1. Perform a one-time, full scan to clear any existing ads.
-    -- This is the only time we run a full GetDescendants() loop.
-    task.spawn(function()
-        local existingAds = self.Services.Workspace:GetDescendants()
-        for i, descendant in ipairs(existingAds) do
-            -- Add a small delay every 500 parts to prevent freezing on huge maps.
-            if i % 500 == 0 then task.wait() end
-            self:_processObject(descendant)
+    self.State.IsEnabled = true
+    DoNotif("AdBlock enabled.", 2)
+
+    local function scan(container)
+        for _, obj in ipairs(container:GetDescendants()) do
+            self:_processObject(obj)
         end
-        DoNotif("Initial ad scan complete.", 2)
-    end)
-    
-    -- 2. Connect to the DescendantAdded event. This is the efficient, long-term listener.
-    -- From now on, we only check objects as they are added to the game.
-    self.State.Connection = self.Services.Workspace.DescendantAdded:Connect(function(descendant)
-        self:_processObject(descendant)
-    end)
+    end
+
+    -- Initial scans
+    scan(self.Services.Workspace)
+
+    local player = self.Services.Players.LocalPlayer
+    if player then
+        local gui = player:WaitForChild("PlayerGui", 5)
+        if gui then scan(gui) end
+    end
+
+    scan(self.Services.CoreGui)
+
+    -- Live listeners
+    local function watch(container)
+        table.insert(self.State.Connections,
+            container.DescendantAdded:Connect(function(obj)
+                self:_processObject(obj)
+            end)
+        )
+    end
+
+    watch(self.Services.Workspace)
+    watch(self.Services.CoreGui)
+
+    if player and player:FindFirstChild("PlayerGui") then
+        watch(player.PlayerGui)
+    end
 end
 
----
--- Disables the ad-blocking system and cleans up connections.
---
+-- =========================
+-- DISABLE
+-- =========================
+
 function Modules.AdBlock:Disable()
-    if not self.State.IsEnabled then 
-        DoNotif("AdBlock is not active.", 2)
-        return 
+    if not self.State.IsEnabled then
+        DoNotif("AdBlock not active.", 2)
+        return
     end
+
     self.State.IsEnabled = false
 
-    -- Disconnect the listener to stop processing new objects.
-    if self.State.Connection then
-        self.State.Connection:Disconnect()
-        self.State.Connection = nil
+    for _, c in ipairs(self.State.Connections) do
+        pcall(function() c:Disconnect() end)
     end
 
+    self.State.Connections = {}
     DoNotif("AdBlock disabled.", 2)
 end
 
----
--- Toggles the ad-blocking state.
---
 function Modules.AdBlock:Toggle()
     if self.State.IsEnabled then
         self:Disable()
@@ -7301,23 +7356,24 @@ function Modules.AdBlock:Toggle()
     end
 end
 
----
--- Initializes the module, loads services, and registers the command.
---
+-- =========================
+-- INIT
+-- =========================
+
 function Modules.AdBlock:Initialize()
-    local module = self
     for _, serviceName in ipairs(self.Dependencies) do
-        module.Services[serviceName] = game:GetService(serviceName)
+        self.Services[serviceName] = game:GetService(serviceName)
     end
 
     RegisterCommand({
         Name = "adblock",
         Aliases = {"removeads"},
-        Description = "Toggles a system to automatically remove billboard advertisements."
+        Description = "Automatically removes in-game advertisements."
     }, function()
-        module:Toggle()
+        self:Toggle()
     end)
 end
+
 
 Modules.Fakeout = {
     State = {
@@ -7605,13 +7661,168 @@ end
 function Modules.AntiPlayerPhysics:Initialize()
     local module = self
     RegisterCommand({
-        Name = "antiphysics",
-        Aliases = {"nocol"},
-        Description = "Toggles a powerful anti-fling that makes other players non-collidable."
+        Name = "nocollide",
+        Aliases = {},
+        Description = "Toggles a simple anti-fling that makes other players non-collidable."
     }, function()
         module:Toggle()
     end)
 end
+
+Modules.ForensicAntiFling = {
+    State = {
+        IsEnabled = false,
+        SafeCFrame = nil,
+        LastSafePosition = nil,
+        Connections = {},
+        TrackedPlayers = {}
+    },
+    Config = {
+        MAX_SPEED = 35,          -- Velocity threshold for snapback
+        SAFE_Y_BUFFER = 5,       -- Minimum height considered "safe"
+        VOID_THRESHOLD = -15,    -- Teleport back if fallen this far
+        PROTECT_RADIUS = 18,     -- Distance to freeze nearby flingers
+        FREEZE_DURATION = 0.5,   -- How long to freeze an impacting part
+        OTHER_VEL_LIMIT = 60     -- Velocity threshold to ghost other players
+    }
+}
+
+-- [Internal] Removes all physics movers from a character
+function Modules.ForensicAntiFling:_purgeForces(character)
+    for _, obj in ipairs(character:GetDescendants()) do
+        if obj:IsA("BodyMover") or obj:IsA("LinearVelocity") or obj:IsA("AngularVelocity") 
+        or obj:IsA("AlignPosition") or obj:IsA("AlignOrientation") or obj:IsA("VectorForce") then
+            pcall(function() obj:Destroy() end)
+        end
+    end
+end
+
+-- [Internal] Intercepts high-velocity parts on contact and freezes them locally
+function Modules.ForensicAntiFling:_onTouchFreeze(otherPart)
+    if not self.State.IsEnabled then return end
+    if otherPart:IsA("BasePart") and otherPart.AssemblyLinearVelocity.Magnitude > self.Config.MAX_SPEED then
+        local origVel = otherPart.AssemblyLinearVelocity
+        otherPart.AssemblyLinearVelocity = Vector3.zero
+        otherPart.AssemblyAngularVelocity = Vector3.zero
+        
+        -- Restore after a micro-delay to prevent physics crashing while maintaining defense
+        task.delay(self.Config.FREEZE_DURATION, function()
+            if otherPart and otherPart.Parent then
+                otherPart.AssemblyLinearVelocity = origVel
+            end
+        end)
+    end
+end
+
+-- [Internal] The main defense loop
+function Modules.ForensicAntiFling:_startDefense(character)
+    local hrp = character:WaitForChild("HumanoidRootPart", 5)
+    local hum = character:WaitForChild("Humanoid", 5)
+    if not hrp or not hum then return end
+
+    self.State.SafeCFrame = hrp.CFrame
+    
+    -- Connection 1: Impact Interception
+    table.insert(self.State.Connections, hrp.Touched:Connect(function(p) self:_onTouchFreeze(p) end))
+
+    -- Connection 2: Velocity & Positional Integrity
+    table.insert(self.State.Connections, RunService.Heartbeat:Connect(function()
+        if not self.State.IsEnabled or hum.Health <= 0 then return end
+
+        local vel = hrp.AssemblyLinearVelocity.Magnitude
+        
+        -- Update Safe Zone: Only cache CFrame if we are moving normally and above the void
+        if vel <= self.Config.MAX_SPEED and hrp.Position.Y > self.Config.SAFE_Y_BUFFER then
+            self.State.SafeCFrame = hrp.CFrame
+        end
+
+        -- Vector A: Void Protection
+        if hrp.Position.Y < self.Config.VOID_THRESHOLD then
+            hrp.CFrame = self.State.SafeCFrame or CFrame.new(0, 50, 0)
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            self:_purgeForces(character)
+            return
+        end
+
+        -- Vector B: Fling Detection (Speed or illegal height change)
+        if vel > self.Config.MAX_SPEED or hrp.Position.Y < self.Config.SAFE_Y_BUFFER then
+            -- Snapback to last known safe CFrame
+            hrp.CFrame = self.State.SafeCFrame or hrp.CFrame
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            hrp.AssemblyAngularVelocity = Vector3.zero
+            
+            self:_purgeForces(character)
+            
+            -- Kinetic Drain: Neutralize anyone in the immediate radius
+            for _, part in pairs(Workspace:GetPartBoundsInRadius(hrp.Position, self.Config.PROTECT_RADIUS)) do
+                if part:IsA("BasePart") and not part:IsDescendantOf(character) then
+                    if part.Parent:FindFirstChildOfClass("Humanoid") then
+                        part.AssemblyLinearVelocity = Vector3.zero
+                        part.AssemblyAngularVelocity = Vector3.zero
+                    end
+                end
+            end
+        end
+    end))
+end
+
+-- [Internal] background monitor for other players (Ghosting high-speed players)
+function Modules.ForensicAntiFling:_monitorOthers()
+    table.insert(self.State.Connections, RunService.Heartbeat:Connect(function()
+        if not self.State.IsEnabled then return end
+        
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character.PrimaryPart then
+                local root = plr.Character.PrimaryPart
+                if root.AssemblyLinearVelocity.Magnitude > self.Config.OTHER_VEL_LIMIT or root.AssemblyAngularVelocity.Magnitude > self.Config.OTHER_VEL_LIMIT then
+                    -- Locally strip their physics properties
+                    for _, v in ipairs(plr.Character:GetDescendants()) do
+                        if v:IsA("BasePart") then
+                            v.CanCollide = false
+                            v.AssemblyLinearVelocity = Vector3.zero
+                            v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
+                        end
+                    end
+                end
+            end
+        end
+    end))
+end
+
+function Modules.ForensicAntiFling:Enable()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+    
+    if LocalPlayer.Character then self:_startDefense(LocalPlayer.Character) end
+    table.insert(self.State.Connections, LocalPlayer.CharacterAdded:Connect(function(c) self:_startDefense(c) end))
+    
+    self:_monitorOthers()
+    DoNotif("Forensic Anti-Fling: ENABLED", 2)
+end
+
+function Modules.ForensicAntiFling:Disable()
+    if not self.State.IsEnabled then return end
+    self.State.IsEnabled = false
+    
+    for _, conn in pairs(self.State.Connections) do conn:Disconnect() end
+    table.clear(self.State.Connections)
+    
+    DoNotif("Forensic Anti-Fling: DISABLED", 2)
+end
+
+function Modules.ForensicAntiFling:Toggle()
+    if self.State.IsEnabled then self:Disable() else self:Enable() end
+end
+
+--// --- Command Registration ---
+
+RegisterCommand({
+    Name = "antifling",
+    Aliases = {"anf", "unfling", "safezone"},
+    Description = "Toggles high-tier snapback and kinetic-drain anti-fling."
+}, function()
+    Modules.ForensicAntiFling:Toggle()
+end)
 
 Modules.AntiKill = {
     State = {
@@ -7709,7 +7920,7 @@ function Modules.AntiKill:Initialize()
     local module = self -- Capture self for the command function.
     RegisterCommand({
         Name = "antikill",
-        Aliases = {"ak", "nofling"},
+        Aliases = {},
         Description = "Toggles a client-sided system to resist flings and character manipulation."
     }, function()
         module:Toggle()
@@ -8239,97 +8450,381 @@ RegisterCommand({
 	Modules.TeleporterScanner:ToggleGUI()
 end)
 
-Modules.ToolPersistence = {
-State = {
-IsEnabled = false,
-ToolCache = nil,
-Connections = {}
-},
-Dependencies = {"Players", "CoreGui"}
+Modules.AuthorityHijacker = {
+    State = {
+        IsEnabled = false,
+        UnlockedTables = {},
+        OriginalNewIndex = nil,
+        SpoofMap = {} -- [Instance] = {[Property] = Value}
+    }
 }
-function Modules.ToolPersistence:_initializeCache()
-    if self.State.ToolCache and self.State.ToolCache.Parent then
-        self.State.ToolCache:Destroy()
+
+-- [Internal] Recursively unlocks every table within a target root
+function Modules.AuthorityHijacker:_deepUnlock(root, depth)
+    if depth > 10 or self.State.UnlockedTables[root] then return end
+    if type(root) ~= "table" then return end
+    
+    self.State.UnlockedTables[root] = true
+    
+    -- Unlock the table itself
+    if setreadonly then
+        pcall(setreadonly, root, false)
+    elseif make_writeable then
+        pcall(make_writeable, root)
     end
-    self.State.ToolCache = Instance.new("Folder")
-    self.State.ToolCache.Name = "ToolCache_" .. math.random(1000, 9999)
-    self.State.ToolCache.Parent = self.Services.CoreGui
+    
+    -- Recurse through children
+    for k, v in pairs(root) do
+        if type(v) == "table" then
+            self:_deepUnlock(v, depth + 1)
+        end
+    end
 end
-function Modules.ToolPersistence:_cacheTool(tool)
-    if not tool:IsA("Tool") then return end
-        if self.State.ToolCache:FindFirstChild(tool.Name) then return end
-            local success, result = pcall(function()
-            local toolClone = tool:Clone()
-            toolClone.Parent = self.State.ToolCache
-        end)
-        if not success then
-            warn("[ToolPersistence] Failed to cache tool '" .. tool.Name .. "': " .. tostring(result))
-        end
-    end
-    function Modules.ToolPersistence:Enable()
-        if self.State.IsEnabled then return end
-            self.State.IsEnabled = true
-            local localPlayer = self.Services.Players.LocalPlayer
-            local backpack = localPlayer and localPlayer:FindFirstChildOfClass("Backpack")
-            if not backpack then
-                self.State.IsEnabled = false
-                return warn("[ToolPersistence] Cannot enable: Backpack not found.")
-            end
-            self:_initializeCache()
-            for _, tool in ipairs(backpack:GetChildren()) do
-                self:_cacheTool(tool)
-            end
-            self.State.Connections.ChildAdded = backpack.ChildAdded:Connect(function(child)
-            self:_cacheTool(child)
-        end)
-        self.State.Connections.ChildRemoved = backpack.ChildRemoved:Connect(function(child)
-        if self.State.IsEnabled and child:IsA("Tool") then
-            local cachedTool = self.State.ToolCache:FindFirstChild(child.Name)
-            if cachedTool then
-                task.defer(function()
-                if backpack and backpack.Parent then
-                    cachedTool:Clone().Parent = backpack
+
+-- [Internal] Hooks the engine's property-writing method
+function Modules.AuthorityHijacker:ApplyKernelHook()
+    if self.State.OriginalNewIndex then return end
+    
+    local success, mt = pcall(getrawmetatable, game)
+    if not success then return end
+    
+    self.State.OriginalNewIndex = mt.__newindex
+    local old = mt.__newindex
+    
+    setreadonly(mt, false)
+    mt.__newindex = newcclosure(function(t, k, v)
+        -- If we are in 'Hijack Mode', we ignore the "Read-Only" error and store the value
+        if Modules.AuthorityHijacker.State.IsEnabled then
+            -- Attempt to write normally first (in case it's actually writeable)
+            local ok = pcall(old, t, k, v)
+            if not ok then
+                -- If it failed (Read-Only), we store it in our SpoofMap
+                if not Modules.AuthorityHijacker.State.SpoofMap[t] then
+                    Modules.AuthorityHijacker.State.SpoofMap[t] = {}
                 end
-            end)
+                Modules.AuthorityHijacker.State.SpoofMap[t][k] = v
+                warn(string.format("--> [Hijacker] Seized property: %s.%s", t.Name, k))
+                return nil
+            end
         end
+        return old(t, k, v)
+    end)
+    
+    -- Also hook __index so when the game reads the property, it gets our "fake" value
+    local oldIndex = mt.__index
+    mt.__index = newcclosure(function(t, k)
+        if Modules.AuthorityHijacker.State.IsEnabled and Modules.AuthorityHijacker.State.SpoofMap[t] then
+            local fakeVal = Modules.AuthorityHijacker.State.SpoofMap[t][k]
+            if fakeVal ~= nil then return fakeVal end
+        end
+        return oldIndex(t, k)
+    end)
+    
+    setreadonly(mt, true)
+end
+
+function Modules.AuthorityHijacker:UnlockEnvironment()
+    DoNotif("Unlocking Global Environment...", 2)
+    -- Target high-value globals
+    self:_deepUnlock(getgenv(), 0)
+    self:_deepUnlock(getrenv(), 0)
+    self:_deepUnlock(getreg(), 0)
+    
+    DoNotif("Global Read-Only states dismantled.", 3)
+end
+
+--// --- Command Registration ---
+
+RegisterCommand({
+    Name = "unlockengine",
+    Aliases = {"writeall"},
+    Description = "Dismantles Read-Only protection on all Luau tables (getgenv/getreg)."
+}, function()
+    Modules.AuthorityHijacker:UnlockEnvironment()
+end)
+
+RegisterCommand({
+    Name = "hijack",
+    Aliases = {"forcewrite", "seize"},
+    Description = "Toggles Kernel-level property hijacking. Allows 'writing' to read-only engine properties."
+}, function()
+    local state = Modules.AuthorityHijacker.State
+    state.IsEnabled = not state.IsEnabled
+    
+    if state.IsEnabled then
+        Modules.AuthorityHijacker:ApplyKernelHook()
+        DoNotif("Kernel Hijack: ACTIVE. Engine constraints ignored.", 3)
+    else
+        DoNotif("Kernel Hijack: DISABLED.", 2)
     end
 end)
-DoNotif("Tool Persistence: [Enabled]", 3)
-end
-function Modules.ToolPersistence:Disable()
-    if not self.State.IsEnabled then return end
-        self.State.IsEnabled = false
-        for _, conn in pairs(self.State.Connections) do
-            conn:Disconnect()
+
+Modules.InventoryVault = {
+    State = {
+        IsEnabled = false,
+        Vault = {}, -- Stores Tool instances
+        Connections = {},
+        HookActive = false,
+        OriginalNewIndex = nil
+    },
+    Dependencies = {"Players", "CoreGui", "RunService"}
+}
+
+-- [Internal] Saves a snapshot of your current inventory
+function Modules.InventoryVault:Snapshot()
+    local backpack = Players.LocalPlayer:FindFirstChildOfClass("Backpack")
+    local char = Players.LocalPlayer.Character
+    
+    if not (backpack or char) then return end
+    
+    table.clear(self.State.Vault)
+    local count = 0
+    
+    local function save(tool)
+        if tool:IsA("Tool") and not self.State.Vault[tool.Name] then
+            self.State.Vault[tool.Name] = tool:Clone()
+            count = count + 1
         end
-        table.clear(self.State.Connections)
-        if self.State.ToolCache then
-            self.State.ToolCache:Destroy()
-            self.State.ToolCache = nil
-        end
-        DoNotif("Tool Persistence: [Disabled]", 3)
     end
-    function Modules.ToolPersistence:Toggle()
-        if self.State.IsEnabled then
-            self:Disable()
-        else
-        self:Enable()
+
+    for _, t in ipairs(backpack:GetChildren()) do save(t) end
+    for _, t in ipairs(char:GetChildren()) do save(t) end
+    
+    DoNotif("Vault: Saved " .. count .. " tools to local memory.", 3)
+end
+
+-- [Internal] Force-injects tools from the vault back into your backpack
+function Modules.InventoryVault:Restore()
+    local backpack = Players.LocalPlayer:FindFirstChildOfClass("Backpack")
+    if not backpack then return end
+    
+    local restored = 0
+    for name, toolTemplate in pairs(self.State.Vault) do
+        if not backpack:FindFirstChild(name) and not (Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild(name)) then
+            local clone = toolTemplate:Clone()
+            clone.Parent = backpack
+            restored = restored + 1
+        end
+    end
+    
+    DoNotif("Vault: Restored " .. restored .. " tools.", 2)
+end
+
+-- [Internal] The Elite Method: Hooking the Parent property
+function Modules.InventoryVault:ApplyShield()
+    if self.State.HookActive then return end
+    
+    local success, mt = pcall(getrawmetatable, game)
+    if not success then return end
+    
+    self.State.OriginalNewIndex = mt.__newindex
+    local old = mt.__newindex
+    
+    setreadonly(mt, false)
+    mt.__newindex = newcclosure(function(t, k, v)
+        -- If a script tries to remove a tool by parenting it to nil or elsewhere
+        if Modules.InventoryVault.State.IsEnabled and t:IsA("Tool") and k == "Parent" and v ~= Players.LocalPlayer:FindFirstChildOfClass("Backpack") and v ~= Players.LocalPlayer.Character then
+            -- We block the change if the caller is a game script
+            if not checkcaller() then
+                warn("--> [Vault] Blocked attempt to remove tool: " .. t.Name)
+                return nil 
+            end
+        end
+        return old(t, k, v)
+    end)
+    setreadonly(mt, true)
+    self.State.HookActive = true
+end
+
+function Modules.InventoryVault:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    
+    if self.State.IsEnabled then
+        self:ApplyShield()
+        self:Snapshot()
+        DoNotif("Inventory Shield: ACTIVE", 2)
+    else
+        DoNotif("Inventory Shield: DISABLED", 2)
     end
 end
-function Modules.ToolPersistence:Initialize()
+
+
+function Modules.InventoryVault:Initialize()
     local module = self
     module.Services = {}
-    for _, serviceName in ipairs(module.Dependencies) do
-        module.Services[serviceName] = game:GetService(serviceName)
-    end
+    for _, s in ipairs(module.Dependencies) do module.Services[s] = game:GetService(s) end
+
     RegisterCommand({
-    Name = "antitoolremove",
-    Aliases = {"locktools", "atr"},
-    Description = "Toggles a system that prevents your tools from being removed from your backpack."
-    }, function(args)
-    module:Toggle()
-end)
+        Name = "saveinv",
+        Aliases = {"vaultsave"},
+        Description = "Saves your current tools so you can restore them after death/stripping."
+    }, function()
+        module:Snapshot()
+    end)
+
+    RegisterCommand({
+        Name = "restoreinv",
+        Aliases = {"getvault"},
+        Description = "Brings back all tools saved in your vault."
+    }, function()
+        module:Restore()
+    end)
+
+    RegisterCommand({
+        Name = "antitoolremove",
+        Aliases = {"atr"},
+        Description = "Toggles a shield that blocks scripts from removing your tools."
+    }, function()
+        module:Toggle()
+    end)
 end
+
+Modules.PropertyForensics = {
+    State = {
+        OriginalSizes = setmetatable({}, {__mode = "k"})
+    }
+}
+
+-- [Internal] Robust Path Resolver
+function Modules.PropertyForensics:_resolvePath(path)
+    local current = game
+    local segments = string.split(path, ".")
+    
+    for i, name in ipairs(segments) do
+        if i == 1 then
+            if name:lower() == "workspace" then
+                current = workspace
+                continue
+            elseif name:lower() == "game" then
+                continue
+            end
+            
+            -- Handle GetService shorthand
+            local success, service = pcall(game.GetService, game, name)
+            if success and service then
+                current = service
+            else
+                current = current:FindFirstChild(name)
+            end
+        else
+            current = current and current:FindFirstChild(name)
+        end
+        if not current then break end
+    end
+    return current
+end
+
+-- [Action] Resizes the instance based on input
+function Modules.PropertyForensics:Resize(path, x, y, z)
+    local obj = self:_resolvePath(path)
+    
+    if not obj then
+        return DoNotif("Resize Error: Path could not be resolved.", 3)
+    end
+
+    -- Logic for Models (Standard in modern Roblox)
+    if obj:IsA("Model") then
+        local scale = tonumber(x)
+        if scale then
+            local success, err = pcall(function() obj:ScaleTo(scale) end)
+            if success then
+                DoNotif("Model Scaled to: " .. scale, 2)
+            else
+                warn("Resize Error:", err)
+            end
+        else
+            DoNotif("Usage for Models: ;size [path] [Multiplier]", 3)
+        end
+        return
+    end
+
+    -- Logic for BaseParts and UI
+    if obj:IsA("BasePart") or obj:IsA("GuiObject") then
+        local newSize
+        if x and y and z then
+            -- Absolute Vector3 resize
+            newSize = Vector3.new(tonumber(x), tonumber(y), tonumber(z))
+        elseif x and not y then
+            -- Uniform scale multiplier
+            local factor = tonumber(x)
+            newSize = obj.Size * factor
+        end
+
+        if newSize then
+            if not self.State.OriginalSizes[obj] then
+                self.State.OriginalSizes[obj] = obj.Size
+            end
+            
+            pcall(function() obj.Size = newSize end)
+            DoNotif("Resized: " .. obj.Name, 2)
+        end
+    else
+        DoNotif("Error: Object type does not support Size.", 3)
+    end
+end
+
+function Modules.PropertyForensics:Restore(path)
+    local obj = self:_resolvePath(path)
+    local original = self.State.OriginalSizes[obj]
+    
+    if obj and original then
+        pcall(function() obj.Size = original end)
+        self.State.OriginalSizes[obj] = nil
+        DoNotif("Restored original size for: " .. obj.Name, 2)
+    end
+end
+
+--// --- Command Registration ---
+
+RegisterCommand({
+    Name = "size",
+    Aliases = {"resize", "scale"},
+    Description = "Resizes an object by path. Usage: ;size [path] [multiplier] OR ;size [path] [x] [y] [z]"
+}, function(args)
+    if #args < 2 then
+        return DoNotif("Usage: ;size workspace.Part 5", 3)
+    end
+    
+    local path = args[1]
+    local x = args[2]
+    local y = args[3]
+    local z = args[4]
+    
+    Modules.PropertyForensics:Resize(path, x, y, z)
+end)
+
+RegisterCommand({
+    Name = "unsize",
+    Aliases = {"revertsize"},
+    Description = "Restores the original size of an object. Usage: ;unsize [path]"
+}, function(args)
+    if not args[1] then return end
+    Modules.PropertyForensics:Restore(args[1])
+end)
+
+RegisterCommand({
+    Name = "hsize",
+    Aliases = {"hitboxsize", "ext"},
+    Description = "Quick hitbox extender for players. Usage: ;hsize [Name] [Size]"
+}, function(args)
+    local target = Utilities.findPlayer(args[1])
+    local size = args[2] or 10
+    
+    if target and target.Character then
+        local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+
+            Modules.PropertyForensics:Resize(hrp:GetFullName(), size)
+            
+
+            hrp.CanCollide = false 
+            hrp.Transparency = 0.7
+        end
+    else
+        DoNotif("Target player character not found.", 3)
+    end
+end)
+
 Modules.GrabTools = {
 State = {
 IsEnabled = false,
@@ -8605,142 +9100,118 @@ end
 Modules.MADGuardian = {
     State = {
         IsEnabled = false,
-        HeartbeatConnection = nil,
-        LastRetaliation = 0
+        IsRetaliating = false,
+        Connection = nil,
+        LastRetaliation = 0,
+        OscillationValue = 5000 -- High-frequency force
     },
     Config = {
-        -- The upward force of our retaliatory fling. Higher is more aggressive.
-        COUNTER_FLING_FORCE = 300,
-        -- How long the counter-fling effect lasts on the attacker, in seconds.
-        COUNTER_FLING_DURATION = 2.5,
-        -- How often to scan for hostile physics objects, in seconds.
-        SCAN_INTERVAL_SECONDS = 0.1,
-        -- A cooldown period after retaliating to prevent spamming the counter-attack.
-        RETALIATION_COOLDOWN_SECONDS = 3,
-        -- An attribute to mark our own physics objects so the script doesn't destroy them.
-        COUNTER_ATTACK_TAG = "MAD_Counter"
+        FLING_STRENGTH = 100,
+        RETALIATION_DURATION = 3, -- How long to stay in "Fling Mode" after being attacked
+        DETECTION_RADIUS = 15,    -- Radius to find the culprit
+        COOLDOWN = 5
     }
 }
 
---- [Internal] Finds the player character closest to the local player.
--- @returns Player? The closest player object, or nil if none are found.
-function Modules.MADGuardian:_findClosestPlayer()
-    local closestPlayer, minDistance = nil, math.huge
-    local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not localRoot then return nil end
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local targetRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if targetRoot then
-                local distance = (localRoot.Position - targetRoot.Position).Magnitude
-                if distance < minDistance then
-                    minDistance, closestPlayer = distance, player
-                end
-            end
-        end
+-- [Internal] The high-frequency velocity burst logic you provided, optimized for current API
+function Modules.MADGuardian:_executeRetaliationLoop()
+    local char = Players.LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if root then
+        -- We use AssemblyLinearVelocity for modern physics accuracy
+        local originalVel = root.AssemblyLinearVelocity
+        local flingVel = Vector3.new(0, self.State.OscillationValue, 0)
+        
+        -- High-frequency flip: This is what causes the "fling" on touch
+        root.AssemblyLinearVelocity = flingVel
+        RunService.Stepped:Wait()
+        
+        self.State.OscillationValue = -self.State.OscillationValue
+        root.AssemblyLinearVelocity = originalVel
     end
-    return closestPlayer
 end
 
---- [Internal] Initiates a retaliatory fling against a specified target.
--- @param targetCharacter Model The character model of the player to be flung.
-function Modules.MADGuardian:_initiateCounterFling(targetCharacter)
-    local targetRoot = targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart")
-    if not targetRoot then return end
-
-    DoNotif("MAD Guardian: Retaliating against '"..targetCharacter.Name.."'", 1.5)
-
-    local counterVelocity = Instance.new("BodyVelocity")
-    counterVelocity.MaxForce = Vector3.new(0, math.huge, 0)
-    counterVelocity.Velocity = Vector3.new(0, self.Config.COUNTER_FLING_FORCE, 0)
-    counterVelocity.Parent = targetRoot
-    counterVelocity:SetAttribute(self.Config.COUNTER_ATTACK_TAG, true)
-
-    -- Schedule the self-destruction of our counter-attack object.
-    task.delay(self.Config.COUNTER_FLING_DURATION, function()
-        if counterVelocity and counterVelocity.Parent then
-            counterVelocity:Destroy()
-        end
-    end)
-end
-
---- [Internal] The main detection loop connected to RunService.Heartbeat.
+-- [Internal] Defensive scan and retaliation trigger
 function Modules.MADGuardian:_onHeartbeat()
-    local character = LocalPlayer.Character
-    if not character then return end
+    local char = Players.LocalPlayer.Character
+    if not char then return end
 
-    -- Scan for hostile physics movers descendant to the character.
-    for _, descendant in ipairs(character:GetDescendants()) do
-        -- BodyMover is the base class for BodyVelocity, BodyPosition, etc.
-        -- We ignore any movers that have our specific tag.
-        if descendant:IsA("BodyMover") and not descendant:GetAttribute(self.Config.COUNTER_ATTACK_TAG) then
-            DoNotif("MAD Guardian: Hostile BodyMover '"..descendant.ClassName.."' detected. Nullifying.", 1)
-            
-            -- Stage 1: Defend by destroying the object.
-            descendant:Destroy()
-
-            -- Stage 2: Check if we are off cooldown for retaliation.
-            local now = os.clock()
-            if now - self.State.LastRetaliation > self.Config.RETALIATION_COOLDOWN_SECONDS then
-                self.State.LastRetaliation = now
+    -- 1. DEFENSE: Destroy any external forces attempting to manipulate you
+    for _, descendant in ipairs(char:GetDescendants()) do
+        if descendant:IsA("BodyMover") or descendant:IsA("BasePart") and descendant.Name:find("Fling") then
+            -- We exclude our own UI or safe parts
+            if not descendant:GetAttribute("Safe") then
+                descendant:Destroy()
                 
-                -- Stage 3: Find a target and retaliate.
-                local attacker = self:_findClosestPlayer()
-                if attacker then
-                    self:_initiateCounterFling(attacker.Character)
+                -- 2. TRIGGER: If we were just attacked, start retaliating
+                if not self.State.IsRetaliating and (os.clock() - self.State.LastRetaliation > self.Config.COOLDOWN) then
+                    self:_startRetaliationSequence()
                 end
+                break 
             end
-            
-            -- We only handle one object per frame to be safe.
-            break
         end
     end
-end
 
---- Enables the MAD Guardian.
-function Modules.MADGuardian:Enable()
-    if self.State.IsEnabled then return end
-    self.State.IsEnabled = true
-    
-    self.State.HeartbeatConnection = RunService.Heartbeat:Connect(function() self:_onHeartbeat() end)
-    
-    DoNotif("MAD Guardian: ENABLED. Fling retaliation is active.", 2)
-end
-
---- Disables the MAD Guardian.
-function Modules.MADGuardian:Disable()
-    if not self.State.IsEnabled then return end
-    self.State.IsEnabled = false
-    
-    if self.State.HeartbeatConnection then
-        self.State.HeartbeatConnection:Disconnect()
-        self.State.HeartbeatConnection = nil
-    end
-    
-    DoNotif("MAD Guardian: DISABLED.", 2)
-end
-
---- Toggles the MAD Guardian's state.
-function Modules.MADGuardian:Toggle()
-    if self.State.IsEnabled then
-        self:Disable()
-    else
-        self:Enable()
+    -- 3. ACTIVE PHASE: If in retaliation mode, run the burst logic
+    if self.State.IsRetaliating then
+        self:_executeRetaliationLoop()
     end
 end
 
---- Registers the command with your admin system.
-function Modules.MADGuardian:Initialize()
-    local module = self
-    RegisterCommand({
-        Name = "mad",
-        Aliases = {"flingback", "antiflingretaliate"},
-        Description = "Toggles a counter-fling system that retaliates against attackers."
-    }, function()
-        module:Toggle()
+function Modules.MADGuardian:_startRetaliationSequence()
+    self.State.IsRetaliating = true
+    self.State.LastRetaliation = os.clock()
+    DoNotif("MAD Guardian: Counter-Fling ACTIVE! Touch the attacker!", 3)
+    
+    if Modules.AntiVoid and not Modules.AntiVoid.State.IsEnabled then
+        Modules.AntiVoid:Enable()
+        DoNotif("MAD Guardian: Enabling Anti-Void for safety...", 1)
+    end
+
+    task.delay(self.Config.RETALIATION_DURATION, function()
+        self.State.IsRetaliating = false
+        DoNotif("MAD Guardian: Retaliation sequence ended.", 2)
     end)
 end
+
+function Modules.MADGuardian:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    
+    if self.State.IsEnabled then
+        self.State.Connection = RunService.Heartbeat:Connect(function() self:_onHeartbeat() end)
+        DoNotif("MAD Guardian: V2 ONLINE (Auto-Retaliation)", 2)
+    else
+        if self.State.Connection then self.State.Connection:Disconnect() end
+        self.State.IsRetaliating = false
+        self.State.IsEnabled = false
+        DoNotif("MAD Guardian: OFFLINE", 2)
+    end
+end
+
+--// --- Command Registration ---
+
+RegisterCommand({
+    Name = "mad",
+    Aliases = {"flingback", "retaliate"},
+    Description = "Toggles a defensive system that automatically flings anyone who tries to fling you."
+}, function()
+    Modules.MADGuardian:Toggle()
+end)
+
+-- Added a manual trigger for your touchfling logic
+RegisterCommand({
+    Name = "tf",
+    Aliases = {"killmode"},
+    Description = "Manually triggers the high-velocity fling mode. Usage: ;tf [strength]"
+}, function(args)
+    if args[1] then Modules.MADGuardian.Config.FLING_STRENGTH = tonumber(args[1]) or 100 end
+    
+    if not Modules.MADGuardian.State.IsEnabled then
+        Modules.MADGuardian:Toggle()
+    end
+    Modules.MADGuardian:_startRetaliationSequence()
+end)
 
 local function readTable(tbl: table): string
     local function serialize(value: any, indent: number, visited: {[table]: boolean}): string
@@ -8981,15 +9452,10 @@ Modules.ClientCanary = {
         HighlightedPlayers = {} -- [Player] = true
     },
     Config = {
-        -- The horizontal speed (in studs/sec) above which behavior is considered suspicious.
-        -- Normal walk speed is 16. This provides a generous buffer for normal game physics.
+
         MAX_REASONABLE_SPEED = 75,
-        -- The number of violation "points" a player needs to accumulate before being flagged.
         VIOLATION_THRESHOLD = 8,
-        -- How quickly (in seconds) a single violation point decays. This prevents false
-        -- positives from single instances of high velocity (e.g., explosions).
         VIOLATION_DECAY_TIME = 2.5,
-        -- How often (in seconds) the system checks players.
         CHECK_INTERVAL_SECONDS = 0.25
     }
 }
@@ -9670,11 +10136,11 @@ function Modules.NetworkGhost:Toggle()
     end
 end
 
-RegisterCommand({ Name = "ghost", Aliases = {"desyncv4"}, Description = "Desyncs server-side physics from your local position." }, function()
+RegisterCommand({ Name = "ghost", Aliases = {"netsync"}, Description = "Desyncs server-side physics from your local position." }, function()
     Modules.NetworkGhost:Toggle()
 end)
 
---[[Modules.HookCentral = {
+Modules.HookCentral = {
     State = {
         Hooks = {},
         OriginalNamecall = nil,
@@ -9707,7 +10173,7 @@ end
 
 function Modules.HookCentral:AddHook(id, type, checkFunc, callback)
     self.State.Hooks[id] = {Type = type, Check = checkFunc, Callback = callback}
-end--]]
+end
 
 Modules.SignalRespawn = {
     State = {
@@ -12679,16 +13145,15 @@ function Modules.Overseer:Initialize()
     end)
 
     RegisterCommand({
-        Name = "dex2",
+        Name = "PrimeOverseer",
         Aliases = {},
-        Description = "Opens the unified Overseer - Module Poisoner & Instance Explorer UI."
+        Description = "Opens the ultimate Overseer module, still a WIP"
     }, function()
         module:CreateUI()
     end)
 end
 
-
-
+-- Disabled For Now, This is a backup dex incase the main loadstring doesnt work.
 
 --[[Modules.ForensicExplorer = {
     State = {
@@ -12800,6 +13265,8 @@ function Modules.ForensicExplorer:Initialize()
     end)
 end--]]
 
+-- 
+
 Modules.CreepSequence = {
     State = {
         IsExecuting = false
@@ -12880,7 +13347,7 @@ function Modules.CreepSequence:Initialize()
 
     RegisterCommand({
         Name = "creep",
-        Aliases = {"stalkerjump", "underfloor"},
+        Aliases = {},
         Description = "Teleports you behind/under a player and rises through the floor."
     }, function(args)
         if #args == 0 then
@@ -12916,7 +13383,7 @@ function Modules.NextGenDesync:Toggle()
             DoNotif("FFlag Error: Check F9 for details.", 4)
         end
     else
-        -- Disabling/Syncing Sequence
+
         local success, err = pcall(function()
             setfflag("NextGenReplicatorEnabledWrite4", "true")
             setfflag("NextGenReplicatorEnabledWrite4", "false")
@@ -12932,14 +13399,14 @@ function Modules.NextGenDesync:Toggle()
     end
 end
 
---// Initialize the module and register the command
+
 function Modules.NextGenDesync:Initialize()
     local module = self
     
     RegisterCommand({
-        Name = "ngdesync",
-        Aliases = {"ngrep", "nextgendesync", "flagdesync"},
-        Description = "Toggles NextGenReplicator desync via FFlags. (Server Authority Bypass)"
+        Name = "newsync",
+        Aliases = {},
+        Description = "New method for desync WIP"
     }, function()
         module:Toggle()
     end)
@@ -12965,20 +13432,18 @@ Modules.MirrorMimic = {
     Services = {}
 }
 
---// --- Private Logic ---
 
 function Modules.MirrorMimic:_cleanup()
     local lp = self.Services.Players.LocalPlayer
     local char = lp.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
 
-    -- 1. Disconnect all Zuka connections
     for key, conn in pairs(self.State.Connections) do
         conn:Disconnect()
     end
     table.clear(self.State.Connections)
 
-    -- 2. Restore Animations
+
     for _, slot in pairs(self.State.ActiveSlots) do
         if slot.mt then pcall(function() slot.mt:Stop(0) end) end
     end
@@ -13950,12 +14415,12 @@ Modules.HeuristicRemoteBruteforcer = {
     Config = {
         FIRE_DELAY = 0.25, 
         MAX_CALLS_PER_REMOTE = 15,
-        -- [NEW] Blacklist of services that house internal/core remotes.
+
         BlacklistedParents = {
             game:GetService("CoreGui"),
             game:GetService("StarterGui"),
             game:GetService("ReplicatedFirst"),
-            game:GetService("Chat")
+            game:GetService("Workspace")
         }
     },
     Services = {
@@ -14013,7 +14478,6 @@ function Modules.HeuristicRemoteBruteforcer:_scanAndQueue()
             if (remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction")) then
                 local path = remote:GetFullName()
                 if not self.State.FiredHistory[path] then
-                    -- [CRITICAL FIX] Check if the remote is inside a blacklisted service.
                     local isBlacklisted = false
                     for _, parentService in ipairs(self.Config.BlacklistedParents) do
                         if remote:IsDescendantOf(parentService) then
@@ -14092,9 +14556,9 @@ end
 
 function Modules.HeuristicRemoteBruteforcer:Initialize(): ()
     RegisterCommand({
-        Name = "autofire",
-        Aliases = {"bruteforce", "fuzz"},
-        Description = "Toggles the heuristic remote bruteforcer to find insecure remotes."
+        Name = "bruteforce",
+        Aliases = {},
+        Description = "This will more than likely kick you."
     }, function()
         if self.State.IsEnabled then self:Disable() else self:Enable() end
     end)
@@ -14138,9 +14602,9 @@ function Modules.Strengthen:RevertForCharacter()
     function Modules.Strengthen:Initialize()
         local module = self
         RegisterCommand({
-        Name = "strengthen",
-        Aliases = {"buff", "density"},
-        Description = "Toggles high character density to resist forces. Optional [density] argument."
+        Name = "stonewall",
+        Aliases = {},
+        Description = "Men began calling him Stonewall that very day, for he would not yield an inch."
         }, function(args)
         local character = Players.LocalPlayer.Character
         if not character then
@@ -14341,9 +14805,7 @@ Modules.FakeLag = {
     Services = {}
 }
 
----
--- [Private] The core logic loop that toggles the anchored state.
---
+
 function Modules.FakeLag:_onHeartbeat()
     -- Failsafe: if the module is disabled but the loop is still running, kill it.
     if not self.State.IsEnabled then
@@ -14381,9 +14843,7 @@ function Modules.FakeLag:_onHeartbeat()
     end
 end
 
----
--- Disables the fake lag effect and restores the character to a normal state.
---
+
 function Modules.FakeLag:Disable()
     if not self.State.IsEnabled then return end
 
@@ -14559,8 +15019,8 @@ function Modules.ProximityPromptTools:Initialize()
     end
 
     RegisterCommand({
-        Name = "noproximitypromptlimits",
-        Aliases = {"nopplimits", "removepplimits"},
+        Name = "removepplimits",
+        Aliases = {},
         Description = "Removes the distance limit for all ProximityPrompts."
     }, function()
         local count = 0
@@ -18308,14 +18768,14 @@ Modules.SourceBhop = {
         LastCharacter = nil
     },
     Config = {
-        GroundAccel = 45,
-        AirAccel = 3500,
-        MaxAirSpeed = 15,
-        RunSpeed = 24,
-        JumpPower = 28,
-        Gravity = 100,
-        Friction = 7,
-        StopSpeed = 5
+       GroundAccel = 50,
+       AirAccel = 3200,
+       MaxAirSpeed = 35,
+       RunSpeed = 23,
+       JumpPower = 26,
+       Gravity = 85,
+       Friction = 6,
+       StopSpeed = 5,
     },
     Theme = {
         Main = Color3.fromRGB(15, 15, 18),
@@ -19685,7 +20145,7 @@ end
 
 RegisterCommand({
     Name = "backtrack",
-    Aliases = {"ghosts", "bt"},
+    Aliases = {},
     Description = "Visualizes player positions from 1 second ago."
 }, function()
     if Modules.Backtrack.State.IsEnabled then
@@ -19760,7 +20220,7 @@ end
 
 RegisterCommand({
     Name = "physicsgun",
-    Aliases = {"pgun", "grab"},
+    Aliases = {},
     Description = "Allows you to grab and move unanchored parts with your mouse."
 }, function()
     Modules.PhysicsGun:Toggle()
@@ -19802,7 +20262,7 @@ end
 
 RegisterCommand({
     Name = "clearvisuals",
-    Aliases = {"noblur", "clean"},
+    Aliases = {},
     Description = "Removes all post-processing effects like Blur, Bloom, and ColorCorrection."
 }, function()
     Modules.VisualClear:Toggle()
@@ -19975,8 +20435,8 @@ function Modules.MeleeFreezer:Initialize(): ()
     
     RegisterCommand({
         Name = "freezemelee",
-        Aliases = {"animfreeze", "lagswing"},
-        Description = "Toggles an animation freeze (Key: G) to keep weapon hitboxes active during a swing."
+        Aliases = {},
+        Description = "Toggles an animation freeze when G is pressed."
     }, function()
         module:Toggle()
     end)
@@ -20152,8 +20612,8 @@ function Modules.NeuralOverride:OverwriteData(targetVar: string, newValue: any):
 end
 
 RegisterCommand({
-    Name = "neural",
-    Aliases = {"patch"},
+    Name = "patch",
+    Aliases = {},
     Description = "Scans game memory and overwrites internal script variables. ;neural isAdmin true"
 }, function(args: {string})
     if #args < 2 then return DoNotif("Usage: ;neural [varName] [value]", 3) end
@@ -20204,8 +20664,8 @@ function Modules.VanguardShield:Toggle(): ()
 end
 
 RegisterCommand({
-    Name = "vanguard",
-    Aliases = {"antiscan", "propertyspoof"},
+    Name = "propertyspoof",
+    Aliases = {},
     Description = "Prevents local scripts from reading your real WalkSpeed/JumpPower/Health."
 }, function()
     Modules.VanguardShield:Toggle()
@@ -20296,9 +20756,9 @@ function Modules.IdentityPhantom:Toggle(targetUser: string?): ()
 end
 
 RegisterCommand({
-    Name = "phantom",
+    Name = "nchange",
     Aliases = {"mask"},
-    Description = "Locally spoofs your Name and UserId to fool group-based admin scripts. ;phantom [username]"
+    Description = "Locally spoofs your Name and UserId to fool group-based admin scripts."
 }, function(args: {string})
     Modules.IdentityPhantom:Toggle(args[1])
 end)
@@ -20386,7 +20846,423 @@ RegisterCommand({
     Modules.ClassicSwordAnim:Toggle()
 end)
 
+Modules.InventorySynth = {
+    State = {
+        DiscoveredTools = {}
+    }
+}
 
+function Modules.InventorySynth:Scan()
+    table.clear(self.State.DiscoveredTools)
+    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("Tool") then
+            table.insert(self.State.DiscoveredTools, obj)
+        end
+    end
+    DoNotif("Synthesis: Found " .. #self.State.DiscoveredTools .. " tool templates.", 3)
+end
+
+function Modules.InventorySynth:CloneTool(name)
+    local lowerName = name:lower()
+    for _, tool in ipairs(self.State.DiscoveredTools) do
+        if tool.Name:lower():find(lowerName) then
+            local clone = tool:Clone()
+            clone.Parent = Players.LocalPlayer.Backpack
+            DoNotif("Synthesized: " .. tool.Name, 2)
+            return
+        end
+    end
+    DoNotif("Tool not found in cache. Run ;scantools first.", 3)
+end
+
+RegisterCommand({
+    Name = "scantools",
+    Aliases = {"findgears"},
+    Description = "Scans ReplicatedStorage for Tool templates."
+}, function()
+    Modules.InventorySynth:Scan()
+end)
+
+RegisterCommand({
+    Name = "gettool",
+    Aliases = {},
+    Description = "Clones a discovered tool to your backpack."
+}, function(args)
+    if #args > 0 then
+        Modules.InventorySynth:CloneTool(args[1])
+    else
+        DoNotif("Usage: ;gettool [ToolName]", 3)
+    end
+end)
+
+Modules.PromptForensics = {
+    State = {
+        OriginalSettings = {}
+    }
+}
+
+function Modules.PromptForensics:Expose()
+    local count = 0
+    for _, prompt in ipairs(Workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            prompt.HoldDuration = 0
+            prompt.MaxActivationDistance = 50
+            prompt.Enabled = true
+            prompt.RequiresLineOfSight = false
+            count = count + 1
+        end
+    end
+    DoNotif("Forensics: Optimized " .. count .. " prompts. (0s Hold, 50 Distance)", 3)
+end
+
+RegisterCommand({
+    Name = "forceprompt",
+    Aliases = {},
+    Description = "Forces all proximity prompts to be instant and high-range."
+}, function()
+    Modules.PromptForensics:Expose()
+end)
+
+Modules.GlobalAnimEditor = {
+    State = {
+        ActiveSourceFolder = nil,
+        AnimationCache = {}, -- [Name] = AnimationInstance
+        SwappedIds = {},
+        OriginalNamecall = nil
+    }
+}
+
+-- [Internal Helper] Resolves a string path to a physical Instance
+function Modules.GlobalAnimEditor:_resolvePath(path)
+    local current = game
+    for component in string.gmatch(path, "[^%.]+") do
+        if string.find(component, ":GetService") then
+            local serviceName = component:match("'(.-)'") or component:match('"(.-)"')
+            if serviceName then
+                current = current:GetService(serviceName)
+            else
+                return nil
+            end
+        else
+            if current then
+                current = current:FindFirstChild(component)
+            else
+                return nil
+            end
+        end
+    end
+    return current
+end
+
+-- [Action] Scans the target folder and caches Animation objects
+function Modules.GlobalAnimEditor:SetFolder(path)
+    local target = self:_resolvePath(path)
+    
+    if not target then
+        return DoNotif("Anim Editor: Folder path not found.", 3)
+    end
+    
+    self.State.ActiveSourceFolder = target
+    table.clear(self.State.AnimationCache)
+    
+    local count = 0
+    for _, obj in ipairs(target:GetDescendants()) do
+        if obj:IsA("Animation") then
+            count = count + 1
+            -- Cache by name for easy lookups
+            self.State.AnimationCache[obj.Name:lower()] = obj
+            print(string.format("  [Forensic] Found Shared Anim: %s | ID: %s", obj.Name, obj.AnimationId))
+        end
+    end
+    
+    DoNotif(string.format("Target Locked: %s (%d animations). Check F9.", target.Name, count), 4)
+end
+
+-- [Action] Swaps an animation's ID and maintains it via hook
+function Modules.GlobalAnimEditor:Swap(animName, newId)
+    local targetName = animName:lower()
+    local animObj = self.State.AnimationCache[targetName]
+    
+    -- Fallback: If not in cache, try a live child search
+    if not animObj and self.State.ActiveSourceFolder then
+        animObj = self.State.ActiveSourceFolder:FindFirstChild(animName, true)
+    end
+
+    if animObj and animObj:IsA("Animation") then
+        local rawId = "rbxassetid://" .. newId:match("%d+")
+        
+        -- Map the original ID to the new ID for the namecall hook
+        self.State.SwappedIds[animObj.AnimationId] = rawId
+        
+        -- Change the physical object in ReplicatedStorage
+        animObj.AnimationId = rawId
+        
+        -- Activate the protection hook
+        self:ApplyHook()
+        
+        DoNotif("Global Swap: '" .. animObj.Name .. "' is now " .. rawId, 3)
+        
+        -- Force-stop your current character's tracks to trigger a reload
+        local char = Players.LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+                -- We stop tracks matching the name or the new ID to force a fresh LoadAnimation call
+                if track.Name == animObj.Name or track.Animation.AnimationId == rawId then
+
+                track.Priority = Enum.AnimationPriority.Action4
+
+                    track:Stop(0.1)
+                end
+            end
+        end
+    else
+        DoNotif("Error: Animation '" .. animName .. "' not found. Use ;af first.", 3)
+    end
+end
+
+-- [Action] Hooks the engine to ensure swapped IDs stay swapped
+function Modules.GlobalAnimEditor:ApplyHook()
+    if self.State.OriginalNamecall then return end
+    
+    local success, mt = pcall(getrawmetatable, game)
+    if not success then return end
+    
+    self.State.OriginalNamecall = mt.__namecall
+    local old = mt.__namecall
+    
+    setreadonly(mt, false)
+    mt.__namecall = newcclosure(function(selfArg, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        
+        -- Intercept any LoadAnimation attempt
+        if (method == "LoadAnimation" or method == "loadAnimation") and args[1] and args[1]:IsA("Animation") then
+            local anim = args[1]
+            -- If the ID being loaded matches our "Swapped" list, redirect it
+            if Modules.GlobalAnimEditor.State.SwappedIds[anim.AnimationId] then
+                anim.AnimationId = Modules.GlobalAnimEditor.State.SwappedIds[anim.AnimationId]
+            end
+        end
+        
+        return old(selfArg, ...)
+    end)
+    setreadonly(mt, true)
+end
+
+--[[These IDs are owned by Roblox and are guaranteed to work in any experience.
+
+Classic Slash	R6	1259011
+Classic Lunge	R6	129967390
+Old School Idle	R6	180435571
+Sword Slash	R15	522635514
+Sword Lunge	R15	522634341
+Ninja Idle	R15	656117400
+Zen Idle	R15	616082211
+
+]]
+
+RegisterCommand({
+    Name = "animfolder",
+    Aliases = {"setanimpath", "af"},
+    Description = "Sets the folder in ReplicatedStorage to scan. Usage: ;af path.to.folder"
+}, function(args)
+    if #args == 0 then
+        return DoNotif("Usage: ;af ReplicatedStorage.Assets.Animations", 4)
+    end
+    Modules.GlobalAnimEditor:SetFolder(args[1])
+end)
+
+RegisterCommand({
+    Name = "globalswap",
+    Aliases = {},
+    Description = "Swaps a Move/Animation by name. Usage: ;swap [MoveName] [NewID]"
+}, function(args)
+    if #args < 2 then
+        return DoNotif("Usage: ;swap Slash1 180435571", 3)
+    end
+    Modules.GlobalAnimEditor:Swap(args[1], args[2])
+end)
+
+Modules.AnimSynth = {
+    State = {
+        GeneratedID = nil
+    }
+}
+
+-- [Internal] Creates a one-frame custom pose and generates an ID for it
+function Modules.AnimSynth:GenerateCustomPose(poseType)
+    local sequence = Instance.new("KeyframeSequence")
+    local keyframe = Instance.new("Keyframe")
+    keyframe.Time = 0
+    keyframe.Parent = sequence
+    
+    local hash = "rbxassetid://0" -- Fallback
+
+    -- Build a "Broken" pose (Arms behind back, character tilted)
+    -- This is great for making your hitboxes harder to read.
+    local root = Instance.new("Pose")
+    root.Name = "HumanoidRootPart"
+    root.Weight = 1
+    
+    local torso = Instance.new("Pose")
+    torso.Name = "Torso" -- Works for R6; use "UpperTorso" for R15
+    torso.CFrame = CFrame.Angles(math.rad(45), 0, 0)
+    torso.Parent = root
+    
+    if poseType == "ghost" then
+        torso.CFrame = CFrame.new(0, 5, 0) -- Character appears to float above real position
+    elseif poseType == "broken" then
+        torso.CFrame = CFrame.Angles(0, math.rad(180), 0) -- Torso backwards
+    end
+    
+    root.Parent = keyframe
+    
+    -- THE MAGIC: Register the sequence to get a usable ID
+    pcall(function()
+        local provider = game:GetService("KeyframeSequenceProvider")
+        hash = provider:RegisterActiveKeyframeSequence(sequence)
+    end)
+    
+    self.State.GeneratedID = hash
+    print("  [!] Custom Animation Generated: " .. hash)
+    setclipboard(hash)
+    DoNotif("Custom Pose Ready! ID copied to clipboard.", 4)
+end
+
+--// --- Command Registration ---
+
+RegisterCommand({
+    Name = "localanim",
+    Aliases = {},
+    Description = "Generates a custom local animation ID. Options: ghost, broken, normal"
+}, function(args)
+    Modules.AnimSynth:GenerateCustomPose(args[1] or "normal")
+end)
+
+Modules.ToolAnimForensics = {
+    State = {
+        IsEnabled = false,
+        ToolAnims = {}, -- [Name] = AnimationInstance
+        SwappedIds = {}, -- [OriginalId] = NewId
+        OriginalNamecall = nil
+    }
+}
+
+-- [Internal] Scans the equipped tool for Animation objects
+function Modules.ToolAnimForensics:Scan()
+    local char = Players.LocalPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    
+    if not tool then 
+        return DoNotif("Tool Anim: No tool equipped to scan.", 3) 
+    end
+
+    table.clear(self.State.ToolAnims)
+    local count = 0
+    
+    for _, obj in ipairs(tool:GetDescendants()) do
+        if obj:IsA("Animation") then
+            count = count + 1
+            local animName = obj.Name:lower()
+            self.State.ToolAnims[animName] = obj
+            print(string.format("  [+] Found Animation: '%s' | ID: %s", obj.Name, obj.AnimationId))
+        end
+    end
+
+    DoNotif(string.format("Scan Complete: Found %d animations in %s. Check F9.", count, tool.Name), 4)
+end
+
+-- [Internal] Applies the hook to ensure IDs are swapped even if reloaded
+function Modules.ToolAnimForensics:Hook()
+    if self.State.OriginalNamecall then return end
+    
+    local mt = getrawmetatable(game)
+    self.State.OriginalNamecall = mt.__namecall
+    setreadonly(mt, false)
+    
+    mt.__namecall = newcclosure(function(selfArg, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        
+        if (method == "LoadAnimation" or method == "loadAnimation") and args[1]:IsA("Animation") then
+            local animObj = args[1]
+            local replacement = Modules.ToolAnimForensics.State.SwappedIds[animObj.AnimationId]
+            
+            if replacement then
+                animObj.AnimationId = replacement
+            end
+        end
+        
+        return Modules.ToolAnimForensics.State.OriginalNamecall(selfArg, ...)
+    end)
+    
+    setreadonly(mt, true)
+end
+
+-- [Internal] Logic to swap a specific animation by name
+function Modules.ToolAnimForensics:Set(name, newId)
+    local targetName = name:lower()
+    local animObj = self.State.ToolAnims[targetName]
+    
+    if not animObj then
+        -- If not in cache, try to find it live
+        local tool = Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        animObj = tool and tool:FindFirstChild(name, true)
+    end
+
+    if animObj and animObj:IsA("Animation") then
+        local rawId = "rbxassetid://" .. newId:match("%d+")
+        self.State.SwappedIds[animObj.AnimationId] = rawId
+        animObj.AnimationId = rawId
+        
+        -- Force the hook to be active
+        self:Hook()
+        
+        DoNotif("Swapped '" .. name .. "' with " .. rawId, 3)
+        
+        -- Stop currently playing tracks to force a reload
+        local humanoid = Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+                if track.Animation.AnimationId == animObj.AnimationId then
+                    track:Stop()
+                end
+            end
+        end
+    else
+        DoNotif("Animation '" .. name .. "' not found. Use ;scananim first.", 3)
+    end
+end
+
+
+--[[ Equip your tool (Sword, Gun, etc.).
+Type ;scananim: This will print every animation object found inside that tool to your F9 console.
+Example Output: Found Animation: 'Idle' | ID: rbxassetid://12345
+Example Output: Found Animation: 'Attack1' | ID: rbxassetid://67890
+Type ;setanim Attack1 180435571: This would replace the tool's "Attack1" animation with the classic Roblox sword slash (ID: 180435571).--]]
+
+
+RegisterCommand({
+    Name = "scananim",
+    Aliases = {"listanims", "toolanims"},
+    Description = "Scans the equipped tool for animations and lists them in the console."
+}, function()
+    Modules.ToolAnimForensics:Scan()
+end)
+
+RegisterCommand({
+    Name = "setanim",
+    Aliases = {"swapanim"},
+    Description = "Swaps a tool animation. Usage: ;setanim [name] [id]"
+}, function(args)
+    if #args < 2 then
+        return DoNotif("Usage: ;setanim [Idle/Attack/etc] [ID]", 3)
+    end
+    Modules.ToolAnimForensics:Set(args[1], args[2])
+end)
+
+-- Loadstrings.
 local function loadstringCmd(url, notif)
     pcall(function()
         loadstring(game:HttpGet(url))()
@@ -20394,20 +21270,11 @@ local function loadstringCmd(url, notif)
     DoNotif(notif, 3)
 end
 
+RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin") end)
 
-RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function()
-loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin")
-end)
+RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!") end)
 
-
-RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function()
-loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!")
-end)
-
-
-RegisterCommand({Name = "dex", Aliases = {}, Description = "Loads Dex"}, function()
-loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit")
-end)
+RegisterCommand({Name = "dex", Aliases = {}, Description = "Loads Dex"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit") end)
 
 RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/anthonysrepository/refs/heads/main/scripts/Anti%20Bang.lua", "Anti Gay Shield Activated.") end)
 
@@ -20451,7 +21318,7 @@ RegisterCommand({Name = "extendroot", Aliases = {}, Description = "Bypasses Rayc
 
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
 
-RegisterCommand({Name = "overseer", Aliases = {"patcher"}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt", "Loading GUI..") end)
+RegisterCommand({Name = "overseer", Aliases = {}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt", "Loading GUI..") end)
 
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
 
@@ -20467,7 +21334,7 @@ RegisterCommand({Name = "worldofstands", Aliases = {"wos"}, Description = "For h
 
 RegisterCommand({Name = "zfucker", Aliases = {}, Description = "zfucker for the zl series."}, function() loadstringCmd("https://raw.githubusercontent.com/osukfcdays/zlfucker/refs/heads/main/main.luau", "Loading, Wait a sec.") end)
 
-RegisterCommand({Name = "unlock", Aliases = {}, Description = "Gives you the number to any code door free model if the game has it."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/codeunlocker.lua", "Loading, Wait a sec.") end)
+RegisterCommand({Name = "get-code", Aliases = {}, Description = "Gives you the number to any code door free model if the game has it."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/codeunlocker.lua", "Loading, Wait a sec.") end)
 
 
 function processCommand(message)
