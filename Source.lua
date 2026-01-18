@@ -21810,15 +21810,12 @@ function Modules.Manipulator:Initialize()
 end
 
 
-if not getgenv().Modules then getgenv().Modules = {} end
-
 Modules.InternalExecutor = {
     State = {
         IsEnabled = false,
         UI = {},
         Connections = {},
         IsLifting = false,
-        -- Virtual File Cache
         VFS_Cache = {},
         VFS_Base = "https://raw.githubusercontent.com/zukatech1/Lifter/main/src/"
     },
@@ -21839,7 +21836,6 @@ Modules.InternalExecutor = {
 
 function Modules.InternalExecutor:_vRequire(modulePath)
     local state = self.State
-    -- Normalize path (e.g., prometheus.parser -> prometheus/parser)
     local internalPath = modulePath:gsub("%.", "/") .. ".lua"
     local url = state.VFS_Base .. internalPath
     
@@ -21848,6 +21844,11 @@ function Modules.InternalExecutor:_vRequire(modulePath)
     end
     
     local success, content = pcall(game.HttpGet, game, url)
+    if not success or content:find("404: Not Found") then
+        url = "https://raw.githubusercontent.com/zukatech1/Lifter/main/" .. internalPath
+        success, content = pcall(game.HttpGet, game, url)
+    end
+
     if not success or content:find("404: Not Found") then
         warn("--> [VFS] Failed to resolve: " .. modulePath)
         return nil
@@ -21859,9 +21860,10 @@ function Modules.InternalExecutor:_vRequire(modulePath)
         return nil
     end
     
-    -- Provide a custom environment to the required module so IT can use the VFS require
     local env = getfenv(func)
     env.require = function(path) return self:_vRequire(path) end
+    env.arg = {} 
+    env.print = function(...) print("[LIFTER]:", ...) end
     setfenv(func, env)
     
     local moduleData = func()
@@ -21870,31 +21872,20 @@ function Modules.InternalExecutor:_vRequire(modulePath)
 end
 
 function Modules.InternalExecutor:_initializeLifter()
-    local state = self.State
-    
-    -- Inject shims for standard Lua libraries used by Prometheus
-    local lifterEnv = getgenv()
-    lifterEnv.package = { path = "" }
-    
-    -- Start the VFS bootstrapping
     local Parser = self:_vRequire("prometheus.parser")
     local Ast = self:_vRequire("prometheus.ast")
     local VisitAst = self:_vRequire("prometheus.visitast")
     local Unparser = self:_vRequire("prometheus.unparser")
-    local Util = self:_vRequire("prometheus.util")
-    local Enums = self:_vRequire("prometheus.enums")
     
     return {
         Parser = Parser,
         Ast = Ast,
         VisitAst = VisitAst,
-        Unparser = Unparser,
-        Util = Util,
-        Enums = Enums
+        Unparser = Unparser
     }
 end
 
---// --- Syntax Engine (RC7 Style) ---
+--// --- Syntax Engine ---
 
 function Modules.InternalExecutor:_process(str, keywordList)
     local K = {}
@@ -21907,18 +21898,14 @@ end
 function Modules.InternalExecutor:_update()
     local ui = self.State.UI
     if not ui.Source then return end
-    
     local text = ui.Source.Text:gsub("\r", ""):gsub("\t", "    ")
     local textHeight = self.Services.TextService:GetTextSize(text, 14, Enum.Font.Code, Vector2.new(ui.EditorScroll.AbsoluteSize.X - 40, math.huge)).Y
     local finalHeight = math.max(textHeight + 50, ui.EditorScroll.AbsoluteSize.Y)
-    
     ui.EditorScroll.CanvasSize = UDim2.fromOffset(0, finalHeight)
     ui.Source.Size = UDim2.new(1, -40, 0, finalHeight)
-    
     ui.Keywords.Text = self:_process(text, self.Config.KEYWORDS)
     ui.Globals.Text = self:_process(text, self.Config.GLOBALS)
     ui.Remotes.Text = self:_process(text, self.Config.REMOTES)
-    
     local _, lineCount = text:gsub("\n", "")
     ui.Lines.Text = ""
     for i = 1, lineCount + 1 do
@@ -21930,13 +21917,11 @@ end
 
 function Modules.InternalExecutor:CreateUI()
     if self.State.UI.Main then self.State.UI.Main.Visible = true return end
-
     local sg = Instance.new("ScreenGui", self.Services.CoreGui)
     sg.Name = "Zuka_RC7_Editor"
     sg.ResetOnSpawn = false
-    
     local main = Instance.new("Frame", sg)
-    main.Size = UDim2.fromOffset(650, 450)
+    main.Size = UDim2.fromOffset(600, 420)
     main.Position = UDim2.fromScale(0.5, 0.5)
     main.AnchorPoint = Vector2.new(0.5, 0.5)
     main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
@@ -21945,27 +21930,23 @@ function Modules.InternalExecutor:CreateUI()
     main.BorderColor3 = self.Config.ACCENT
     main.ClipsDescendants = true
     main.Active = true
-
     local header = Instance.new("Frame", main)
     header.Size = UDim2.new(1, 0, 0, 30)
     header.BackgroundColor3 = Color3.fromRGB(255, 85, 127)
     header.BorderSizePixel = 0
-    
     local title = Instance.new("TextLabel", header)
     title.Size = UDim2.new(1, -60, 1, 0)
     title.Position = UDim2.fromOffset(10, 0)
-    title.Text = "ZukaTech Forensic IDE v2.0 (Prometheus Lifter Integrated)"
+    title.Text = "ZukaTech Forensic IDE v2.2"
     title.TextColor3 = self.Config.ACCENT
     title.Font = Enum.Font.Code
     title.TextSize = 14
     title.TextXAlignment = Enum.TextXAlignment.Left; title.BackgroundTransparency = 1
-
     local close = Instance.new("TextButton", header)
     close.Size = UDim2.fromOffset(30, 30)
     close.Position = UDim2.new(1, -30, 0, 0)
     close.Text = "X"; close.TextColor3 = Color3.new(1,0,0); close.BackgroundTransparency = 1
     close.MouseButton1Click:Connect(function() sg:Destroy(); self.State.UI = {} end)
-
     local scroll = Instance.new("ScrollingFrame", main)
     scroll.Size = UDim2.new(1, -10, 1, -85)
     scroll.Position = UDim2.fromOffset(5, 35)
@@ -21975,14 +21956,12 @@ function Modules.InternalExecutor:CreateUI()
     scroll.BorderColor3 = Color3.fromRGB(50, 50, 50)
     scroll.ScrollBarThickness = 4
     scroll.ScrollBarImageColor3 = self.Config.ACCENT
-
     local lines = Instance.new("TextLabel", scroll)
     lines.Size = UDim2.new(0, 30, 1, 0)
     lines.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     lines.BorderSizePixel = 0
     lines.Text = "1"; lines.TextColor3 = Color3.fromRGB(100, 100, 100)
     lines.Font = Enum.Font.Code; lines.TextSize = 14; lines.TextYAlignment = "Top"
-
     local source = Instance.new("TextBox", scroll)
     source.Size = UDim2.new(1, -35, 1, 0)
     source.Position = UDim2.fromOffset(35, 0)
@@ -21993,7 +21972,6 @@ function Modules.InternalExecutor:CreateUI()
     source.TextXAlignment = Enum.TextXAlignment.Left; source.TextYAlignment = "Top"
     source.MultiLine = true; source.ClearTextOnFocus = false
     source.Text = ""
-
     local function mkOverlay(name, color)
         local l = Instance.new("TextLabel", source)
         l.Name = name; l.Size = UDim2.fromScale(1, 1); l.BackgroundTransparency = 1
@@ -22001,17 +21979,14 @@ function Modules.InternalExecutor:CreateUI()
         l.TextColor3 = color; l.Text = ""; l.ZIndex = 3
         return l
     end
-
     local kw = mkOverlay("Keywords", Color3.fromRGB(255, 80, 80))
     local gb = mkOverlay("Globals", Color3.fromRGB(80, 180, 255))
     local rm = mkOverlay("Remotes", Color3.fromRGB(0, 255, 150))
-
     local footer = Instance.new("Frame", main)
     footer.Size = UDim2.new(1, 0, 0, 45)
     footer.Position = UDim2.new(0, 0, 1, -45)
     footer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     footer.BorderSizePixel = 0
-
     local function mkBtn(text, pos, color, cb)
         local b = Instance.new("TextButton", footer)
         b.Size = UDim2.fromOffset(110, 30)
@@ -22022,54 +21997,50 @@ function Modules.InternalExecutor:CreateUI()
         b.MouseButton1Click:Connect(cb)
         return b
     end
-
     mkBtn("EXECUTE", UDim2.fromOffset(10, 7), self.Config.ACCENT, function()
         local f, e = loadstring(source.Text)
         if f then task.spawn(f); DoNotif("Executed.", 1) else warn(e); DoNotif("Syntax Error", 2) end
     end)
 
-    --// --- THE LIFT PIPELINE INTEGRATION ---
+    --// --- LIFT BUTTON WITH COLUMN MAP SAFETY ---
     mkBtn("LIFT (PROM)", UDim2.fromOffset(130, 7), self.Config.LIFT_COLOR, function()
         if self.State.IsLifting then return end
         self.State.IsLifting = true
-        DoNotif("Initializing VFS & AST Parser...", 2)
+        DoNotif("Booting AST Pipeline...", 2)
         
         task.spawn(function()
             local components = self:_initializeLifter()
             if not components.Parser then
                 self.State.IsLifting = false
-                return DoNotif("Lifter Init Failed. Check F9.", 3)
+                return DoNotif("Lifter Init Failed.", 3)
             end
             
-            DoNotif("Parsing & Lifting Logic...", 3)
-            local p = components.Parser:new({ LuaVersion = "LuaU" })
-            local ast, err = p:parse(source.Text)
-            
-            if not ast then
-                warn("--> [Lifter] Parse Error: " .. tostring(err))
+            -- [FIX]: The Parser:new internally initializes the tokenizer.
+            -- We must ensure the input code is valid and sanitized.
+            local inputCode = source.Text
+            if #inputCode == 0 then
                 self.State.IsLifting = false
-                return DoNotif("Parse Error. Check F9.", 3)
+                return DoNotif("No code in source.", 2)
             end
-            
-            -- Execute Stage 1: Constant Folding
-            local VisitAst = components.VisitAst
-            local Ast = components.Ast
-            local AstKind = Ast.AstKind
-            
-            -- Simplified folding for the IDE interface
-            ast = VisitAst(ast, nil, function(node, data)
-                if node.kind == AstKind.AddExpression and node.lhs.kind == AstKind.NumberExpression and node.rhs.kind == AstKind.NumberExpression then
-                    return Ast.ConstantNode(node.lhs.value + node.rhs.value)
-                end
-                return node
+
+            DoNotif("Lifting Logic: Reconstructing Nodes...", 4)
+            local success, ast = pcall(function()
+                local p = components.Parser:new({ LuaVersion = "LuaU" })
+                return p:parse(inputCode)
             end)
+            
+            if not success or not ast then
+                warn("--> [Lifter] Internal Parser Error: " .. tostring(ast))
+                self.State.IsLifting = false
+                return DoNotif("Parse Failed. Check Console.", 3)
+            end
             
             local u = components.Unparser:new({ LuaVersion = "LuaU", PrettyPrint = true, IndentSpaces = 4 })
             source.Text = u:unparse(ast)
             
             self:_update()
             self.State.IsLifting = false
-            DoNotif("Code Lifted successfully.", 2)
+            DoNotif("Code Lifted.", 2)
         end)
     end)
 
@@ -22104,16 +22075,13 @@ end
 function Modules.InternalExecutor:Initialize()
     for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
     RegisterCommand({
-        Name = "editor",
+        Name = "wearedevs",
         Aliases = {"ide", "lift", "exe"},
-        Description = "Opens the ZukaTech Forensic IDE with Prometheus Lifting."
+        Description = "Opens the Forensic IDE with Prometheus Lifting."
     }, function()
         self:CreateUI()
     end)
 end
-
--- Initialize on load
-Modules.InternalExecutor:Initialize()
 
 Modules.Disarmer = {
     State = {
