@@ -1,23 +1,65 @@
 --[[
 made by zuka @OverZuka on roblox
 
-For Reverse Engineering.
+this wont work on xeno probably.
 
 Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
 --]]
 
 local _GC_START = collectgarbage("count")
 local _TIMESTAMP = os.clock()
+
+local set_ro = setreadonly or (make_writeable and function(t, v) if v then make_readonly(t) else make_writeable(t) end end)
+local get_mt = getrawmetatable or debug.getmetatable
+local hook_meta = hookmetamethod
+local new_ccl = newcclosure or function(f) return f end
+local check_caller = checkcaller or function() return false end
+local clone_func = clonefunction or function(f) return f end
+
+local function dismantle_readonly(target)
+    if type(target) ~= "table" then return end
+    pcall(function()
+        if set_ro then set_ro(target, false) end
+        local mt = get_mt(target)
+        if mt and set_ro then set_ro(mt, false) end
+    end)
+end
+
+dismantle_readonly(getgenv())
+dismantle_readonly(getrenv())
+dismantle_readonly(getreg())
+
+local function protect_interface(instance)
+    local protector = (get_hidden_gui or (syn and syn.protect_gui))
+    if protector then pcall(protector, instance) end
+end
+
 local function get_memory_signature(target_name)
     local found = 0
     for _, obj in ipairs(getgc(true)) do
-        if type(obj) == "function" and debug.getinfo(obj).name == target_name then
-            found = found + 1
+        if type(obj) == "function" then
+            local info = debug.getinfo(obj)
+            if info.name == target_name or (info.source and info.source:find(target_name)) then
+                found = found + 1
+            end
         end
     end
     return found
 end
-print(string.format("--> [INTERNAL]: Memory Baseline: %.2f KB | Active Objects: %d", _GC_START, #getgc()))
+
+local Services = setmetatable({}, {
+    __index = function(t, k)
+        local s = game:GetService(k)
+        if s then t[k] = s end
+        return s
+    end
+})
+
+print("--------------------------      ZukaTech        -----------------------------------")
+print(string.format("--> [INTERNAL]: Memory Baseline: %.2f KB", _GC_START))
+print(string.format("--> [INTERNAL]: Environment Unlock: SUCCESS"))
+print(string.format("--> [INTERNAL]: C-Closure Wrapper: ACTIVE"))
+print("--------------------------      ZukaTech        -----------------------------------")
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -49,10 +91,9 @@ local TeleportService = game:GetService("TeleportService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ContentProvider = game:GetService("ContentProvider")
-
 do
     local THEME = {
-        Title = "Welcome back king.",
+        Title = "Loading...",
         Subtitle = "Made by @OverZuka — We're so back...",
         IconAssetId = "rbxassetid://7243158473",
 
@@ -64,28 +105,20 @@ do
         HoldTime = 1.2,
         FadeOutTime = 0.35
     }
-
-
     local splashGui = Instance.new("ScreenGui")
     splashGui.Name = "SplashScreen_" .. math.random(1000, 9999)
     splashGui.IgnoreGuiInset = true
     splashGui.ResetOnSpawn = false
     splashGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
     splashGui.Parent = CoreGui
-
-
     local background = Instance.new("Frame")
     background.Size = UDim2.fromScale(1, 1)
     background.BackgroundColor3 = THEME.BackgroundColor
     background.BackgroundTransparency = 1
     background.Parent = splashGui
-
-
     local blur = Instance.new("BlurEffect")
     blur.Size = 1
     blur.Parent = Lighting
-
-
     local card = Instance.new("Frame")
     card.Size = UDim2.fromOffset(320, 260)
     card.Position = UDim2.fromScale(0.5, 0.5)
@@ -94,13 +127,11 @@ do
     card.BackgroundTransparency = 1
     card.Parent = background
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 18)
-
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 1
     stroke.Color = THEME.AccentColor
     stroke.Transparency = 1
     stroke.Parent = card
-
     local icon = Instance.new("ImageLabel")
     icon.Size = UDim2.fromOffset(96, 96)
     icon.Position = UDim2.fromScale(0.5, 0.32)
@@ -111,12 +142,10 @@ do
     icon.Image = THEME.IconAssetId
     icon.Parent = card
 
-
     pcall(function()
         ContentProvider:PreloadAsync({ icon })
     end)
 
-    -- Title
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -40, 0, 36)
     title.Position = UDim2.fromScale(0.5, 0.62)
@@ -128,8 +157,6 @@ do
     title.TextColor3 = THEME.TextColor
     title.TextTransparency = 0.6
     title.Parent = card
-
-    -- Subtitle
     local subtitle = Instance.new("TextLabel")
     subtitle.Size = UDim2.new(1, -40, 0, 24)
     subtitle.Position = UDim2.fromScale(0.5, 0.75)
@@ -934,8 +961,6 @@ RegisterCommand({
     if not game:GetService("CoreGui"):FindFirstChild("UTS_CGE_Suite") then
         loadAimbotGUI(args)
     else
-        -- If the GUI is already open, we can't easily pass new args into its scope in this structure.
-        -- For simplicity, we just notify the user. A more advanced system would use BindableEvents.
         if args and args[1] then
             DoNotif("Aimbot is already open. Re-open to set a command-line target.", 4)
         else
@@ -21266,13 +21291,10 @@ function Modules.BadgeSpoofer:Toggle()
         
         setreadonly(mt, false)
         
-        -- Use newcclosure to prevent detection and recursion issues
         mt.__namecall = newcclosure(function(selfArg, ...)
             local method = getnamecallmethod()
             
-            -- FIX: Check method string first. It's faster and avoids recursion.
             if method == "UserHasBadgeAsync" or method == "userHasBadgeAsync" then
-                -- FIX: Check ClassName property directly instead of calling :IsA()
                 local isBadgeService = false
                 pcall(function()
                     if selfArg.ClassName == "BadgeService" then
@@ -21305,8 +21327,6 @@ function Modules.BadgeSpoofer:Toggle()
         DoNotif("Badge Spoofer: DISABLED", 2)
     end
 end
-
---// --- Command Registration (Same as before) ---
 
 RegisterCommand({
     Name = "spoofbadges",
@@ -21511,7 +21531,7 @@ end
 function Modules.ScriptSearcher:Initialize()
     for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
     RegisterCommand({
-        Name = "hub",
+        Name = "Hub",
         Aliases = {"search", "scripts"},
         Description = "Opens the ScriptBlox database searcher."
     }, function()
@@ -21839,14 +21859,10 @@ function Modules.Manipulator:Toggle()
                 h.Adornee = nil
             end
 
-            -- LOCAL-SIDED DRAG LOGIC
-            -- This moves the part directly without using NetworkOwner or Physics constraints
             if self.State.DraggingPart and self.State.GrabOffset then
                 local targetCFrame = mouse.Hit * self.State.GrabOffset
-                -- Smoothly Lerp to mouse position
                 self.State.DraggingPart.CFrame = self.State.DraggingPart.CFrame:Lerp(targetCFrame, self.Config.LERP_SPEED)
                 
-                -- Force it to stay highlighted during drag
                 h.Adornee = self.State.DraggingPart
                 h.FillColor = self.Config.ACCENT
             end
@@ -21908,7 +21924,7 @@ function Modules.Manipulator:Initialize()
     for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
     
     RegisterCommand({
-        Name = "manipulate",
+        Name = "dragtool",
         Aliases = {"drag"},
         Description = "Locally drag and anchor parts without network errors."
     }, function()
@@ -22123,7 +22139,6 @@ Modules.Disarmer = {
         Connections = {}
     },
     Config = {
-        -- Limb names for both R6 and R15 rigs
         ARM_PARTS = {
             "Left Arm", "Right Arm", -- R6
             "LeftUpperArm", "LeftLowerArm", "LeftHand", -- R15
@@ -22134,17 +22149,12 @@ Modules.Disarmer = {
     Services = {}
 }
 
--- [Internal] Logic to strip arms from a specific model
+
 function Modules.Disarmer:_strip(model)
     if not model or not self.State.IsEnabled then return end
-    
-    -- Safety check: Don't disarm yourself
     local player = self.Services.Players:GetPlayerFromCharacter(model)
     if player == self.Services.Players.LocalPlayer then return end
-
-    -- Verify it's a character/NPC by checking for HumanoidRootPart
     if not model:FindFirstChild("HumanoidRootPart") then return end
-
     for _, limbName in ipairs(self.Config.ARM_PARTS) do
         local limb = model:FindFirstChild(limbName)
         if limb then
@@ -22159,17 +22169,17 @@ function Modules.Disarmer:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
 
-    -- 1. Initial Sweep of Workspace
+
     for _, obj in ipairs(self.Services.Workspace:GetDescendants()) do
         if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
             self:_strip(obj)
         end
     end
 
-    -- 2. Listen for new NPCs or Players appearing in Workspace
+
     self.State.Connections.DescendantAdded = self.Services.Workspace.DescendantAdded:Connect(function(obj)
         if obj:IsA("Model") then
-            -- Wait a frame for limbs to load in
+
             task.defer(function()
                 if obj:FindFirstChildOfClass("Humanoid") then
                     self:_strip(obj)
@@ -22185,7 +22195,7 @@ function Modules.Disarmer:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
 
-    -- Disconnect listeners
+
     for _, conn in pairs(self.State.Connections) do
         conn:Disconnect()
     end
@@ -22213,13 +22223,13 @@ end
 Modules.Harvester = {
     State = {
         IsScanning = false,
-        DiscoveredGivers = {}, -- [Part] = {Name, Path}
+        DiscoveredGivers = {},
         ActiveConnection = nil
     },
     Config = {
-        -- Keywords used to identify Givers vs. regular touch bricks
+
         GIVER_KEYWORDS = {"give", "tool", "get", "take", "handle", "weapon", "buy", "equip", "gear", "item", "chest"},
-        -- Keywords to EXCLUDE (to prevent false positives like killbricks)
+
         DANGER_KEYWORDS = {"kill", "lava", "dead", "damage", "hurt", "void", "teleport", "portal", "warp"},
         SCAN_DELAY = 0.1
     },
@@ -22227,7 +22237,7 @@ Modules.Harvester = {
     Services = {}
 }
 
--- [Internal] Logic to determine if a part is likely a Giver
+
 function Modules.Harvester:_isLikelyGiver(part)
     if not part:FindFirstChildWhichIsA("TouchInterest") then return false end
     
@@ -22235,12 +22245,12 @@ function Modules.Harvester:_isLikelyGiver(part)
     local parentName = part.Parent and part.Parent.Name:lower() or ""
     local combine = name .. " " .. parentName
     
-    -- Check for danger first
+
     for _, danger in ipairs(self.Config.DANGER_KEYWORDS) do
         if combine:find(danger) then return false end
     end
     
-    -- Check for giver keywords
+
     for _, keyword in ipairs(self.Config.GIVER_KEYWORDS) do
         if combine:find(keyword) then return true end
     end
@@ -22248,7 +22258,7 @@ function Modules.Harvester:_isLikelyGiver(part)
     return false
 end
 
--- [Internal] Remote-triggers the touch event
+
 function Modules.Harvester:_trigger(part)
     local lp = self.Services.Players.LocalPlayer
     local char = lp.Character
@@ -22263,7 +22273,7 @@ function Modules.Harvester:_trigger(part)
             firetouchinterest(root, part, 1) -- Touch End
         end)
     else
-        -- Fallback for environments without firetouchinterest
+
         local oldCF = root.CFrame
         root.CFrame = part.CFrame
         task.wait(0.1)
@@ -22308,7 +22318,7 @@ function Modules.Harvester:Collect(targetName)
         if match then
             self:_trigger(part)
             collected = collected + 1
-            task.wait(self.Config.SCAN_DELAY) -- Throttling to prevent server lag-kicks
+            task.wait(self.Config.SCAN_DELAY)
         end
     end
     
@@ -22453,22 +22463,21 @@ local function CreateMobileCommandButton()
 
     local cmdButton = Instance.new("ImageButton")
     cmdButton.Name = "DraggableCommandButton"
-    cmdButton.Size = UDim2.fromOffset(60, 60) -- A comfortable tap size for mobile
-    cmdButton.Position = UDim2.new(0, 20, 0.5, -30) -- Initial position: left side of the screen
+    cmdButton.Size = UDim2.fromOffset(60, 60)
+    cmdButton.Position = UDim2.new(0, 20, 0.5, -30)
     cmdButton.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
     cmdButton.BackgroundTransparency = 0.2
-    cmdButton.Image = "rbxassetid://7243158473" -- Using the gear icon from your splash screen
-    cmdButton.ImageColor3 = Color3.fromRGB(0, 255, 255) -- Matching accent color
+    cmdButton.Image = "rbxassetid://7243158473"
+    cmdButton.ImageColor3 = Color3.fromRGB(0, 255, 255)
     cmdButton.Parent = buttonGui
 
-    Instance.new("UICorner", cmdButton).CornerRadius = UDim.new(1, 0) -- Makes it circular
+    Instance.new("UICorner", cmdButton).CornerRadius = UDim.new(1, 0)
     Instance.new("UIStroke", cmdButton).Color = Color3.fromRGB(80, 80, 100)
 
-    -- 4. Drag and Tap Logic
     local isDragging = false
     local dragStartPos = nil
     local startGuiPosition = nil
-    local DRAG_THRESHOLD = 8 -- Minimum pixel distance to be considered a drag, preventing accidental drags on tap
+    local DRAG_THRESHOLD = 8 
 
     cmdButton.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
@@ -22482,7 +22491,6 @@ local function CreateMobileCommandButton()
         if input.UserInputType == Enum.UserInputType.Touch and dragStartPos then
             local delta = input.Position - dragStartPos
             
-            -- If the finger moves past the threshold, it's officially a drag
             if not isDragging and delta.Magnitude > DRAG_THRESHOLD then
                 isDragging = true
             end
