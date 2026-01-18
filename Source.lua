@@ -55,42 +55,34 @@ local Services = setmetatable({}, {
     end
 })
 
-print("--------------------------      ZukaTech        -----------------------------------")
+print("--------------------------      [ZukaTech]      -----------------------------------")
+print("-------------------------                        ----------------------------------")
 print(string.format("--> [INTERNAL]: Memory Baseline: %.2f KB", _GC_START))
 print(string.format("--> [INTERNAL]: Environment Unlock: SUCCESS"))
 print(string.format("--> [INTERNAL]: C-Closure Wrapper: ACTIVE"))
-print("--------------------------      ZukaTech        -----------------------------------")
+print("--------------------------                        ------------------------------------")
+print("---------------------------      [ZukaTech]      -------------------------------------")
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local ContextActionService = game:GetService("ContextActionService")
-local GuiService = game:GetService("GuiService")
-local HapticService = game:GetService("HapticService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local CoreGui = game:GetService("CoreGui")
-local TextChatService = game:GetService("TextChatService")
-local TextService = game:GetService("TextService")
-local NotificationService = game:GetService("NotificationService")
-local PathfindingService = game:GetService("PathfindingService")
-local PhysicsService = game:GetService("PhysicsService")
-local CollectionService = game:GetService("CollectionService")
-local SoundService = game:GetService("SoundService")
 local Lighting = game:GetService("Lighting")
 local Debris = game:GetService("Debris")
-local LogService = game:GetService("LogService")
-local Stats = game:GetService("Stats")
-local TestService = game:GetService("TestService")
 local TeleportService = game:GetService("TeleportService")
-local ProximityPromptService = game:GetService("ProximityPromptService")
+local TextChatService = game:GetService("TextChatService")
 local MarketplaceService = game:GetService("MarketplaceService")
-local ContentProvider = game:GetService("ContentProvider")
+local PathfindingService = game:GetService("PathfindingService")
+local CollectionService = game:GetService("CollectionService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerMouse = LocalPlayer:GetMouse()
+local CurrentCamera = Workspace.CurrentCamera
 do
     local THEME = {
         Title = "Loading...",
@@ -1091,7 +1083,7 @@ Modules.AstralProjection = {
         positionMarker = nil
     },
     Config = {
-        TOGGLE_KEY = Enum.KeyCode.P,
+        TOGGLE_KEY = Enum.KeyCode.End,
         SPAWN_PROTECTION_DURATION = 2
     },
     GUI = {},
@@ -3720,7 +3712,6 @@ function Modules.AdvancedFling:Execute(targetPlayer)
             
             SFBasePart(primaryFlingPart)
 
-            --// --- END: New "SkidFling" Logic Integration ---
         end)
 
         -- This unified cleanup block will run regardless of success or failure.
@@ -3739,7 +3730,7 @@ function Modules.AdvancedFling:Execute(targetPlayer)
         end)
 
         if not success then
-            warn("AdvancedFling Error:", err)
+            warn("Fling Error:", err)
             DoNotif("Fling failed. Target may have reset or left.", 3)
         else
             DoNotif("Fling sequence complete.", 2)
@@ -3773,6 +3764,7 @@ RegisterCommand({ Name = "fling", Aliases = {"fl"}, Description = "Fling a playe
         end
     end
 end)
+
 Modules.SetSpawnPoint = {
 State = {
 CustomSpawnCFrame = nil,
@@ -9111,121 +9103,6 @@ function Modules.OrbitController:Initialize()
     end)
 end
 
-Modules.MADGuardian = {
-    State = {
-        IsEnabled = false,
-        IsRetaliating = false,
-        Connection = nil,
-        LastRetaliation = 0,
-        OscillationValue = 5000 -- High-frequency force
-    },
-    Config = {
-        FLING_STRENGTH = 100,
-        RETALIATION_DURATION = 3, -- How long to stay in "Fling Mode" after being attacked
-        DETECTION_RADIUS = 15,    -- Radius to find the culprit
-        COOLDOWN = 5
-    }
-}
-
--- [Internal] The high-frequency velocity burst logic you provided, optimized for current API
-function Modules.MADGuardian:_executeRetaliationLoop()
-    local char = Players.LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    
-    if root then
-        -- We use AssemblyLinearVelocity for modern physics accuracy
-        local originalVel = root.AssemblyLinearVelocity
-        local flingVel = Vector3.new(0, self.State.OscillationValue, 0)
-        
-        -- High-frequency flip: This is what causes the "fling" on touch
-        root.AssemblyLinearVelocity = flingVel
-        RunService.Stepped:Wait()
-        
-        self.State.OscillationValue = -self.State.OscillationValue
-        root.AssemblyLinearVelocity = originalVel
-    end
-end
-
--- [Internal] Defensive scan and retaliation trigger
-function Modules.MADGuardian:_onHeartbeat()
-    local char = Players.LocalPlayer.Character
-    if not char then return end
-
-    -- 1. DEFENSE: Destroy any external forces attempting to manipulate you
-    for _, descendant in ipairs(char:GetDescendants()) do
-        if descendant:IsA("BodyMover") or descendant:IsA("BasePart") and descendant.Name:find("Fling") then
-            -- We exclude our own UI or safe parts
-            if not descendant:GetAttribute("Safe") then
-                descendant:Destroy()
-                
-                -- 2. TRIGGER: If we were just attacked, start retaliating
-                if not self.State.IsRetaliating and (os.clock() - self.State.LastRetaliation > self.Config.COOLDOWN) then
-                    self:_startRetaliationSequence()
-                end
-                break 
-            end
-        end
-    end
-
-    -- 3. ACTIVE PHASE: If in retaliation mode, run the burst logic
-    if self.State.IsRetaliating then
-        self:_executeRetaliationLoop()
-    end
-end
-
-function Modules.MADGuardian:_startRetaliationSequence()
-    self.State.IsRetaliating = true
-    self.State.LastRetaliation = os.clock()
-    DoNotif("MAD Guardian: Counter-Fling ACTIVE! Touch the attacker!", 3)
-    
-    if Modules.AntiVoid and not Modules.AntiVoid.State.IsEnabled then
-        Modules.AntiVoid:Enable()
-        DoNotif("MAD Guardian: Enabling Anti-Void for safety...", 1)
-    end
-
-    task.delay(self.Config.RETALIATION_DURATION, function()
-        self.State.IsRetaliating = false
-        DoNotif("MAD Guardian: Retaliation sequence ended.", 2)
-    end)
-end
-
-function Modules.MADGuardian:Toggle()
-    self.State.IsEnabled = not self.State.IsEnabled
-    
-    if self.State.IsEnabled then
-        self.State.Connection = RunService.Heartbeat:Connect(function() self:_onHeartbeat() end)
-        DoNotif("MAD Guardian: V2 ONLINE (Auto-Retaliation)", 2)
-    else
-        if self.State.Connection then self.State.Connection:Disconnect() end
-        self.State.IsRetaliating = false
-        self.State.IsEnabled = false
-        DoNotif("MAD Guardian: OFFLINE", 2)
-    end
-end
-
---// --- Command Registration ---
-
-RegisterCommand({
-    Name = "mad",
-    Aliases = {"flingback", "retaliate"},
-    Description = "Toggles a defensive system that automatically flings anyone who tries to fling you."
-}, function()
-    Modules.MADGuardian:Toggle()
-end)
-
--- Added a manual trigger for your touchfling logic
-RegisterCommand({
-    Name = "tf",
-    Aliases = {"killmode"},
-    Description = "Manually triggers the high-velocity fling mode. Usage: ;tf [strength]"
-}, function(args)
-    if args[1] then Modules.MADGuardian.Config.FLING_STRENGTH = tonumber(args[1]) or 100 end
-    
-    if not Modules.MADGuardian.State.IsEnabled then
-        Modules.MADGuardian:Toggle()
-    end
-    Modules.MADGuardian:_startRetaliationSequence()
-end)
 
 local function readTable(tbl: table): string
     local function serialize(value: any, indent: number, visited: {[table]: boolean}): string
