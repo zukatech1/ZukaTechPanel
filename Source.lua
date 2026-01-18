@@ -22492,4 +22492,4 @@ LocalPlayer.Chatted:Connect(processCommand)
 end
 DoNotif("We're So back. The Best Underground Panel.", 3)
 
---[[I rigged this script to break itself if comments or certain liness are removed. Feel free to use this however.]]--
+--[[Out of pure spite, I made this because I can't fucking stand the modern roblox exploits or it's community, you're all skids. I rigged this script to break itself if comments or certain liness are removed. Feel free to use this however.]]--
