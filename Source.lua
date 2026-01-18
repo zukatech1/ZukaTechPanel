@@ -187,8 +187,6 @@ do
     blur:Destroy()
     splashGui:Destroy()
 end
-
-
 local Utilities = {}
 function Utilities.findPlayer(inputName)
     local input = tostring(inputName):lower()
@@ -2288,93 +2286,93 @@ function Modules.HighlightPlayer:ApplyHighlight(character)
         end
         function Modules.HighlightPlayer:ClearHighlight()
             if self.State.HighlightInstance then self.State.HighlightInstance:Destroy(); self.State.HighlightInstance = nil end
-                if self.State.CharacterAddedConnection then self.State.CharacterAddedConnection:Disconnect(); self.State.CharacterAddedConnection = nil end
-                    if self.State.TargetPlayer then DoNotif("Highlight cleared from: " .. self.State.TargetPlayer.Name, 2); self.State.TargetPlayer = nil end
-                    end
-                    RegisterCommand({ Name = "highlight", Aliases = {"find", "findplayer"}, Description = "Highlights a player." }, function(args)
-                    local argument = args[1]
-                    if not argument then DoNotif("Usage: highlight <PlayerName|clear>", 3); return end
-                        if string.lower(argument) == "clear" or string.lower(argument) == "reset" then Modules.HighlightPlayer:ClearHighlight(); return end
-                            local targetPlayer = findFirstPlayer(argument)
-                            if not targetPlayer then DoNotif("Player '" .. argument .. "' not found.", 3); return end
-                                Modules.HighlightPlayer:ClearHighlight()
-                                Modules.HighlightPlayer.State.TargetPlayer = targetPlayer
-                                DoNotif("Now highlighting: " .. targetPlayer.Name, 2)
-                                if targetPlayer.Character then Modules.HighlightPlayer:ApplyHighlight(targetPlayer.Character) end
-                                    Modules.HighlightPlayer.State.CharacterAddedConnection = targetPlayer.CharacterAdded:Connect(function(newCharacter) Modules.HighlightPlayer:ApplyHighlight(newCharacter) end)
-                                end)
-                                Modules.FovChanger = {
-                                State = {
-                                IsEnabled = false,
-                                TargetFov = 70,
-                                DefaultFov = 70,
-                                Connection = nil
-                                }
-                                }
-                                local function updateFovOnRenderStep()
-                                local camera = Workspace.CurrentCamera
-                                local state = Modules.FovChanger.State
-                                if camera and state.IsEnabled and camera.FieldOfView ~= state.TargetFov then
-                                    camera.FieldOfView = state.TargetFov
-                                end
-                            end
-                            local function enableFovLock()
-                            local state = Modules.FovChanger.State
-                            if not state.Connection then
-                                state.Connection = RunService.RenderStepped:Connect(updateFovOnRenderStep)
-                            end
-                            state.IsEnabled = true
-                        end
-                        local function disableFovLock()
-                        local state = Modules.FovChanger.State
-                        state.IsEnabled = false
-                        if state.Connection then
-                            state.Connection:Disconnect()
-                            state.Connection = nil
-                        end
-                    end
-                    pcall(function()
-                    Modules.FovChanger.State.DefaultFov = Workspace.CurrentCamera.FieldOfView
-                end)
-                RegisterCommand({ Name = "fov", Aliases = {"fieldofview", "camfov"}, Description = "Changes and locks FOV." }, function(args)
-                local camera = Workspace.CurrentCamera
-                if not camera then
-                    DoNotif("Could not find camera.", 3)
-                    return
-                end
-                local argument = args[1]
-                if not argument then
-                    DoNotif("Current FOV is: " .. camera.FieldOfView, 3)
-                    return
-                end
-                if string.lower(argument) == "reset" then
-                    disableFovLock()
-                    camera.FieldOfView = Modules.FovChanger.State.DefaultFov
-                    DoNotif("FOV lock disabled and reset to " .. Modules.FovChanger.State.DefaultFov, 2)
-                    return
-                end
-                local newFov = tonumber(argument)
-                if not newFov then
-                    DoNotif("Invalid argument. Provide a number or 'reset'.", 3)
-                    return
-                end
-                local clampedFov = math.clamp(newFov, 1, 120)
-                Modules.FovChanger.State.TargetFov = clampedFov
-                enableFovLock()
-                DoNotif("FOV locked to " .. clampedFov, 2)
-            end)
-            RegisterCommand({ Name = "cmds", Aliases = {"commands", "help"}, Description = "Opens a UI that lists all available commands." }, function()
-            Modules.CommandList:Toggle()
+            if self.State.CharacterAddedConnection then self.State.CharacterAddedConnection:Disconnect(); self.State.CharacterAddedConnection = nil end
+            if self.State.TargetPlayer then DoNotif("Highlight cleared from: " .. self.State.TargetPlayer.Name, 2); self.State.TargetPlayer = nil end
+        end
+        RegisterCommand({ Name = "highlight", Aliases = {"find", "findplayer"}, Description = "Highlights a player." }, function(args)
+            local argument = args[1]
+            if not argument then DoNotif("Usage: highlight <PlayerName|clear>", 3); return end
+            if string.lower(argument) == "clear" or string.lower(argument) == "reset" then Modules.HighlightPlayer:ClearHighlight(); return end
+            local targetPlayer = findFirstPlayer(argument)
+            if not targetPlayer then DoNotif("Player '" .. argument .. "' not found.", 3); return end
+            Modules.HighlightPlayer:ClearHighlight()
+            Modules.HighlightPlayer.State.TargetPlayer = targetPlayer
+            DoNotif("Now highlighting: " .. targetPlayer.Name, 2)
+            if targetPlayer.Character then Modules.HighlightPlayer:ApplyHighlight(targetPlayer.Character) end
+            Modules.HighlightPlayer.State.CharacterAddedConnection = targetPlayer.CharacterAdded:Connect(function(newCharacter) Modules.HighlightPlayer:ApplyHighlight(newCharacter) end)
         end)
-        Modules.Fly = {
-        State = {
+Modules.FovChanger = {
+    State = {
+        IsEnabled = false,
+        TargetFov = 70,
+        DefaultFov = 70,
+        Connection = nil
+    }
+}
+local function updateFovOnRenderStep()
+    local camera = Workspace.CurrentCamera
+    local state = Modules.FovChanger.State
+    if camera and state.IsEnabled and camera.FieldOfView ~= state.TargetFov then
+        camera.FieldOfView = state.TargetFov
+    end
+end
+local function enableFovLock()
+    local state = Modules.FovChanger.State
+    if not state.Connection then
+        state.Connection = RunService.RenderStepped:Connect(updateFovOnRenderStep)
+    end
+    state.IsEnabled = true
+end
+local function disableFovLock()
+    local state = Modules.FovChanger.State
+    state.IsEnabled = false
+    if state.Connection then
+        state.Connection:Disconnect()
+        state.Connection = nil
+    end
+end
+pcall(function()
+    Modules.FovChanger.State.DefaultFov = Workspace.CurrentCamera.FieldOfView
+end)
+RegisterCommand({ Name = "fov", Aliases = {"fieldofview", "camfov"}, Description = "Changes and locks FOV." }, function(args)
+    local camera = Workspace.CurrentCamera
+    if not camera then
+        DoNotif("Could not find camera.", 3)
+        return
+    end
+    local argument = args[1]
+    if not argument then
+        DoNotif("Current FOV is: " .. camera.FieldOfView, 3)
+        return
+    end
+    if string.lower(argument) == "reset" then
+        disableFovLock()
+        camera.FieldOfView = Modules.FovChanger.State.DefaultFov
+        DoNotif("FOV lock disabled and reset to " .. Modules.FovChanger.State.DefaultFov, 2)
+        return
+    end
+    local newFov = tonumber(argument)
+    if not newFov then
+        DoNotif("Invalid argument. Provide a number or 'reset'.", 3)
+        return
+    end
+    local clampedFov = math.clamp(newFov, 1, 120)
+    Modules.FovChanger.State.TargetFov = clampedFov
+    enableFovLock()
+    DoNotif("FOV locked to " .. clampedFov, 2)
+end)
+RegisterCommand({ Name = "cmds", Aliases = {"commands", "help"}, Description = "Opens a UI that lists all available commands." }, function()
+    Modules.CommandList:Toggle()
+end)
+Modules.Fly = {
+    State = {
         IsActive = false,
         Speed = 60,
         SprintMultiplier = 2.5,
         Connections = {},
         BodyMovers = {}
-        }
-        }
+    }
+}
         function Modules.Fly:SetSpeed(s)
             local n = tonumber(s)
             if n and n > 0 then
@@ -2442,43 +2440,44 @@ function Modules.HighlightPlayer:ApplyHighlight(character)
                 table.insert(self.State.Connections, UserInputService.InputBegan:Connect(onInput))
                 table.insert(self.State.Connections, UserInputService.InputEnded:Connect(onInput))
                 local loop = RunService.RenderStepped:Connect(function()
-                if not self.State.IsActive or not hrp.Parent then return end
+                    if not self.State.IsActive or not hrp.Parent then return end
                     local camera = workspace.CurrentCamera
                     alignOrientation.CFrame = camera.CFrame
                     local direction = Vector3.new()
                     if keys[Enum.KeyCode.W] then direction += camera.CFrame.LookVector end
-                        if keys[Enum.KeyCode.S] then direction -= camera.CFrame.LookVector end
-                            if keys[Enum.KeyCode.D] then direction += camera.CFrame.RightVector end
-                                if keys[Enum.KeyCode.A] then direction -= camera.CFrame.RightVector end
-                                    if keys[Enum.KeyCode.Space] or keys[Enum.KeyCode.E] then direction += Vector3.yAxis end
-                                        if keys[Enum.KeyCode.LeftControl] or keys[Enum.KeyCode.Q] then direction -= Vector3.yAxis end
-                                            local speed = keys[Enum.KeyCode.LeftShift] and self.State.Speed * self.State.SprintMultiplier or self.State.Speed
-                                            linearVelocity.VectorVelocity = direction.Magnitude > 0 and direction.Unit * speed or Vector3.zero
-                                        end)
-                                        table.insert(self.State.Connections, loop)
-                                    end
-                                    function Modules.Fly:Toggle()
-                                        if self.State.IsActive then
-                                            self:Disable()
-                                        else
-                                        self:Enable()
-                                    end
-                                end
-                                RegisterCommand({ Name = "fly", Aliases = {"flight"}, Description = "Toggles smooth flight mode." }, function()
-                                Modules.Fly:Toggle()
-                            end)
+                    if keys[Enum.KeyCode.S] then direction -= camera.CFrame.LookVector end
+                    if keys[Enum.KeyCode.D] then direction += camera.CFrame.RightVector end
+                    if keys[Enum.KeyCode.A] then direction -= camera.CFrame.RightVector end
+                    if keys[Enum.KeyCode.Space] or keys[Enum.KeyCode.E] then direction += Vector3.yAxis end
+                    if keys[Enum.KeyCode.LeftControl] or keys[Enum.KeyCode.Q] then direction -= Vector3.yAxis end
+                    local speed = keys[Enum.KeyCode.LeftShift] and self.State.Speed * self.State.SprintMultiplier or self.
+                    State.Speed
+                    linearVelocity.VectorVelocity = direction.Magnitude > 0 and direction.Unit * speed or Vector3.zero
+                end)
+            table.insert(self.State.Connections, loop)
+        end
+        function Modules.Fly:Toggle()
+            if self.State.IsActive then
+                self:Disable()
+            else
+                self:Enable()
+             end
+         end
+    RegisterCommand({ Name = "fly", Aliases = {"flight"}, Description = "Toggles smooth flight mode." }, function()
+         Modules.Fly:Toggle()
+    end)
+
 Modules.NoClip = {
     State = {
-        IsEnabled = false,
-        Connections = {},
-        TrackedParts = setmetatable({}, {__mode = "k"})
+    IsEnabled = false,
+    Connections = {},
+    TrackedParts = setmetatable({}, {__mode = "k"})
     },
     Services = {
-        Players = game:GetService("Players"),
-        RunService = game:GetService("RunService")
-    }
+    Players = game:GetService("Players"),
+    RunService = game:GetService("RunService")
 }
-
+}
 function Modules.NoClip:_addPart(part)
     if not part:IsA("BasePart") then return end
     self.State.TrackedParts[part] = true
@@ -2585,297 +2584,298 @@ RegisterCommand({ Name = "noclip", Aliases = {"nc"}, Description = "Allows you t
     Modules.NoClip:Toggle()
 end)
 
-                                    Modules.AnimationFreezer = {
-                                    State = {
-                                    IsEnabled = false,
-                                    CharacterConnection = nil,
-                                    Originals = {}
-                                    }
-                                    }
-                                    function Modules.AnimationFreezer:_applyFreeze(character)
-                                        if not character or self.State.Originals[character] then return end
-                                            local humanoid = character:FindFirstChildOfClass("Humanoid")
-                                            if not humanoid then return end
-                                                local animator = humanoid:FindFirstChildOfClass("Animator")
-                                                if not animator then return end
-                                                    self.State.Originals[character] = animator
-                                                    local fakeAnimationTrack = {
-                                                    IsPlaying = false,
-                                                    Length = 0,
-                                                    TimePosition = 0,
-                                                    Speed = 0,
-                                                    Play = function() end,
-                                                    Stop = function() end,
-                                                    Pause = function() end,
-                                                    AdjustSpeed = function() end,
-                                                    GetMarkerReachedSignal = function() return { Connect = function() end } end,
-                                                    GetTimeOfKeyframe = function() return 0 end,
-                                                    Destroy = function() end
-                                                    }
-                                                    local animatorProxy = {}
-                                                    local animatorMetatable = {
-                                                    __index = function(t, key)
-                                                    if tostring(key):lower() == "loadanimation" then
-                                                        return function()
-                                                        return fakeAnimationTrack
-                                                    end
-                                                else
-                                                return self.State.Originals[character][key]
-                                            end
-                                        end
-                                        }
-                                        setmetatable(animatorProxy, animatorMetatable)
-                                        animator.Parent = nil
-                                        animatorProxy.Name = "Animator"
-                                        animatorProxy.Parent = humanoid
-                                    end
-                                    function Modules.AnimationFreezer:_removeFreeze(character)
-                                        if not character or not self.State.Originals[character] then return end
-                                            local humanoid = character:FindFirstChildOfClass("Humanoid")
-                                            if not humanoid then return end
-                                                local proxy = humanoid:FindFirstChild("Animator")
-                                                local original = self.State.Originals[character]
-                                                if proxy then proxy:Destroy() end
-                                                    if original then original.Parent = humanoid end
-                                                        self.State.Originals[character] = nil
-                                                    end
-                                                    function Modules.AnimationFreezer:Toggle()
-                                                        self.State.IsEnabled = not self.State.IsEnabled
-                                                        if self.State.IsEnabled then
-                                                            DoNotif("Animation Freezer Enabled", 2)
-                                                            if LocalPlayer.Character then
-                                                                self:_applyFreeze(LocalPlayer.Character)
-                                                            end
-                                                            self.State.CharacterConnection = LocalPlayer.CharacterAdded:Connect(function(character)
-                                                            task.wait(0.1)
-                                                            self:_applyFreeze(character)
-                                                        end)
-                                                    else
-                                                    DoNotif("Animation Freezer Disabled", 2)
-                                                    if LocalPlayer.Character then
-                                                        self:_removeFreeze(LocalPlayer.Character)
-                                                    end
-                                                    if self.State.CharacterConnection then
-                                                        self.State.CharacterConnection:Disconnect()
-                                                        self.State.CharacterConnection = nil
-                                                    end
-                                                    for char, animator in pairs(self.State.Originals) do
-                                                        self:_removeFreeze(char)
-                                                    end
-                                                end
-                                            end
-                                            RegisterCommand({
-                                            Name = "freezeanim",
-                                            Aliases = {},
-                                            Description = "Freezes all local character animations to skip delays (e.g., weapon swings)."
-                                            }, function()
-                                            Modules.AnimationFreezer:Toggle()
-                                        end)
-
-                                        Modules.AutoDecompiler = {
-                                        State = {
-                                        IsEnabled = false,
-                                        IsReady = false,
-                                        Connections = {},
-                                        LastAPICall = 0
-                                        },
-                                        API_URL = "http://api.plusgiant5.com"
-                                        }
-                                        function Modules.AutoDecompiler:_prepareDecompiler()
-                                            if self.State.IsReady then return true end
-                                                if not getscriptbytecode or not request then
-                                                    warn("AutoDecompiler Error: 'getscriptbytecode' and/or 'request' are not available in this environment.")
-                                                    return false
-                                                end
-                                                print("AutoDecompiler: Executor dependencies found. Ready.")
-                                                self.State.IsReady = true
-                                                return true
-                                            end
-                                            function Modules.AutoDecompiler:_decompileViaAPI(scriptObject)
-                                                local success, bytecode = pcall(getscriptbytecode, scriptObject)
-                                                if not success then
-                                                    warn("AutoDecompiler:", scriptObject:GetFullName(), "- Failed to get bytecode:", tostring(bytecode))
-                                                    return nil
-                                                end
-                                                local timeElapsed = os.clock() - self.State.LastAPICall
-                                                if timeElapsed < 0.5 then
-                                                    task.wait(0.5 - timeElapsed)
-                                                end
-                                                local success, httpResult = pcall(request, {
-                                                Url = self.API_URL .. "/konstant/decompile",
-                                                Body = bytecode,
-                                                Method = "POST",
-                                                Headers = { ["Content-Type"] = "text/plain" }
-                                                })
-                                                self.State.LastAPICall = os.clock()
-                                                if not success then
-                                                    warn("AutoDecompiler: request() function failed:", tostring(httpResult))
-                                                    return nil
-                                                end
-                                                if httpResult and httpResult.StatusCode == 200 then
-                                                    return httpResult.Body
-                                                else
-                                                warn("AutoDecompiler: API returned non-200 status:", httpResult.StatusCode, httpResult.Body)
-                                                return nil
-                                            end
-                                        end
-                                        function Modules.AutoDecompiler:Disable()
-                                            DoNotif("Auto Decompiler Disabled.", 3)
-                                            for _, connection in ipairs(self.State.Connections) do
-                                                if connection.Connected then
-                                                    connection:Disconnect()
-                                                end
-                                            end
-                                            table.clear(self.State.Connections)
-                                        end
-                                        function Modules.AutoDecompiler:Enable()
-                                            if not self:_prepareDecompiler() then
-                                                DoNotif("Decompiler dependencies not met. Check console.", 5)
-                                                self.State.Enabled = false
-                                                return
-                                            end
-                                            DoNotif("Auto Decompiler Enabled. Sweeping existing scripts...", 4)
-                                            local function processScript(script)
-                                            local decompiledSource = self:_decompileViaAPI(script)
-                                            if decompiledSource then
-                                                local success, err = pcall(function() script.Source = decompiledSource end)
-                                                if not success then
-                                                    warn("Could not set source for", script:GetFullName(), "- it may be read-only. Error:", err)
-                                                end
-                                            end
-                                        end
-                                        task.spawn(function()
-                                        for _, descendant in ipairs(game:GetDescendants()) do
-                                            if descendant:IsA("LuaSourceContainer") then
-                                                processScript(descendant)
-                                                task.wait()
-                                            end
-                                        end
-                                        print("Initial script sweep completed.")
-                                    end)
-                                    local conn = game.DescendantAdded:Connect(function(descendant)
-                                    if descendant:IsA("LuaSourceContainer") then
-                                        print("New script detected:", descendant:GetFullName())
-                                        processScript(descendant)
-                                    end
-                                end)
-                                table.insert(self.State.Connections, conn)
-                            end
-                            function Modules.AutoDecompiler:Toggle()
-                                self.State.Enabled = not self.State.Enabled
-                                if self.State.Enabled then
-                                    self:Enable()
-                                else
-                                self:Disable()
-                            end
-                        end
-                        function Modules.AutoDecompiler:Initialize()
-                            local module = self
-                            RegisterCommand({
-                            Name = "autodecompile",
-                            Aliases = {"adecompile", "decompile"},
-                            Description = "Automatically decompiles scripts using a bytecode API."
-                            }, function(args)
-                            module:Toggle()
-                        end)
-                    end
-
-                    local Players = game:GetService("Players")
-                    local RunService = game:GetService("RunService")
-                    
-                    Modules.RespawnAtDeath = {
-                    State = {
-                    Enabled = false,
-                    LastDeathCFrame = nil,
-                    DiedConnection = nil,
-                    CharacterConnection = nil,
-                    }
-                    }
-                    function Modules.RespawnAtDeath.OnDied()
-                        local character = Players.LocalPlayer.Character
-                        local root = character and character:FindFirstChild("HumanoidRootPart")
-                        if root then
-                            Modules.RespawnAtDeath.State.LastDeathCFrame = root.CFrame
-                            print("Death location saved.")
-                        end
-                    end
-                    function Modules.RespawnAtDeath.OnCharacterAdded(character)
-                        local humanoid = character:WaitForChild("Humanoid")
-                        if Modules.RespawnAtDeath.State.DiedConnection then
-                            Modules.RespawnAtDeath.State.DiedConnection:Disconnect()
-                        end
-                        Modules.RespawnAtDeath.State.DiedConnection = humanoid.Died:Connect(Modules.RespawnAtDeath.OnDied)
-                        local deathCFrame = Modules.RespawnAtDeath.State.LastDeathCFrame
-                        if deathCFrame then
-                            coroutine.wrap(function()
-                            print("Teleporting to saved death location...")
-                            task.wait(0.1)
-                            local root = character:WaitForChild("HumanoidRootPart")
-                            if not root then return end
-                                local originalAnchored = root.Anchored
-                                root.Anchored = true
-                                root.CFrame = deathCFrame
-                                RunService.Heartbeat:Wait()
-                                root.Anchored = originalAnchored
-                                Modules.RespawnAtDeath.State.LastDeathCFrame = nil
-                                print("Teleport successful.")
-                            end)()
-                        end
-                    end
-                    function Modules.RespawnAtDeath.Toggle()
-                        local localPlayer = Players.LocalPlayer
-                        Modules.RespawnAtDeath.State.Enabled = not Modules.RespawnAtDeath.State.Enabled
-                        if Modules.RespawnAtDeath.State.Enabled then
-                            print("revert: ENABLED")
-                            Modules.RespawnAtDeath.State.CharacterConnection = localPlayer.CharacterAdded:Connect(Modules.RespawnAtDeath.OnCharacterAdded)
-                            if localPlayer.Character then
-                                Modules.RespawnAtDeath.OnCharacterAdded(localPlayer.Character)
-                            end
-                        else
-                        print("revert: DISABLED")
-                        if Modules.RespawnAtDeath.State.DiedConnection then
-                            Modules.RespawnAtDeath.State.DiedConnection:Disconnect()
-                            Modules.RespawnAtDeath.State.DiedConnection = nil
-                        end
-                        if Modules.RespawnAtDeath.State.CharacterConnection then
-                            Modules.RespawnAtDeath.State.CharacterConnection:Disconnect()
-                            Modules.RespawnAtDeath.State.CharacterConnection = nil
-                        end
-                        Modules.RespawnAtDeath.State.LastDeathCFrame = nil
-                    end
+Modules.AnimationFreezer = {
+    State = {
+        IsEnabled = false,
+        CharacterConnection = nil,
+        Originals = {}
+    }
+}
+function Modules.AnimationFreezer:_applyFreeze(character)
+    if not character or self.State.Originals[character] then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    local animator = humanoid:FindFirstChildOfClass("Animator")
+    if not animator then return end
+    self.State.Originals[character] = animator
+    local fakeAnimationTrack = {
+        IsPlaying = false,
+        Length = 0,
+        TimePosition = 0,
+        Speed = 0,
+        Play = function() end,
+        Stop = function() end,
+        Pause = function() end,
+        AdjustSpeed = function() end,
+        GetMarkerReachedSignal = function() return { Connect = function() end } end,
+        GetTimeOfKeyframe = function() return 0 end,
+        Destroy = function() end
+    }
+    local animatorProxy = {}
+    local animatorMetatable = {
+        __index = function(t, key)
+            if tostring(key):lower() == "loadanimation" then
+                return function()
+                    return fakeAnimationTrack
                 end
-                RegisterCommand({
-                Name = "revert",
-                Aliases = {"deathspawn", "spawnondeath"},
-                Description = "Toggles respawning at your last death location."
-                }, function(args)
-                Modules.RespawnAtDeath.Toggle()
-            end)
-            local TeleportService = game:GetService("TeleportService")
-            local Players = game:GetService("Players")
-            Modules.RejoinServer = {
-            State = {}
-            }
-            RegisterCommand({
-            Name = "rejoin",
-            Aliases = {"rj", "reconnect"},
-            Description = "Teleports you back to the current server."
-            }, function(args)
-            local localPlayer = Players.LocalPlayer
-            if not localPlayer then
-                print("Error: Could not find LocalPlayer.")
-                return
+            else
+                return self.State.Originals[character][key]
             end
-            local placeId = game.PlaceId
-            local jobId = game.JobId
-            print("Rejoining server... Please wait.")
-            local success, errorMessage = pcall(function()
-            TeleportService:TeleportToPlaceInstance(placeId, jobId, localPlayer)
+        end
+    }
+    setmetatable(animatorProxy, animatorMetatable)
+    animator.Parent = nil
+    animatorProxy.Name = "Animator"
+    animatorProxy.Parent = humanoid
+end
+function Modules.AnimationFreezer:_removeFreeze(character)
+    if not character or not self.State.Originals[character] then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    local proxy = humanoid:FindFirstChild("Animator")
+    local original = self.State.Originals[character]
+    if proxy then proxy:Destroy() end
+    if original then original.Parent = humanoid end
+    self.State.Originals[character] = nil
+end
+function Modules.AnimationFreezer:Toggle()
+    self.State.IsEnabled = not self.State.IsEnabled
+    if self.State.IsEnabled then
+        DoNotif("Animation Freezer Enabled", 2)
+        if LocalPlayer.Character then
+            self:_applyFreeze(LocalPlayer.Character)
+        end
+        self.State.CharacterConnection = LocalPlayer.CharacterAdded:Connect(function(character)
+            task.wait(0.1)
+            self:_applyFreeze(character)
         end)
-        if not success then
-            print("Rejoin failed: " .. errorMessage)
+    else
+        DoNotif("Animation Freezer Disabled", 2)
+        if LocalPlayer.Character then
+            self:_removeFreeze(LocalPlayer.Character)
+        end
+        if self.State.CharacterConnection then
+            self.State.CharacterConnection:Disconnect()
+            self.State.CharacterConnection = nil
+        end
+        for char, animator in pairs(self.State.Originals) do
+            self:_removeFreeze(char)
+        end
+    end
+end
+RegisterCommand({
+    Name = "freezeanim",
+    Aliases = {},
+    Description = "Freezes all local character animations to skip delays (e.g., weapon swings)."
+}, function()
+    Modules.AnimationFreezer:Toggle()
+end)
+
+Modules.AutoDecompiler = {
+    State = {
+        IsEnabled = false,
+        IsReady = false,
+        Connections = {},
+        LastAPICall = 0
+    },
+    API_URL = "http://api.plusgiant5.com"
+}
+function Modules.AutoDecompiler:_prepareDecompiler()
+    if self.State.IsReady then return true end
+    if not getscriptbytecode or not request then
+        warn("AutoDecompiler Error: 'getscriptbytecode' and/or 'request' are not available in this environment.")
+        return false
+    end
+    print("AutoDecompiler: Executor dependencies found. Ready.")
+    self.State.IsReady = true
+    return true
+end
+function Modules.AutoDecompiler:_decompileViaAPI(scriptObject)
+    local success, bytecode = pcall(getscriptbytecode, scriptObject)
+    if not success then
+        warn("AutoDecompiler:", scriptObject:GetFullName(), "- Failed to get bytecode:", tostring(bytecode))
+        return nil
+    end
+    local timeElapsed = os.clock() - self.State.LastAPICall
+    if timeElapsed < 0.5 then
+        task.wait(0.5 - timeElapsed)
+    end
+    local success, httpResult = pcall(request, {
+        Url = self.API_URL .. "/konstant/decompile",
+        Body = bytecode,
+        Method = "POST",
+        Headers = { ["Content-Type"] = "text/plain" }
+    })
+    self.State.LastAPICall = os.clock()
+    if not success then
+        warn("AutoDecompiler: request() function failed:", tostring(httpResult))
+        return nil
+    end
+    if httpResult and httpResult.StatusCode == 200 then
+        return httpResult.Body
+    else
+        warn("AutoDecompiler: API returned non-200 status:", httpResult.StatusCode, httpResult.Body)
+        return nil
+    end
+end
+function Modules.AutoDecompiler:Disable()
+    DoNotif("Auto Decompiler Disabled.", 3)
+    for _, connection in ipairs(self.State.Connections) do
+        if connection.Connected then
+            connection:Disconnect()
+        end
+    end
+    table.clear(self.State.Connections)
+end
+function Modules.AutoDecompiler:Enable()
+    if not self:_prepareDecompiler() then
+        DoNotif("Decompiler dependencies not met. Check console.", 5)
+        self.State.Enabled = false
+        return
+    end
+    DoNotif("Auto Decompiler Enabled. Sweeping existing scripts...", 4)
+    local function processScript(script)
+        local decompiledSource = self:_decompileViaAPI(script)
+        if decompiledSource then
+            local success, err = pcall(function() script.Source = decompiledSource end)
+            if not success then
+                warn("Could not set source for", script:GetFullName(), "- it may be read-only. Error:", err)
+            end
+        end
+    end
+    task.spawn(function()
+        for _, descendant in ipairs(game:GetDescendants()) do
+            if descendant:IsA("LuaSourceContainer") then
+                processScript(descendant)
+                task.wait()
+            end
+        end
+        print("Initial script sweep completed.")
+    end)
+    local conn = game.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("LuaSourceContainer") then
+            print("New script detected:", descendant:GetFullName())
+            processScript(descendant)
         end
     end)
+    table.insert(self.State.Connections, conn)
+end
+function Modules.AutoDecompiler:Toggle()
+    self.State.Enabled = not self.State.Enabled
+    if self.State.Enabled then
+        self:Enable()
+    else
+        self:Disable()
+    end
+end
+function Modules.AutoDecompiler:Initialize()
+    local module = self
+    RegisterCommand({
+        Name = "autodecompile",
+        Aliases = {"adecompile", "decompile"},
+        Description = "Automatically decompiles scripts using a bytecode API."
+    }, function(args)
+        module:Toggle()
+    end)
+end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+Modules.RespawnAtDeath = {
+    State = {
+        Enabled = false,
+        LastDeathCFrame = nil,
+        DiedConnection = nil,
+        CharacterConnection = nil,
+    }
+}
+function Modules.RespawnAtDeath.OnDied()
+    local character = Players.LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    if root then
+        Modules.RespawnAtDeath.State.LastDeathCFrame = root.CFrame
+        print("Death location saved.")
+    end
+end
+function Modules.RespawnAtDeath.OnCharacterAdded(character)
+    local humanoid = character:WaitForChild("Humanoid")
+    if Modules.RespawnAtDeath.State.DiedConnection then
+        Modules.RespawnAtDeath.State.DiedConnection:Disconnect()
+    end
+    Modules.RespawnAtDeath.State.DiedConnection = humanoid.Died:Connect(Modules.RespawnAtDeath.OnDied)
+    local deathCFrame = Modules.RespawnAtDeath.State.LastDeathCFrame
+    if deathCFrame then
+        coroutine.wrap(function()
+            print("Teleporting to saved death location...")
+            task.wait(0.1)
+            local root = character:WaitForChild("HumanoidRootPart")
+            if not root then return end
+            local originalAnchored = root.Anchored
+            root.Anchored = true
+            root.CFrame = deathCFrame
+            RunService.Heartbeat:Wait()
+            root.Anchored = originalAnchored
+            Modules.RespawnAtDeath.State.LastDeathCFrame = nil
+            print("Teleport successful.")
+        end)()
+    end
+end
+function Modules.RespawnAtDeath.Toggle()
+    local localPlayer = Players.LocalPlayer
+    Modules.RespawnAtDeath.State.Enabled = not Modules.RespawnAtDeath.State.Enabled
+    if Modules.RespawnAtDeath.State.Enabled then
+        print("revert: ENABLED")
+        Modules.RespawnAtDeath.State.CharacterConnection = localPlayer.CharacterAdded:Connect(Modules.RespawnAtDeath.  OnCharacterAdded)
+        if localPlayer.Character then
+            Modules.RespawnAtDeath.OnCharacterAdded(localPlayer.Character)
+        end
+    else
+        print("revert: DISABLED")
+        if Modules.RespawnAtDeath.State.DiedConnection then
+            Modules.RespawnAtDeath.State.DiedConnection:Disconnect()
+            Modules.RespawnAtDeath.State.DiedConnection = nil
+        end
+        if Modules.RespawnAtDeath.State.CharacterConnection then
+            Modules.RespawnAtDeath.State.CharacterConnection:Disconnect()
+            Modules.RespawnAtDeath.State.CharacterConnection = nil
+        end
+        Modules.RespawnAtDeath.State.LastDeathCFrame = nil
+    end
+end
+
+RegisterCommand({
+    Name = "revert",
+    Aliases = {"deathspawn", "spawnondeath"},
+    Description = "Toggles respawning at your last death location."
+}, function(args)
+    Modules.RespawnAtDeath.Toggle()
+end)
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+Modules.RejoinServer = {
+    State = {}
+}
+RegisterCommand({
+    Name = "rejoin",
+    Aliases = {"rj", "reconnect"},
+    Description = "Teleports you back to the current server."
+}, function(args)
+    local localPlayer = Players.LocalPlayer
+    if not localPlayer then
+        print("Error: Could not find LocalPlayer.")
+        return
+    end
+    local placeId = game.PlaceId
+    local jobId = game.JobId
+    print("Rejoining server... Please wait.")
+    local success, errorMessage = pcall(function()
+        TeleportService:TeleportToPlaceInstance(placeId, jobId, localPlayer)
+    end)
+    if not success then
+        print("Rejoin failed: " .. errorMessage)
+    end
+end)
 
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -13223,9 +13223,470 @@ function Modules.Overseer:Initialize()
     end)
 
     RegisterCommand({
-        Name = "OverseerPrime",
+        Name = "os",
         Aliases = {"opensource"},
         Description = "Opens the ultimate Overseer module, Use at your own risk."
+    }, function()
+        module:CreateUI()
+    end)
+end
+
+Modules.ApexCounter = {
+    State = {
+        IsEnabled = false,
+        LagShieldActive = false,
+        GhostMode = false,
+        BlenderActive = false,
+        Connections = {},
+        BlacklistedRemotes = {
+            "AcidSpit",
+            "PLACE_LANDMINE",
+            "AbilityPlayer",
+            "PlayerAttack"
+        }
+    },
+    Services = {
+        Players = game:GetService("Players"),
+        RunService = game:GetService("RunService"),
+        ReplicatedStorage = game:GetService("ReplicatedStorage"),
+        Workspace = game:GetService("Workspace")
+    }
+}
+
+function Modules.ApexCounter:ToggleLagShield(state)
+    self.State.LagShieldActive = state
+    if state then
+        -- Surgical strike on lag-generating folders
+        local targetFolder = self.Services.Workspace:FindFirstChild("Interaction") and self.Services.Workspace.Interaction:FindFirstChild("PlayerPlaced")
+        
+        if targetFolder then
+            self.State.Connections.LagMonitor = targetFolder.ChildAdded:Connect(function(child)
+                -- Instantly delete incoming landmines/acid blobs locally to save FPS
+                task.defer(function()
+                    if child.Name:find("Landmine") or child.Name:find("Acid") then
+                        child:Destroy()
+                    end
+                end)
+            end)
+            -- Clean existing lag
+            for _, v in ipairs(targetFolder:GetChildren()) do
+                v:Destroy()
+            end
+        end
+        DoNotif("Lag Deflector: ACTIVE (Filtering Skid-Spam)", 2)
+    else
+        if self.State.Connections.LagMonitor then
+            self.State.Connections.LagMonitor:Disconnect()
+        end
+        DoNotif("Lag Deflector: DISABLED", 2)
+    end
+end
+
+function Modules.ApexCounter:ToggleGhost(state)
+    self.State.GhostMode = state
+    local lp = self.Services.Players.LocalPlayer
+    local char = lp.Character
+    
+    if state and char then
+
+        pcall(function()
+            char:SetAttribute("Team", "Ghost")
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                -- Metatable spoof for Health (Bypasses their Health > 0 check)
+                local mt = getrawmetatable(game)
+                local oldIndex = mt.__index
+                setreadonly(mt, false)
+                mt.__index = newcclosure(function(t, k)
+                    if t == hum and k == "Health" and not checkcaller() then
+                        return 0 -- Skid script sees you as dead/invalid
+                    end
+                    return oldIndex(t, k)
+                end)
+                setreadonly(mt, true)
+            end
+        end)
+        DoNotif("Ghost Mode: ACTIVE (Invisible to Skid-Aura)", 2)
+    else
+        DoNotif("Ghost Mode: DISABLED", 2)
+    end
+end
+
+function Modules.ApexCounter:RunBlender()
+    if self.State.BlenderActive then return end
+    self.State.BlenderActive = true
+    
+    local lp = self.Services.Players.LocalPlayer
+    local meleeRemote = self.Services.ReplicatedStorage:FindFirstChild("Melee") and self.Services.ReplicatedStorage.Melee:FindFirstChild("Damage")
+    local zombieRemote = self.Services.ReplicatedStorage:FindFirstChild("ZombieRelated") and self.Services.ReplicatedStorage.ZombieRelated:FindFirstChild("PlayerAttack")
+    
+    local isProcessing = false
+    
+    -- Superior Packet Multiplier Hook
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        
+        if (self == meleeRemote or self == zombieRemote) and method == "InvokeServer" and not checkcaller() then
+            if not isProcessing then
+                isProcessing = true
+                -- Fire 6x packets (Skid script only fires 1)
+                -- We use task.spawn to ensure maximum speed without yielding the main thread
+                for i = 1, 6 do
+                    task.spawn(function()
+                        self:InvokeServer(unpack(args))
+                    end)
+                end
+                isProcessing = false
+                return nil -- Original call blocked and replaced with our high-freq burst
+            end
+        end
+        return oldNamecall(self, ...)
+    end))
+    DoNotif("Kill Blender: SUPREME (6x Multiplier)", 2)
+end
+
+
+function Modules.ApexCounter:NullifySkidRemotes()
+    -- This hook prevents the server from telling YOUR client to process their lag remotes
+    local mt = getrawmetatable(game)
+    local oldNamecall = mt.__namecall
+    setreadonly(mt, false)
+    
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if not checkcaller() then
+            for _, blocked in ipairs(Modules.ApexCounter.State.BlacklistedRemotes) do
+                if self.Name == blocked and (method == "FireServer" or method == "InvokeServer") then
+                    return nil -- Mute the remote locally
+                end
+            end
+        end
+        return oldNamecall(self, ...)
+    end)
+    setreadonly(mt, true)
+    DoNotif("Remote Shield: ACTIVE (Blocking Exploit Remotes)", 2)
+end
+
+function Modules.ApexCounter:Initialize()
+    local module = self
+    
+    RegisterCommand({
+        Name = "zcounter",
+        Aliases = {},
+        Description = "Toggles the counter-zlexploit suite."
+    }, function(args)
+        module.State.IsEnabled = not module.State.IsEnabled
+        if module.State.IsEnabled then
+            module:ToggleLagShield(true)
+            module:ToggleGhost(true)
+            module:RunBlender()
+            module:NullifySkidRemotes()
+            DoNotif("APEX SUITE: FULLY OPERATIONAL", 3)
+        else
+            module:ToggleLagShield(false)
+            module:ToggleGhost(false)
+            DoNotif("APEX SUITE: DEACTIVATED", 3)
+        end
+    end)
+    
+    -- Auto-Equip Sniper (Counter to their Minigun Sniper)
+    RegisterCommand({
+        Name = "minigunsniper",
+        Aliases = {"gun"},
+        Description = "Bypasses gun fire rates."
+    }, function()
+        local shop = game:GetService("ReplicatedStorage").Remotes.Shop.EquipWeapon
+        shop:InvokeServer("Shotgun")
+        find.Shotgun(true)
+        task.wait(0.2)
+        local gun = localplayer.Character:FindFirstChild("Shotgun") or localplayer.Backpack:FindFirstChild("Shotgun")
+        if gun then
+            local scr = getsenv(gun:FindFirstChildOfClass("LocalScript"))
+            if scr and scr.FireGun then
+                -- Override the gun's internal fire logic without clicking
+                self.Services.RunService.Heartbeat:Connect(function()
+                    if localplayer:GetMouse().Button1Down then
+                        pcall(scr.FireGun, lp:GetMouse().X, lp:GetMouse().Y)
+                    end
+                end)
+                DoNotif("Rapid Fire: ENABLED", 2)
+            end
+        end
+    end)
+end
+
+Modules.ModuleEditor = {
+    State = {
+        IsEnabled = false,
+        UI = nil,
+        CurrentTable = nil,
+        TableStack = {},
+        Connections = {}
+    },
+    Services = {
+        Workspace = game:GetService("Workspace"),
+        Players = game:GetService("Players"),
+        ReplicatedStorage = game:GetService("ReplicatedStorage"),
+        CoreGui = game:GetService("CoreGui")
+    }
+}
+
+function Modules.ModuleEditor:DestroyUI()
+    if self.State.UI then
+        self.State.UI:Destroy()
+        self.State.UI = nil
+    end
+    self.State.TableStack = {}
+    self.State.CurrentTable = nil
+end
+
+function Modules.ModuleEditor:ShowTable(tbl, tableScroll, backBtn)
+    tableScroll:ClearAllChildren()
+    self.State.CurrentTable = tbl
+    backBtn.Visible = #self.State.TableStack > 0
+
+    local count = 0
+    for key, value in pairs(tbl) do
+        if typeof(value) == "function" then
+            continue -- Skip functions per baseline
+        end
+
+        count += 1
+        local isTable = typeof(value) == "table"
+        local displayValue
+        
+        if isTable then
+            displayValue = "[table]"
+        elseif typeof(value) == "string" then
+            displayValue = '"' .. value .. '"'
+        else
+            displayValue = tostring(value)
+        end
+
+        local keyLabel = Instance.new("TextLabel", tableScroll)
+        keyLabel.Size = UDim2.new(0.3, -10, 0, 25)
+        keyLabel.Position = UDim2.new(0, 5, 0, (count - 1) * 30)
+        keyLabel.BackgroundTransparency = 1
+        keyLabel.TextColor3 = Color3.new(1, 1, 1)
+        keyLabel.Font = Enum.Font.Code
+        keyLabel.TextSize = 13
+        keyLabel.TextXAlignment = Enum.TextXAlignment.Left
+        keyLabel.Text = tostring(key)
+
+        if isTable then
+            local hasEditable = false
+            for _, v in pairs(value) do
+                if typeof(v) ~= "table" and typeof(v) ~= "function" then
+                    hasEditable = true
+                    break
+                end
+            end
+            local icon = hasEditable and "✔️" or "❌"
+
+            local openBtn = Instance.new("TextButton", tableScroll)
+            openBtn.Size = UDim2.new(0.6, -15, 0, 25)
+            openBtn.Position = UDim2.new(0.4, 5, 0, (count - 1) * 30)
+            openBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            openBtn.TextColor3 = Color3.new(1, 1, 1)
+            openBtn.Font = Enum.Font.Code
+            openBtn.TextSize = 13
+            openBtn.Text = icon .. " ➡ [table]"
+            openBtn.MouseButton1Click:Connect(function()
+                table.insert(self.State.TableStack, tbl)
+                self:ShowTable(value, tableScroll, backBtn)
+            end)
+        else
+            local valueBox = Instance.new("TextBox", tableScroll)
+            valueBox.Size = UDim2.new(0.6, -15, 0, 25)
+            valueBox.Position = UDim2.new(0.4, 5, 0, (count - 1) * 30)
+            valueBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            valueBox.TextColor3 = Color3.new(1, 1, 1)
+            valueBox.Font = Enum.Font.Code
+            valueBox.TextSize = 13
+            valueBox.ClearTextOnFocus = false
+            valueBox.TextWrapped = false
+            valueBox.TextTruncate = Enum.TextTruncate.AtEnd
+            valueBox.Text = displayValue
+
+            valueBox.FocusLost:Connect(function()
+                local input = valueBox.Text
+                local newValue
+
+                if input:match('^".*"$') then
+                    newValue = input:sub(2, -2)
+                elseif input == "true" then
+                    newValue = true
+                elseif input == "false" then
+                    newValue = false
+                elseif input == "nil" then
+                    newValue = nil
+                else
+                    newValue = tonumber(input) or input
+                end
+
+                tbl[key] = newValue
+                print("[ModuleEditor] Patch Applied:", key, "=", newValue)
+            end)
+        end
+    end
+
+    tableScroll.CanvasSize = UDim2.new(0, 0, 0, count * 30 + 10)
+end
+
+function Modules.ModuleEditor:CreateUI()
+    if self.State.UI then self.State.UI.Enabled = true return end
+
+    local module = self
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "Zuka_ModuleTableEditor"
+    screenGui.ResetOnSpawn = false
+    screenGui.IgnoreGuiInset = true
+    screenGui.Parent = self.Services.CoreGui
+    self.State.UI = screenGui
+
+    local mainFrame = Instance.new("Frame", screenGui)
+    mainFrame.Size = UDim2.new(0, 540, 0, 380)
+    mainFrame.Position = UDim2.new(0.5, -270, 0.5, -190)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true -- Preserving legacy draggable for baseline compatibility
+
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
+
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Size = UDim2.new(1, -100, 0, 30)
+    title.Position = UDim2.new(0, 10, 0, 5)
+    title.Text = "Overseer Mini"
+    title.Font = Enum.Font.SourceSansSemibold
+    title.TextSize = 18
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = Enum.TextXAlignment.Left
+
+    local closeBtn = Instance.new("TextButton", mainFrame)
+    closeBtn.Position = UDim2.new(1, -90, 0, 5)
+    closeBtn.Size = UDim2.new(0, 80, 0, 25)
+    closeBtn.Text = "Close"
+    closeBtn.BackgroundColor3 = Color3.fromRGB(100, 40, 40)
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.TextSize = 14
+    closeBtn.MouseButton1Click:Connect(function()
+        module:DestroyUI()
+    end)
+
+    local buttonsFrame = Instance.new("Frame", mainFrame)
+    buttonsFrame.Size = UDim2.new(0, 160, 1, -40)
+    buttonsFrame.Position = UDim2.new(0, 10, 0, 40)
+    buttonsFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    buttonsFrame.BorderSizePixel = 0
+
+    local scroll = Instance.new("ScrollingFrame", buttonsFrame)
+    scroll.Size = UDim2.new(1, 0, 1, 0)
+    scroll.CanvasSize = UDim2.new(0, 0, 5, 0)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 6
+
+    local tableFrame = Instance.new("Frame", mainFrame)
+    tableFrame.Position = UDim2.new(0, 180, 0, 40)
+    tableFrame.Size = UDim2.new(1, -190, 1, -50)
+    tableFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    tableFrame.BorderSizePixel = 0
+    tableFrame.Visible = false
+
+    local tableScroll = Instance.new("ScrollingFrame", tableFrame)
+    tableScroll.Size = UDim2.new(1, -8, 1, -40)
+    tableScroll.Position = UDim2.new(0, 4, 0, 35)
+    tableScroll.ScrollBarThickness = 6
+    tableScroll.BackgroundTransparency = 1
+
+    local backBtn = Instance.new("TextButton", tableFrame)
+    backBtn.Size = UDim2.new(0, 60, 0, 25)
+    backBtn.Position = UDim2.new(0, 5, 0, 5)
+    backBtn.Text = "⬅"
+    backBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    backBtn.TextColor3 = Color3.new(1, 1, 1)
+    backBtn.Font = Enum.Font.SourceSansBold
+    backBtn.TextSize = 14
+    backBtn.Visible = false
+
+    backBtn.MouseButton1Click:Connect(function()
+        if #module.State.TableStack > 0 then
+            local prev = table.remove(module.State.TableStack)
+            module:ShowTable(prev, tableScroll, backBtn)
+        end
+    end)
+
+    local yOffset = 0
+    local containers = {
+        ["Workspace"] = self.Services.Workspace,
+        ["Players"] = self.Services.Players,
+        ["ReplicatedStorage"] = self.Services.ReplicatedStorage
+    }
+
+    for serviceName, service in pairs(containers) do
+        local serviceBtn = Instance.new("TextButton", scroll)
+        serviceBtn.Size = UDim2.new(1, 0, 0, 25)
+        serviceBtn.Position = UDim2.new(0, 0, 0, yOffset)
+        serviceBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        serviceBtn.TextColor3 = Color3.new(1, 1, 1)
+        serviceBtn.Text = "📁 " .. serviceName
+        serviceBtn.Font = Enum.Font.SourceSans
+        serviceBtn.TextSize = 14
+        yOffset += 27
+
+        serviceBtn.MouseButton1Click:Connect(function()
+            -- Clear previous module buttons
+            for _, btn in ipairs(scroll:GetChildren()) do
+                if btn:IsA("TextButton") and not btn.Text:find("📁") then
+                    btn:Destroy()
+                end
+            end
+
+            local modOffset = yOffset
+            for _, obj in ipairs(service:GetDescendants()) do
+                if obj:IsA("ModuleScript") then
+                    local success, moduleTable = pcall(function() return require(obj) end)
+                    local icon = (success and typeof(moduleTable) == "table") and "✔️" or "❌"
+
+                    local modBtn = Instance.new("TextButton", scroll)
+                    modBtn.Size = UDim2.new(1, 0, 0, 25)
+                    modBtn.Position = UDim2.new(0, 0, 0, modOffset)
+                    modBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+                    modBtn.TextColor3 = Color3.new(1, 1, 1)
+                    modBtn.Text = icon .. " " .. obj.Name
+                    modBtn.Font = Enum.Font.SourceSans
+                    modBtn.TextSize = 13
+                    modOffset += 27
+
+                    modBtn.MouseButton1Click:Connect(function()
+                        if success and typeof(moduleTable) == "table" then
+                            module.State.TableStack = {}
+                            tableFrame.Visible = true
+                            module:ShowTable(moduleTable, tableScroll, backBtn)
+                        else
+                            tableFrame.Visible = false
+                            DoNotif("Failed to require: " .. obj.Name, 3)
+                        end
+                    end)
+                end
+            end
+            scroll.CanvasSize = UDim2.fromOffset(0, modOffset + 50)
+        end)
+    end
+    
+    DoNotif("Module Table Editor: INITIALIZED", 2)
+end
+
+function Modules.ModuleEditor:Initialize()
+    local module = self
+    RegisterCommand({
+        Name = "lightedit",
+        Aliases = {},
+        Description = "Opens the Module Table Editor to live-patch constants."
     }, function()
         module:CreateUI()
     end)
@@ -16662,6 +17123,542 @@ RegisterCommand({
     Description = "Toggles a client-side FPS meter."
 }, function()
     Modules.FpsMeter:Toggle()
+end)
+
+Modules.HitboxESP = {
+    State = {
+        IsEnabled = false,
+        EspEnabled = false,
+        HitboxSize = 10,
+        IsMinimized = false,
+        CurrentTheme = "dark",
+        IsDragging = false,
+        EspLabels = {},
+        EspBoxes = {},
+        Connections = {},
+        UI = nil,
+        LastAnimTime = 0,
+        AnimCooldown = 0.15
+    },
+    Services = {
+        Players = game:GetService("Players"),
+        RunService = game:GetService("RunService"),
+        TweenService = game:GetService("TweenService"),
+        UserInputService = game:GetService("UserInputService"),
+        CoreGui = game:GetService("CoreGui") -- Using CoreGui for exploit-standard UI hosting
+    }
+}
+
+function Modules.HitboxESP:AnimateButton(button)
+    local currentTime = tick()
+    if currentTime - self.State.LastAnimTime < self.State.AnimCooldown then
+        return
+    end
+    self.State.LastAnimTime = currentTime
+
+    local originalSize = button.Size
+    local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    self.Services.TweenService:Create(button, tweenInfo, {Size = originalSize + UDim2.new(0, 4, 0, 4)}):Play()
+    task.wait(0.1)
+    self.Services.TweenService:Create(button, tweenInfo, {Size = originalSize}):Play()
+end
+
+function Modules.HitboxESP:ApplyTheme(theme)
+    self.State.CurrentTheme = theme
+    local ui = self.State.UI
+    if not ui then return end
+    
+    local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local TS = self.Services.TweenService
+
+    if theme == "light" then
+        TS:Create(ui.MainFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TS:Create(ui.ContentFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TS:Create(ui.MainStroke, tweenInfo, {Color = Color3.fromRGB(200, 200, 210)}):Play()
+        TS:Create(ui.TitleBar, tweenInfo, {BackgroundColor3 = Color3.fromRGB(245, 245, 250)}):Play()
+        TS:Create(ui.TitleFix, tweenInfo, {BackgroundColor3 = Color3.fromRGB(245, 245, 250)}):Play()
+        TS:Create(ui.TitleLabel, tweenInfo, {TextColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        TS:Create(ui.SizeLabel, tweenInfo, {TextColor3 = Color3.fromRGB(60, 60, 70)}):Play()
+        TS:Create(ui.TextBox, tweenInfo, {BackgroundColor3 = Color3.fromRGB(235, 235, 245), TextColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        TS:Create(ui.TextBoxStroke, tweenInfo, {Color = Color3.fromRGB(200, 200, 210)}):Play()
+        TS:Create(ui.FooterLabel, tweenInfo, {TextColor3 = Color3.fromRGB(100, 100, 110)}):Play()
+        TS:Create(ui.FooterLabelMinimized, tweenInfo, {TextColor3 = Color3.fromRGB(100, 100, 110)}):Play()
+        TS:Create(ui.ConfirmFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TS:Create(ui.ConfirmText, tweenInfo, {TextColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        TS:Create(ui.SettingsFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TS:Create(ui.SettingsTitleBar, tweenInfo, {BackgroundColor3 = Color3.fromRGB(245, 245, 250)}):Play()
+        TS:Create(ui.SettingsTitleFix, tweenInfo, {BackgroundColor3 = Color3.fromRGB(245, 245, 250)}):Play()
+        TS:Create(ui.SettingsTitleLabel, tweenInfo, {TextColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        TS:Create(ui.ThemeLabel, tweenInfo, {TextColor3 = Color3.fromRGB(60, 60, 70)}):Play()
+        TS:Create(ui.SettingsButtonTop, tweenInfo, {BackgroundColor3 = Color3.fromRGB(200, 200, 220), TextColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        
+        TS:Create(ui.DarkStroke, tweenInfo, {Color = Color3.fromRGB(200, 200, 210)}):Play()
+        if not ui.LightButton:FindFirstChild("UIStroke") then
+            local lightStroke = Instance.new("UIStroke")
+            lightStroke.Color = Color3.fromRGB(80, 150, 255)
+            lightStroke.Thickness = 3
+            lightStroke.Transparency = 1
+            lightStroke.ZIndex = 11
+            lightStroke.Parent = ui.LightButton
+            TS:Create(lightStroke, tweenInfo, {Transparency = 0}):Play()
+        end
+    else
+        TS:Create(ui.MainFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(20, 20, 25)}):Play()
+        TS:Create(ui.ContentFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(20, 20, 25)}):Play()
+        TS:Create(ui.MainStroke, tweenInfo, {Color = Color3.fromRGB(60, 60, 70)}):Play()
+        TS:Create(ui.TitleBar, tweenInfo, {BackgroundColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        TS:Create(ui.TitleFix, tweenInfo, {BackgroundColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        TS:Create(ui.TitleLabel, tweenInfo, {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TS:Create(ui.SizeLabel, tweenInfo, {TextColor3 = Color3.fromRGB(200, 200, 210)}):Play()
+        TS:Create(ui.TextBox, tweenInfo, {BackgroundColor3 = Color3.fromRGB(40, 40, 50), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TS:Create(ui.TextBoxStroke, tweenInfo, {Color = Color3.fromRGB(80, 80, 90)}):Play()
+        TS:Create(ui.FooterLabel, tweenInfo, {TextColor3 = Color3.fromRGB(120, 120, 130)}):Play()
+        TS:Create(ui.FooterLabelMinimized, tweenInfo, {TextColor3 = Color3.fromRGB(120, 120, 130)}):Play()
+        TS:Create(ui.ConfirmFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(15, 15, 20)}):Play()
+        TS:Create(ui.ConfirmText, tweenInfo, {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TS:Create(ui.SettingsFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(20, 20, 25)}):Play()
+        TS:Create(ui.SettingsTitleBar, tweenInfo, {BackgroundColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        TS:Create(ui.SettingsTitleFix, tweenInfo, {BackgroundColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        TS:Create(ui.SettingsTitleLabel, tweenInfo, {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TS:Create(ui.ThemeLabel, tweenInfo, {TextColor3 = Color3.fromRGB(200, 200, 210)}):Play()
+        TS:Create(ui.SettingsButtonTop, tweenInfo, {BackgroundColor3 = Color3.fromRGB(100, 100, 120), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        
+        if ui.LightButton:FindFirstChild("UIStroke") then
+            local lightStroke = ui.LightButton:FindFirstChild("UIStroke")
+            TS:Create(lightStroke, tweenInfo, {Transparency = 1}):Play()
+            task.wait(0.1)
+            lightStroke:Destroy()
+        end
+        TS:Create(ui.DarkStroke, tweenInfo, {Color = Color3.fromRGB(80, 150, 255)}):Play()
+    end
+end
+
+function Modules.HitboxESP:CreateESP(targetPlayer)
+    if self.State.EspLabels[targetPlayer] or self.State.EspBoxes[targetPlayer] then
+        return
+    end
+
+    local char = targetPlayer.Character
+    if not char then return end
+
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "ZukaESP_" .. targetPlayer.Name
+    billboardGui.AlwaysOnTop = true
+    billboardGui.Size = UDim2.new(0, 200, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+    billboardGui.Parent = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.fromRGB(80, 150, 255)
+    textLabel.TextStrokeTransparency = 0.5
+    textLabel.TextSize = 14
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.Parent = billboardGui
+    self.State.EspLabels[targetPlayer] = {gui = billboardGui, label = textLabel}
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ZukaHighlight_" .. targetPlayer.Name
+        highlight.Adornee = char
+        highlight.FillColor = Color3.fromRGB(80, 150, 255)
+        highlight.OutlineColor = Color3.fromRGB(80, 150, 255)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.Parent = char
+        self.State.EspBoxes[targetPlayer] = highlight
+    end
+end
+
+function Modules.HitboxESP:RemoveESP(targetPlayer)
+    if self.State.EspLabels[targetPlayer] then
+        if self.State.EspLabels[targetPlayer].gui then
+            self.State.EspLabels[targetPlayer].gui:Destroy()
+        end
+        self.State.EspLabels[targetPlayer] = nil
+    end
+    if self.State.EspBoxes[targetPlayer] then
+        self.State.EspBoxes[targetPlayer]:Destroy()
+        self.State.EspBoxes[targetPlayer] = nil
+    end
+end
+
+function Modules.HitboxESP:UpdateESP()
+    if not self.State.EspEnabled then return end
+    local lp = self.Services.Players.LocalPlayer
+    for _, targetPlayer in pairs(self.Services.Players:GetPlayers()) do
+        if targetPlayer ~= lp and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if not self.State.EspLabels[targetPlayer] then
+                self:CreateESP(targetPlayer)
+            end
+            if self.State.EspLabels[targetPlayer] and self.State.EspLabels[targetPlayer].gui.Parent == nil then
+                local head = targetPlayer.Character:FindFirstChild("Head")
+                if head then
+                    self.State.EspLabels[targetPlayer].gui.Parent = head
+                end
+            end
+            local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+            local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and targetHrp and self.State.EspLabels[targetPlayer] then
+                local distance = (hrp.Position - targetHrp.Position).Magnitude
+                local studs = math.floor(distance)
+                self.State.EspLabels[targetPlayer].label.Text = targetPlayer.Name .. "\n" .. studs .. " studs"
+            end
+        elseif self.State.EspLabels[targetPlayer] or self.State.EspBoxes[targetPlayer] then
+            self:RemoveESP(targetPlayer)
+        end
+    end
+end
+
+function Modules.HitboxESP:UpdateHitboxes()
+    if not self.State.IsEnabled then return end
+    local lp = self.Services.Players.LocalPlayer
+    for _, v in pairs(self.Services.Players:GetPlayers()) do
+        if v ~= lp and v.Character then
+            local hrp = v.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.Size = Vector3.new(self.State.HitboxSize, self.State.HitboxSize, self.State.HitboxSize)
+                hrp.Transparency = 0.7
+                hrp.CanCollide = false
+            end
+        end
+    end
+end
+
+function Modules.HitboxESP:Initialize()
+    local module = self
+    local Players = self.Services.Players
+    local TS = self.Services.TweenService
+
+    -- Command Registry Integration
+    RegisterCommand({
+        Name = "rootp",
+        Aliases = {"hichanger"},
+        Description = "Opens the Hitbox Changer & ESP GUI."
+    }, function()
+        module:CreateUI()
+    end)
+
+    self.State.Connections.PlayerAdded = Players.PlayerAdded:Connect(function(newPlayer)
+        newPlayer.CharacterAdded:Connect(function()
+            task.wait(0.1)
+            module:UpdateHitboxes()
+            if module.State.EspEnabled then
+                module:CreateESP(newPlayer)
+            end
+        end)
+    end)
+
+    self.State.Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(removedPlayer)
+        module:RemoveESP(removedPlayer)
+    end)
+
+    self.State.Connections.Loop = self.Services.RunService.Heartbeat:Connect(function()
+        module:UpdateHitboxes()
+        module:UpdateESP()
+    end)
+end
+
+function Modules.HitboxESP:CreateUI()
+    if self.State.UI then self.State.UI.ScreenGui.Enabled = true return end
+    
+    local module = self
+    local TS = self.Services.TweenService
+    local UIS = self.Services.UserInputService
+    local lp = self.Services.Players.LocalPlayer
+
+    local ui = {}
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "HitboxChanger_Zuka"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = self.Services.CoreGui
+    ui.ScreenGui = screenGui
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"; mainFrame.Size = UDim2.new(0, 260, 0, 180)
+    mainFrame.Position = UDim2.new(0.5, -130, 0.5, -90)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    mainFrame.BorderSizePixel = 0; mainFrame.Active = true; mainFrame.ClipsDescendants = true
+    mainFrame.Parent = screenGui
+    ui.MainFrame = mainFrame
+
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+    local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Color = Color3.fromRGB(60, 60, 70); mainStroke.Thickness = 2; mainStroke.Transparency = 0.5
+    ui.MainStroke = mainStroke
+
+    local titleBar = Instance.new("Frame", mainFrame)
+    titleBar.Name = "TitleBar"; titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40); titleBar.BorderSizePixel = 0
+    ui.TitleBar = titleBar
+
+    Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 12)
+    local titleFix = Instance.new("Frame", titleBar)
+    titleFix.Size = UDim2.new(1, 0, 0, 12); titleFix.Position = UDim2.new(0, 0, 1, -12)
+    titleFix.BackgroundColor3 = Color3.fromRGB(30, 30, 40); titleFix.BorderSizePixel = 0
+    ui.TitleFix = titleFix
+
+    local titleLabel = Instance.new("TextLabel", titleBar)
+    titleLabel.Size = UDim2.new(1, -100, 1, 0); titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.BackgroundTransparency = 1; titleLabel.Text = "Hitbox changer & esp"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255); titleLabel.TextSize = 15
+    titleLabel.Font = Enum.Font.GothamBold; titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    ui.TitleLabel = titleLabel
+
+    local settingsButtonTop = Instance.new("TextButton", titleBar)
+    settingsButtonTop.Name = "SettingsButtonTop"; settingsButtonTop.Size = UDim2.new(0, 26, 0, 26)
+    settingsButtonTop.Position = UDim2.new(1, -90, 0, 4); settingsButtonTop.BackgroundColor3 = Color3.fromRGB(100, 100, 120)
+    settingsButtonTop.Text = "⚙"; settingsButtonTop.TextColor3 = Color3.new(1, 1, 1); settingsButtonTop.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", settingsButtonTop).CornerRadius = UDim.new(0, 6)
+    ui.SettingsButtonTop = settingsButtonTop
+
+    local minimizeButton = Instance.new("TextButton", titleBar)
+    minimizeButton.Size = UDim2.new(0, 26, 0, 26); minimizeButton.Position = UDim2.new(1, -58, 0, 4)
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(255, 200, 50); minimizeButton.Text = "_"
+    minimizeButton.TextColor3 = Color3.new(0, 0, 0); minimizeButton.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", minimizeButton).CornerRadius = UDim.new(0, 6)
+
+    local closeButton = Instance.new("TextButton", titleBar)
+    closeButton.Size = UDim2.new(0, 26, 0, 26); closeButton.Position = UDim2.new(1, -28, 0, 4)
+    closeButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50); closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.new(1, 1, 1); closeButton.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", closeButton).CornerRadius = UDim.new(0, 6)
+
+    local contentFrame = Instance.new("Frame", mainFrame)
+    contentFrame.Name = "ContentFrame"; contentFrame.Size = UDim2.new(1, 0, 1, -35); contentFrame.Position = UDim2.new(0, 0, 0, 35)
+    contentFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25); contentFrame.BorderSizePixel = 0
+    ui.ContentFrame = contentFrame
+
+    local sizeLabel = Instance.new("TextLabel", contentFrame)
+    sizeLabel.Size = UDim2.new(0, 75, 0, 22); sizeLabel.Position = UDim2.new(0, 12, 0, 8)
+    sizeLabel.BackgroundTransparency = 1; sizeLabel.Text = "Hitbox Size:"
+    sizeLabel.TextColor3 = Color3.fromRGB(200, 200, 210); sizeLabel.TextSize = 12; sizeLabel.Font = Enum.Font.Gotham
+    sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    ui.SizeLabel = sizeLabel
+
+    local textBox = Instance.new("TextBox", contentFrame)
+    textBox.Size = UDim2.new(0, 80, 0, 28); textBox.Position = UDim2.new(0, 90, 0, 6)
+    textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50); textBox.Text = tostring(self.State.HitboxSize)
+    textBox.PlaceholderText = "Size"; textBox.TextColor3 = Color3.new(1, 1, 1); textBox.Font = Enum.Font.Gotham
+    Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 7)
+    local textBoxStroke = Instance.new("UIStroke", textBox)
+    textBoxStroke.Color = Color3.fromRGB(80, 80, 90); ui.TextBoxStroke = textBoxStroke
+    ui.TextBox = textBox
+
+    local applyButton = Instance.new("TextButton", contentFrame)
+    applyButton.Size = UDim2.new(0, 50, 0, 28); applyButton.Position = UDim2.new(0, 178, 0, 6)
+    applyButton.BackgroundColor3 = Color3.fromRGB(80, 150, 255); applyButton.Text = "Apply"
+    applyButton.TextColor3 = Color3.new(1, 1, 1); applyButton.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", applyButton).CornerRadius = UDim.new(0, 7)
+
+    local toggleButton = Instance.new("TextButton", contentFrame)
+    toggleButton.Size = UDim2.new(0, 236, 0, 32); toggleButton.Position = UDim2.new(0, 12, 0, 42)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50); toggleButton.Text = "Hitbox: OFF"
+    toggleButton.TextColor3 = Color3.new(1, 1, 1); toggleButton.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", toggleButton).CornerRadius = UDim.new(0, 7)
+
+    local espToggleButton = Instance.new("TextButton", contentFrame)
+    espToggleButton.Size = UDim2.new(0, 236, 0, 32); espToggleButton.Position = UDim2.new(0, 12, 0, 80)
+    espToggleButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50); espToggleButton.Text = "ESP: OFF"
+    espToggleButton.TextColor3 = Color3.new(1, 1, 1); espToggleButton.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", espToggleButton).CornerRadius = UDim.new(0, 7)
+
+    local footerLabel = Instance.new("TextButton", contentFrame)
+    footerLabel.Size = UDim2.new(1, 0, 0, 25); footerLabel.Position = UDim2.new(0, 0, 1, -25)
+    footerLabel.BackgroundTransparency = 1; footerLabel.Text = "by: romokaso"
+    footerLabel.TextColor3 = Color3.fromRGB(120, 120, 130); footerLabel.TextSize = 10; footerLabel.Font = Enum.Font.GothamBold
+    ui.FooterLabel = footerLabel
+
+    local footerLabelMinimized = Instance.new("TextButton", mainFrame)
+    footerLabelMinimized.Size = UDim2.new(1, 0, 0, 25); footerLabelMinimized.Position = UDim2.new(0, 0, 1, -25)
+    footerLabelMinimized.BackgroundTransparency = 1; footerLabelMinimized.Text = "by: romokaso"
+    footerLabelMinimized.TextColor3 = Color3.fromRGB(120, 120, 130); footerLabelMinimized.TextSize = 10; footerLabelMinimized.Visible = false
+    ui.FooterLabelMinimized = footerLabelMinimized
+
+    -- Confirm and Settings logic follows original hierarchy...
+    local confirmFrame = Instance.new("Frame", mainFrame)
+    confirmFrame.Size = UDim2.new(1, 0, 1, 0); confirmFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    confirmFrame.BackgroundTransparency = 1; confirmFrame.Visible = false; confirmFrame.ZIndex = 10
+    Instance.new("UICorner", confirmFrame)
+    ui.ConfirmFrame = confirmFrame
+
+    local confirmText = Instance.new("TextLabel", confirmFrame)
+    confirmText.Size = UDim2.new(1, -24, 0, 40); confirmText.Position = UDim2.new(0, 12, 0, 45); confirmText.BackgroundTransparency = 1
+    confirmText.Text = "Are you sure you want\nto close the GUI?"; confirmText.TextColor3 = Color3.new(1, 1, 1); confirmText.ZIndex = 11
+    ui.ConfirmText = confirmText
+
+    local yesButton = Instance.new("TextButton", confirmFrame)
+    yesButton.Size = UDim2.new(0, 105, 0, 32); yesButton.Position = UDim2.new(0, 20, 0, 100); yesButton.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
+    yesButton.Text = "Yes"; yesButton.TextColor3 = Color3.new(1, 1, 1); yesButton.ZIndex = 11
+    Instance.new("UICorner", yesButton)
+
+    local noButton = Instance.new("TextButton", confirmFrame)
+    noButton.Size = UDim2.new(0, 105, 0, 32); noButton.Position = UDim2.new(0, 135, 0, 100); noButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    noButton.Text = "No"; noButton.TextColor3 = Color3.new(1, 1, 1); noButton.ZIndex = 11
+    Instance.new("UICorner", noButton)
+
+    local settingsFrame = Instance.new("Frame", mainFrame)
+    settingsFrame.Size = UDim2.new(1, 0, 1, 0); settingsFrame.Position = UDim2.new(1, 0, 0, 0); settingsFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    settingsFrame.Visible = false; settingsFrame.ZIndex = 10
+    Instance.new("UICorner", settingsFrame); ui.SettingsFrame = settingsFrame
+
+    local settingsTitleBar = Instance.new("Frame", settingsFrame)
+    settingsTitleBar.Size = UDim2.new(1, 0, 0, 35); settingsTitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40); settingsTitleBar.ZIndex = 11
+    Instance.new("UICorner", settingsTitleBar); ui.SettingsTitleBar = settingsTitleBar
+    
+    local settingsTitleFix = Instance.new("Frame", settingsTitleBar)
+    settingsTitleFix.Size = UDim2.new(1, 0, 0, 12); settingsTitleFix.Position = UDim2.new(0, 0, 1, -12); settingsTitleFix.BackgroundColor3 = Color3.fromRGB(30, 30, 40); settingsTitleFix.ZIndex = 11
+    ui.SettingsTitleFix = settingsTitleFix
+
+    local settingsTitleLabel = Instance.new("TextLabel", settingsTitleBar)
+    settingsTitleLabel.Size = UDim2.new(1, -50, 1, 0); settingsTitleLabel.Position = UDim2.new(0, 10, 0, 0); settingsTitleLabel.BackgroundTransparency = 1
+    settingsTitleLabel.Text = "Settings"; settingsTitleLabel.TextColor3 = Color3.new(1, 1, 1); settingsTitleLabel.ZIndex = 11; ui.SettingsTitleLabel = settingsTitleLabel
+
+    local backButton = Instance.new("TextButton", settingsTitleBar)
+    backButton.Size = UDim2.new(0, 26, 0, 26); backButton.Position = UDim2.new(1, -28, 0, 4); backButton.BackgroundColor3 = Color3.fromRGB(80, 80, 90)
+    backButton.Text = "←"; backButton.TextColor3 = Color3.new(1, 1, 1); backButton.ZIndex = 11
+    Instance.new("UICorner", backButton)
+
+    local settingsContentFrame = Instance.new("Frame", settingsFrame)
+    settingsContentFrame.Size = UDim2.new(1, 0, 1, -35); settingsContentFrame.Position = UDim2.new(0, 0, 0, 35); settingsContentFrame.BackgroundTransparency = 1; settingsContentFrame.ZIndex = 11
+
+    local themeLabel = Instance.new("TextLabel", settingsContentFrame)
+    themeLabel.Size = UDim2.new(1, -24, 0, 22); themeLabel.Position = UDim2.new(0, 12, 0, 15); themeLabel.BackgroundTransparency = 1
+    themeLabel.Text = "Theme:"; themeLabel.TextColor3 = Color3.fromRGB(200, 200, 210); themeLabel.ZIndex = 11; ui.ThemeLabel = themeLabel
+
+    local darkButton = Instance.new("TextButton", settingsContentFrame)
+    darkButton.Size = UDim2.new(0, 110, 0, 38); darkButton.Position = UDim2.new(0, 12, 0, 45); darkButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    darkButton.Text = "Dark"; darkButton.TextColor3 = Color3.new(1, 1, 1); darkButton.ZIndex = 11
+    Instance.new("UICorner", darkButton); local darkStroke = Instance.new("UIStroke", darkButton); darkStroke.Color = Color3.fromRGB(80, 150, 255); darkStroke.Thickness = 3; ui.DarkStroke = darkStroke
+
+    local lightButton = Instance.new("TextButton", settingsContentFrame)
+    lightButton.Size = UDim2.new(0, 110, 0, 38); lightButton.Position = UDim2.new(0, 138, 0, 45); lightButton.BackgroundColor3 = Color3.fromRGB(240, 240, 250)
+    lightButton.Text = "Light"; lightButton.TextColor3 = Color3.fromRGB(30, 30, 40); lightButton.ZIndex = 11
+    Instance.new("UICorner", lightButton); ui.LightButton = lightButton
+
+    -- Button Actions
+    applyButton.MouseButton1Click:Connect(function()
+        module:AnimateButton(applyButton)
+        local val = tonumber(textBox.Text)
+        if val then module.State.HitboxSize = val end
+    end)
+
+    toggleButton.MouseButton1Click:Connect(function()
+        module:AnimateButton(toggleButton)
+        module.State.IsEnabled = not module.State.IsEnabled
+        if module.State.IsEnabled then
+            TS:Create(toggleButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(50, 200, 100)}):Play()
+            toggleButton.Text = "Hitbox: ON"
+        else
+            TS:Create(toggleButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(220, 50, 50)}):Play()
+            toggleButton.Text = "Hitbox: OFF"
+            for _, v in pairs(module.Services.Players:GetPlayers()) do
+                if v ~= lp and v.Character then
+                    local hrp = v.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then hrp.Size = Vector3.new(2, 2, 1); hrp.Transparency = 1 end
+                end
+            end
+        end
+    end)
+
+    espToggleButton.MouseButton1Click:Connect(function()
+        module:AnimateButton(espToggleButton)
+        module.State.EspEnabled = not module.State.EspEnabled
+        if module.State.EspEnabled then
+            TS:Create(espToggleButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(50, 200, 100)}):Play()
+            espToggleButton.Text = "ESP: ON"
+        else
+            TS:Create(espToggleButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(220, 50, 50)}):Play()
+            espToggleButton.Text = "ESP: OFF"
+            for p, _ in pairs(module.State.EspLabels) do module:RemoveESP(p) end
+        end
+    end)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        if confirmFrame.Visible or settingsFrame.Visible then return end
+        module:AnimateButton(minimizeButton)
+        module.State.IsMinimized = not module.State.IsMinimized
+        if module.State.IsMinimized then
+            TS:Create(mainFrame, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 260, 0, 60)}):Play()
+            contentFrame.Visible = false; footerLabel.Visible = false; footerLabelMinimized.Visible = true
+        else
+            TS:Create(mainFrame, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 260, 0, 180)}):Play()
+            contentFrame.Visible = true; footerLabel.Visible = true; footerLabelMinimized.Visible = false
+        end
+    end)
+
+    closeButton.MouseButton1Click:Connect(function()
+        if confirmFrame.Visible or settingsFrame.Visible then return end
+        module:AnimateButton(closeButton)
+        confirmFrame.Visible = true
+        TS:Create(confirmFrame, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {BackgroundTransparency = 0.05}):Play()
+    end)
+
+    yesButton.MouseButton1Click:Connect(function()
+        module:AnimateButton(yesButton)
+        TS:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+        task.wait(0.3)
+        screenGui.Enabled = false
+    end)
+
+    noButton.MouseButton1Click:Connect(function()
+        module:AnimateButton(noButton)
+        TS:Create(confirmFrame, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {BackgroundTransparency = 1}):Play()
+        task.wait(0.1); confirmFrame.Visible = false
+    end)
+
+    settingsButtonTop.MouseButton1Click:Connect(function()
+        module:AnimateButton(settingsButtonTop)
+        settingsFrame.Visible = true
+        TS:Create(settingsFrame, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+    end)
+
+    backButton.MouseButton1Click:Connect(function()
+        module:AnimateButton(backButton)
+        TS:Create(settingsFrame, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Position = UDim2.new(1, 0, 0, 0)}):Play()
+        task.wait(0.1); settingsFrame.Visible = false
+    end)
+
+    darkButton.MouseButton1Click:Connect(function() module:AnimateButton(darkButton); module:ApplyTheme("dark") end)
+    lightButton.MouseButton1Click:Connect(function() module:AnimateButton(lightButton); module:ApplyTheme("light") end)
+
+    -- Dragging Logic
+    local dragStart, startPos
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            module.State.IsDragging = true
+            dragStart = input.Position; startPos = mainFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then module.State.IsDragging = false end
+            end)
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if module.State.IsDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    self.State.UI = ui
+    DoNotif("Hitbox & ESP Panel: INITIALIZED", 2)
+end
+
+--// Registration Logic (Inject this into your command list)
+RegisterCommand({ 
+    Name = "hitgui", 
+    Aliases = { "hbesp", "hitboxpanel" }, 
+    Description = "Toggles the advanced Hitbox Changer and ESP interface." 
+}, function()
+    if not Modules.HitboxESP.State.UI then
+        Modules.HitboxESP:CreateUI()
+    else
+        Modules.HitboxESP.State.UI.ScreenGui.Enabled = not Modules.HitboxESP.State.UI.ScreenGui.Enabled
+    end
 end)
 
 Modules.AntiSit = {
@@ -22090,6 +23087,7 @@ function Modules.InternalExecutor:Initialize()
     end)
 end
 
+
 --======== Deobfuscator End ==========--
 
 Modules.Disarmer = {
@@ -22490,6 +23488,4 @@ end)
 else
 LocalPlayer.Chatted:Connect(processCommand)
 end
-DoNotif("We're So back. The Best Underground Panel.", 3)
-
---[[Out of pure spite, I made this because I can't fucking stand the modern roblox exploits or it's community, you're all skids. I rigged this script to break itself if comments or certain liness are removed. Feel free to use this however.]]--
+DoNotif("We're So back. The Best Underground Panel.")
