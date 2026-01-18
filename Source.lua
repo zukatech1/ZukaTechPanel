@@ -55,13 +55,15 @@ local Services = setmetatable({}, {
     end
 })
 
-print("---------------------------       [ZukaTech]       ------------------------------------")
-print("-------------------------                          ----------------------------------")
+print("--------------------------- [        [Zuka]         ] -------------------------------------")
+print("+")
 print(string.format("--> [INTERNAL]: Memory Baseline: %.2f KB", _GC_START))
+
 print(string.format("--> [INTERNAL]: Environment Unlock: SUCCESS"))
+
 print(string.format("--> [INTERNAL]: C-Closure Wrapper: ACTIVE"))
-print("-------------------------                          -----------------------------------")
-print("---------------------------       [ZukaTech]       -------------------------------------")
+print("+")
+print("--------------------------- [        [Tech]         ] -------------------------------------")
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -160,8 +162,6 @@ do
     subtitle.TextColor3 = THEME.TextColor
     subtitle.TextTransparency = 0
     subtitle.Parent = card
-
-    -- Anim start scale
     card.Size = card.Size - UDim2.fromOffset(40, 40)
 
     local tweenIn = TweenInfo.new(THEME.FadeInTime, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
