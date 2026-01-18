@@ -20657,22 +20657,18 @@ Modules.Hugger = {
     Services = {}
 }
 
---// --- Internal Utilities ---
 
 function Modules.Hugger:_clearCurrent()
-    -- Stop Animations
     for _, track in pairs(self.State.Tracks) do
         pcall(function() track:Stop() end)
     end
     self.State.Tracks = {}
 
-    -- Destroy Walls
     for _, part in pairs(self.State.Walls) do
         pcall(function() part:Destroy() end)
     end
     self.State.Walls = {}
 
-    -- Disconnect Loops
     if self.State.Connections.Loop then
         self.State.Connections.Loop:Disconnect()
         self.State.Connections.Loop = nil
@@ -20705,7 +20701,6 @@ function Modules.Hugger:_createCage(root)
         table.insert(self.State.Walls, p)
     end
 
-    -- Loop to keep cage synced with player
     self.State.Connections.Cage = self.Services.RunService.Stepped:Connect(function()
         if not self.State.IsEnabled or not root.Parent then return end
         for i, data in ipairs(wallData) do
@@ -20715,7 +20710,6 @@ function Modules.Hugger:_createCage(root)
     end)
 end
 
---// --- Core Logic ---
 
 function Modules.Hugger:Apply(targetChar)
     local lp = self.Services.Players.LocalPlayer
@@ -20730,7 +20724,6 @@ function Modules.Hugger:Apply(targetChar)
     self:_clearCurrent()
     self.State.Target = targetChar
     
-    -- Load Animations
     local a1, a2 = Instance.new("Animation"), Instance.new("Animation")
     a1.AnimationId = self.Config.ANIM_1
     a2.AnimationId = self.Config.ANIM_2
@@ -20743,10 +20736,8 @@ function Modules.Hugger:Apply(targetChar)
     tr1:Play()
     tr2:Play()
 
-    -- Build defensive cage
     self:_createCage(myRoot)
 
-    -- Primary Follow Loop
     self.State.Connections.Loop = self.Services.RunService.Heartbeat:Connect(function()
         if not self.State.IsEnabled or not tRoot.Parent or myHum.Health <= 0 then
             self:Toggle() -- Auto-shutoff
@@ -20760,7 +20751,6 @@ function Modules.Hugger:Apply(targetChar)
     end)
 end
 
---// --- UI Management ---
 
 function Modules.Hugger:CreateUI()
     if self.State.UI then self.State.UI.Enabled = true return end
@@ -20801,7 +20791,6 @@ function Modules.Hugger:CreateUI()
         side.Text = "Hug Side: " .. (self.State.FromFront and "Front" or "Back")
     end)
 
-    -- Click-to-Hug Listener
     local mouse = self.Services.Players.LocalPlayer:GetMouse()
     self.State.Connections.Click = mouse.Button1Down:Connect(function()
         if not self.State.IsEnabled then return end
@@ -20817,7 +20806,6 @@ function Modules.Hugger:CreateUI()
     DoNotif("Hugger UI Loaded. Enable and Click a player.", 3)
 end
 
---// --- Initialization ---
 
 function Modules.Hugger:Initialize()
     for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
@@ -20856,7 +20844,6 @@ Modules.TeamChanger = {
     Services = {}
 }
 
--- [Internal] Logic to find and trigger the appropriate spawn
 function Modules.TeamChanger:Execute(teamNameInput)
     if not teamNameInput or teamNameInput == "" then
         return DoNotif("Usage: ;team <TeamName>", 3)
@@ -20868,7 +20855,6 @@ function Modules.TeamChanger:Execute(teamNameInput)
     local targetTeam = nil
     local lookup = teamNameInput:lower()
 
-    -- 1. Find the target team
     for _, team in ipairs(Teams:GetChildren()) do
         if team:IsA("Team") and team.Name:lower():find(lookup, 1, true) then
             targetTeam = team
@@ -20891,13 +20877,10 @@ function Modules.TeamChanger:Execute(teamNameInput)
         end)
     end
 
-    -- 2. Physical Bypass (Touch Emulation)
-    -- This works on games that use standard SpawnLocations for team selection
     if typeof(firetouchinterest) == "function" and root then
         local foundSpawn = false
         for _, obj in ipairs(self.Services.Workspace:GetDescendants()) do
             if obj:IsA("SpawnLocation") and obj.BrickColor == targetTeam.TeamColor and obj.AllowTeamChangeOnTouch then
-                -- Simulation of physical contact
                 firetouchinterest(root, obj, 0)
                 task.wait()
                 firetouchinterest(root, obj, 1)
@@ -20911,7 +20894,6 @@ function Modules.TeamChanger:Execute(teamNameInput)
         end
     end
 
-    -- 3. Property Override
     forceClientSide()
     DoNotif("Joined Team: " .. targetTeam.Name, 2)
 end
@@ -20948,7 +20930,6 @@ Modules.BadgeViewer = {
     Services = {}
 }
 
---// --- Internal Helpers ---
 
 local function getHttpRequest()
     return (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
@@ -20967,7 +20948,6 @@ function Modules.BadgeViewer:_cachePut(userId, badgeId, value)
     self.State.OwnershipCache[userId][badgeId] = { v = value, t = os.time() }
 end
 
---// --- Core Logic ---
 
 function Modules.BadgeViewer:FetchBadges()
     local requestFunc = getHttpRequest()
@@ -21018,7 +20998,6 @@ function Modules.BadgeViewer:CheckOwnership(userId, badgeId)
     return false, nil
 end
 
---// --- UI Construction ---
 
 function Modules.BadgeViewer:Open(targetPlayer)
     if self.State.UI then self.State.UI:Destroy() end
@@ -21032,7 +21011,6 @@ function Modules.BadgeViewer:Open(targetPlayer)
             return DoNotif("Failed to retrieve badge data or game has no badges.", 3)
         end
 
-        -- Construct the UI (matching Zuka theme)
         local sg = Instance.new("ScreenGui", self.Services.CoreGui)
         sg.Name = "ZukaBadgeViewer"
         self.State.UI = sg
@@ -21075,7 +21053,6 @@ function Modules.BadgeViewer:Open(targetPlayer)
         local layout = Instance.new("UIListLayout", scroll)
         layout.Padding = UDim.new(0, 5)
 
-        -- Populate Badges
         for _, b in ipairs(badgeData) do
             local card = Instance.new("Frame", scroll)
             card.Size = UDim2.new(1, -5, 0, 60)
@@ -21113,7 +21090,6 @@ function Modules.BadgeViewer:Open(targetPlayer)
             status.BackgroundColor3 = Color3.new(0,0,0)
             Instance.new("UICorner", status)
 
-            -- Async ownership check
             task.spawn(function()
                 local ok, has = self:CheckOwnership(target.UserId, b.id)
                 if ok then
@@ -21130,7 +21106,6 @@ function Modules.BadgeViewer:Open(targetPlayer)
     end)
 end
 
---// --- Initialization ---
 
 function Modules.BadgeViewer:Initialize()
     for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
@@ -21246,7 +21221,6 @@ Modules.ScriptSearcher = {
     Services = {}
 }
 
---// --- Internal Logic: API Fetching ---
 
 function Modules.ScriptSearcher:PerformSearch(query)
     if self.State.IsSearching then return end
@@ -21290,7 +21264,6 @@ function Modules.ScriptSearcher:PerformSearch(query)
     end)
 end
 
---// --- UI Construction: RC7 Style Results ---
 
 function Modules.ScriptSearcher:_createResultCard(data)
     local scroll = self.State.UI.ResultScroll
@@ -21426,26 +21399,22 @@ Modules.Toolbox = {
     Config = {
         ACCENT = Color3.fromRGB(0, 255, 255),
         BG = Color3.fromRGB(15, 15, 15),
-        -- Official Toolbox Service Category IDs
         CATEGORIES = {
             ["Models"] = "Models",
             ["Decals"] = "Decals",
             ["Audio"] = "Audio"
         },
-        -- THE FIX: Official Toolbox Service Endpoint (Used by Studio)
         SEARCH_URL = "https://apis.roproxy.com/toolbox-service/v1/marketplace/items?category=%s&keyword=%s&num=20"
     },
     Dependencies = {"HttpService", "Players", "CoreGui", "UserInputService", "RunService", "InsertService"},
     Services = {}
 }
 
---// --- Internal Logic: Asset Handling ---
 
 function Modules.Toolbox:InsertAsset(assetId)
     DoNotif("Processing Asset ID: " .. assetId, 1.5)
     
     task.spawn(function()
-        -- Attempt physical spawn (Requires executor support for GetObjects)
         local success, result = pcall(function()
             return game:GetObjects("rbxassetid://" .. assetId)
         end)
@@ -21480,7 +21449,6 @@ function Modules.Toolbox:Search(query)
     self.State.IsSearching = true
     local scroll = self.State.UI.ResultGrid
     
-    -- Clear current results
     for _, v in ipairs(scroll:GetChildren()) do
         if v:IsA("Frame") then v:Destroy() end
     end
@@ -21526,7 +21494,7 @@ function Modules.Toolbox:Search(query)
     end)
 end
 
---// --- UI Construction (RC7 Aesthetic) ---
+
 
 function Modules.Toolbox:_createItemCard(id, nameText)
     local grid = self.State.UI.ResultGrid
@@ -21539,7 +21507,7 @@ function Modules.Toolbox:_createItemCard(id, nameText)
     local thumb = Instance.new("ImageLabel", card)
     thumb.Size = UDim2.fromOffset(90, 90); thumb.Position = UDim2.fromOffset(5, 5)
     thumb.BackgroundColor3 = Color3.fromRGB(20, 20, 20); thumb.BorderSizePixel = 0
-    -- Standard high-quality thumbnail endpoint
+
     thumb.Image = "rbxthumb://type=Asset&id=" .. id .. "&w=150&h=150"
 
     local name = Instance.new("TextLabel", card)
@@ -21651,11 +21619,10 @@ Modules.Manipulator = {
         HoverTarget = nil,
         DraggingPart = nil,
 
-        -- Visuals & Local Physics
         Highlight = nil,
         AnchorPart = nil,
         GrabOffset = nil,
-        OriginalAnchored = false, -- To restore state after drag
+        OriginalAnchored = false,
 
         Connections = {}
     },
@@ -21669,13 +21636,13 @@ Modules.Manipulator = {
     Services = {}
 }
 
---// --- Internal Helper: Cleanup ---
+
 
 function Modules.Manipulator:_stopDragging()
     local data = self.State
     if data.DraggingPart then
         pcall(function()
-            -- Restore the part to its real physical state
+
             data.DraggingPart.Anchored = data.OriginalAnchored
             data.DraggingPart.CanCollide = true
         end)
@@ -21686,7 +21653,7 @@ function Modules.Manipulator:_stopDragging()
     if data.Highlight then data.Highlight.Adornee = nil end
 end
 
---// --- Core Execution ---
+
 
 function Modules.Manipulator:Toggle()
     local lp = self.Services.Players.LocalPlayer
@@ -21695,7 +21662,7 @@ function Modules.Manipulator:Toggle()
     self.State.IsEnabled = not self.State.IsEnabled
 
     if self.State.IsEnabled then
-        -- 1. Create the persistent Highlight
+
         local h = Instance.new("Highlight")
         h.Name = "Zuka_LocalManipulator_Highlight"
         h.FillTransparency = 0.5
@@ -21703,19 +21670,19 @@ function Modules.Manipulator:Toggle()
         h.Parent = self.Services.CoreGui
         self.State.Highlight = h
 
-        -- 2. Create the Physical Tool
+
         local tool = Instance.new("Tool")
         tool.Name = "[LOCAL MANIPULATOR]"
         tool.RequiresHandle = false
         
-        -- Invisible Handle to satisfy tool requirements
+
         local handle = Instance.new("Part", tool)
         handle.Name = "Handle"; handle.Transparency = 1; handle.CanCollide = false
         
         tool.Parent = lp.Backpack
         self.State.ActiveTool = tool
 
-        -- 3. The Main Update Loop (Direct CFrame Manipulation)
+
         self.State.Connections.Main = self.Services.RunService.RenderStepped:Connect(function()
             if not tool.Parent or (tool.Parent ~= lp.Character and tool.Parent ~= lp.Backpack) then
                 h.Adornee = nil
@@ -21759,18 +21726,18 @@ function Modules.Manipulator:Toggle()
                     self.State.OriginalAnchored = target.Anchored
                     self.State.GrabOffset = target.CFrame:ToObjectSpace(mouse.Hit)
                     
-                    -- CRITICAL: Locally anchor the part so the server doesn't fight the movement
+
                     target.Anchored = true
                     target.CanCollide = false
                 end
             end)
 
-            -- Tool Deactivated (Release)
+
             self.State.Connections.Release = tool.Deactivated:Connect(function()
                 self:_stopDragging()
             end)
 
-            -- Key Listener (Local Anchor Toggle)
+
             self.State.Connections.Key = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
                 if gpe then return end
                 if input.KeyCode == Enum.KeyCode.E and self.State.HoverTarget then
@@ -22475,7 +22442,7 @@ local function CreateMobileCommandButton()
         if input.UserInputType == Enum.UserInputType.Touch then
             dragStartPos = input.Position
             startGuiPosition = cmdButton.Position
-            isDragging = false -- Reset state on new touch
+            isDragging = false
         end
     end)
 
@@ -22501,18 +22468,15 @@ local function CreateMobileCommandButton()
     end)
 
     cmdButton.Activated:Connect(function()
-        -- The 'Activated' event fires on release. We only toggle the bar if it wasn't a drag.
         if not isDragging then
             if Modules.CommandBar and Modules.CommandBar.Toggle then
                 Modules.CommandBar:Toggle()
             end
         end
-        -- Reset dragging state after the action is complete
         isDragging = false
     end)
 end
 
--- Execute the creation function
 CreateMobileCommandButton()
 Modules.CommandList:Initialize()
 local TextChatService = game:GetService("TextChatService")
@@ -22528,6 +22492,4 @@ LocalPlayer.Chatted:Connect(processCommand)
 end
 DoNotif("We're So back. The Best Underground Panel.", 3)
 
---[[To anyone reading this, I hope you know what you're doing/looking at if you are using this. Sure it has your runofthemill noob commands like fly/noclip etc but the real purpose
-of this tool is the ability to turn any roblox game into an open book and rewriting it's own logic and rules in real time. i'm not going to teach your ass how to use the sophisticated parts inside this panel simply because I had no help either.
-it's all open source, remember in the world of roblox exploiting, we're all skids! fuck all of you niggas i'm a day one hater.]]
+--[[I rigged this script to break itself if comments or certain liness are removed. Feel free to use this however.]]--
