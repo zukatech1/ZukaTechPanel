@@ -54,17 +54,9 @@ local Services = setmetatable({}, {
         return s
     end
 })
-
-print("--------------------------- [        [Zuka]         ] -------------------------------------")
-print("+")
 print(string.format("--> [INTERNAL]: Memory Baseline: %.2f KB", _GC_START))
-
 print(string.format("--> [INTERNAL]: Environment Unlock: SUCCESS"))
-
 print(string.format("--> [INTERNAL]: C-Closure Wrapper: ACTIVE"))
-print("+")
-print("--------------------------- [        [Tech]         ] -------------------------------------")
-
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
@@ -323,11 +315,21 @@ end
     table.insert(CommandInfo, info)
 end
 
+function RegisterCommandDual(info, func)
+RegisterCommand(info, func)
+    
+    if _G.cmd and _G.cmd.add then
+        _G.cmd.add(info.Name, func, info.Description or "")
+        if info.Aliases then
+            for _, alias in ipairs(info.Aliases) do
+                _G.cmd.add(alias, func, info.Description or "")
+            end
+        end
+    end
+end
+
 local function loadAimbotGUI(args)
-
-
 	local CoreGui = game:GetService("CoreGui")
-
 	if CoreGui:FindFirstChild("UTS_CGE_Suite") and not args then
 		if DoNotif then
 			DoNotif("Aimbot GUI is already open.", 2)
@@ -13223,8 +13225,8 @@ function Modules.Overseer:Initialize()
     end)
 
     RegisterCommand({
-        Name = "os",
-        Aliases = {"opensource"},
+        Name = "OverseerPrime",
+        Aliases = {"os"},
         Description = "Opens the ultimate Overseer module, Use at your own risk."
     }, function()
         module:CreateUI()
@@ -20204,6 +20206,1304 @@ RegisterCommand({
     end
 end)
 
+--// =============== SETTINGS MANAGER =============== //--
+--// =============== PLUGIN MANAGER =============== //--
+Modules.PluginManager = {
+    State = {
+        UI = nil,
+        IsOpen = false,
+        Connections = {},
+        LoadedPlugins = {},
+        PluginFunctions = {},
+        CurrentFolder = "root"
+    },
+    Config = {
+        ACCENT = Color3.fromRGB(0, 255, 255),
+        BG = Color3.fromRGB(10, 10, 10),
+        FG = Color3.fromRGB(25, 25, 25),
+        BORDER = Color3.fromRGB(50, 50, 50),
+        PLUGIN_URLS = {
+            -- Add plugin URLs here
+        }
+    },
+    Dependencies = {"HttpService", "CoreGui", "UserInputService"},
+    Services = {}
+}
+
+function Modules.PluginManager:InitWorkspace()
+    if not getgenv().ZukaPluginWorkspace then
+        getgenv().ZukaPluginWorkspace = {
+            folders = {
+                root = {
+                    name = "root",
+                    plugins = {},
+                    subfolders = {}
+                }
+            },
+            pluginData = {}
+        }
+    end
+    return getgenv().ZukaPluginWorkspace
+end
+
+function Modules.PluginManager:SavePlugin(pluginCode, pluginName, folderPath)
+    local workspace = self:InitWorkspace()
+    folderPath = folderPath or "root"
+    
+    -- Create plugin data
+    local pluginId = pluginName:gsub(" ", "_") .. "_" .. os.time()
+    workspace.pluginData[pluginId] = {
+        name = pluginName,
+        code = pluginCode,
+        created = os.time(),
+        folder = folderPath
+    }
+    
+    -- Add to folder
+    if not workspace.folders[folderPath] then
+        workspace.folders[folderPath] = {
+            name = folderPath,
+            plugins = {},
+            subfolders = {}
+        }
+    end
+    
+    table.insert(workspace.folders[folderPath].plugins, pluginId)
+    DoNotif("Plugin '" .. pluginName .. "' saved to workspace!", 2)
+    return pluginId
+end
+
+function Modules.PluginManager:CreateFolder(folderName, parentFolder)
+    local workspace = self:InitWorkspace()
+    parentFolder = parentFolder or "root"
+    
+    local folderPath = parentFolder .. "/" .. folderName
+    
+    if not workspace.folders[folderPath] then
+        workspace.folders[folderPath] = {
+            name = folderName,
+            plugins = {},
+            subfolders = {}
+        }
+        
+        if not workspace.folders[parentFolder].subfolders then
+            workspace.folders[parentFolder].subfolders = {}
+        end
+        table.insert(workspace.folders[parentFolder].subfolders, folderName)
+        
+        DoNotif("Folder '" .. folderName .. "' created!", 2)
+        return true
+    end
+    
+    return false
+end
+
+function Modules.PluginManager:DeletePlugin(pluginId)
+    local workspace = self:InitWorkspace()
+    
+    if workspace.pluginData[pluginId] then
+        local pluginData = workspace.pluginData[pluginId]
+        local folderPath = pluginData.folder
+        
+        -- Remove from folder
+        if workspace.folders[folderPath] then
+            for i, id in ipairs(workspace.folders[folderPath].plugins) do
+                if id == pluginId then
+                    table.remove(workspace.folders[folderPath].plugins, i)
+                    break
+                end
+            end
+        end
+        
+        workspace.pluginData[pluginId] = nil
+        DoNotif("Plugin deleted!", 2)
+    end
+end
+
+function Modules.PluginManager:DeleteFolder(folderPath)
+    local workspace = self:InitWorkspace()
+    
+    if folderPath == "root" then
+        return DoNotif("Cannot delete root folder.", 3)
+    end
+    
+    -- Delete all plugins in folder
+    if workspace.folders[folderPath] then
+        for _, pluginId in ipairs(workspace.folders[folderPath].plugins) do
+            workspace.pluginData[pluginId] = nil
+        end
+    end
+    
+    workspace.folders[folderPath] = nil
+    DoNotif("Folder deleted!", 2)
+end
+
+function Modules.PluginManager:GetFolderContents(folderPath)
+    local workspace = self:InitWorkspace()
+    folderPath = folderPath or "root"
+    
+    if workspace.folders[folderPath] then
+        return workspace.folders[folderPath]
+    end
+    return nil
+end
+
+function Modules.PluginManager:LoadPlugin(pluginSource, pluginName)
+    if self.State.LoadedPlugins[pluginName] then
+        return DoNotif("Plugin '" .. pluginName .. "' already loaded.", 3)
+    end
+
+    local success, result = pcall(function()
+        -- Create Nameless Admin compatibility API (full format support)
+        local cmdAPI = {}
+        
+        -- Full Nameless Admin format: cmd.add(aliases, info, func, requiresArguments)
+        function cmdAPI:add(aliases, info, func, requiresArguments)
+            if type(aliases) ~= "table" then
+                aliases = {tostring(aliases)}
+            end
+            
+            local primaryAlias = aliases[1] or "unknown"
+            local description = ""
+            
+            if type(info) == "table" then
+                description = info[2] or (info[1] and tostring(info[1])) or ("Plugin: " .. pluginName)
+            elseif type(info) == "string" then
+                description = info
+            else
+                description = "Plugin: " .. pluginName
+            end
+            
+            -- Register with your system
+            RegisterCommand({
+                Name = primaryAlias,
+                Aliases = aliases,
+                Description = description
+            }, func)
+            
+            self.State.PluginFunctions[pluginName] = self.State.PluginFunctions[pluginName] or {}
+            table.insert(self.State.PluginFunctions[pluginName], primaryAlias)
+        end
+        
+        local env = {
+            -- Sandbox environment
+            print = print,
+            warn = warn,
+            game = game,
+            script = script,
+            Instance = Instance,
+            Vector3 = Vector3,
+            Color3 = Color3,
+            CFrame = CFrame,
+            task = task,
+            table = table,
+            string = string,
+            math = math,
+            ipairs = ipairs,
+            pairs = pairs,
+            next = next,
+            type = type,
+            tostring = tostring,
+            tonumber = tonumber,
+            assert = assert,
+            rawget = rawget,
+            rawset = rawset,
+            rawequal = rawequal,
+            rawlen = rawlen,
+            -- String aliases (like Nameless Admin)
+            Lower = string.lower,
+            Upper = string.upper,
+            Sub = string.sub,
+            GSub = string.gsub,
+            Find = string.find,
+            Match = string.match,
+            Format = string.format,
+            -- Table aliases
+            Unpack = table.unpack,
+            Insert = table.insert,
+            Remove = table.remove,
+            Concat = table.concat,
+            -- Task aliases
+            Spawn = task.spawn,
+            Delay = task.delay,
+            Wait = task.wait,
+            -- Nameless Admin compatibility
+            cmd = cmdAPI,
+            -- Custom API
+            registerCommand = function(cmd, callback)
+                RegisterCommand(cmd, callback)
+                self.State.PluginFunctions[pluginName] = self.State.PluginFunctions[pluginName] or {}
+                table.insert(self.State.PluginFunctions[pluginName], cmd)
+            end,
+            DoNotif = DoNotif,
+            Player = Players.LocalPlayer,
+            Workspace = Workspace,
+            Players = Players,
+            RunService = RunService,
+            UserInputService = UserInputService,
+            CoreGui = CoreGui,
+        }
+
+        setmetatable(env, {__index = _G})
+        
+        local func, err = loadstring(pluginSource)
+        if not func then
+            return false, err
+        end
+
+        setfenv(func, env)
+        func()
+        return true, "Plugin loaded successfully"
+    end)
+
+    if success then
+        self.State.LoadedPlugins[pluginName] = {
+            Source = pluginSource,
+            Enabled = true,
+            LoadedAt = os.time()
+        }
+        DoNotif("Plugin '" .. pluginName .. "' loaded!", 2)
+        return true
+    else
+        DoNotif("Plugin error: " .. result, 3)
+        return false
+    end
+end
+
+function Modules.PluginManager:UnloadPlugin(pluginName)
+    if not self.State.LoadedPlugins[pluginName] then
+        return DoNotif("Plugin '" .. pluginName .. "' not found.", 3)
+    end
+
+    self.State.LoadedPlugins[pluginName] = nil
+    self.State.PluginFunctions[pluginName] = nil
+    DoNotif("Plugin '" .. pluginName .. "' unloaded.", 2)
+end
+
+function Modules.PluginManager:TogglePlugin(pluginName)
+    if not self.State.LoadedPlugins[pluginName] then
+        return DoNotif("Plugin not found.", 3)
+    end
+
+    self.State.LoadedPlugins[pluginName].Enabled = not self.State.LoadedPlugins[pluginName].Enabled
+    DoNotif("Plugin '" .. pluginName .. "' is now " .. (self.State.LoadedPlugins[pluginName].Enabled and "ENABLED" or "DISABLED"), 2)
+end
+
+function Modules.PluginManager:LoadFromURL(url, pluginName)
+    local requestFunc = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
+    if not requestFunc then
+        return DoNotif("HTTP requests not available.", 3)
+    end
+
+    DoNotif("Downloading plugin...", 1)
+
+    task.spawn(function()
+        local success, res = pcall(function()
+            return requestFunc({Url = url, Method = "GET"})
+        end)
+
+        if success and res.StatusCode == 200 then
+            self:LoadPlugin(res.Body, pluginName or "UnnamedPlugin_" .. os.time())
+        else
+            DoNotif("Failed to download plugin from URL.", 3)
+        end
+    end)
+end
+
+function Modules.PluginManager:CreateUI()
+    if self.State.IsOpen then return end
+    self.State.IsOpen = true
+
+    if self.State.UI then self.State.UI:Destroy() end
+
+    local sg = Instance.new("ScreenGui", self.Services.CoreGui)
+    sg.Name = "Zuka_PluginManager"
+    sg.ResetOnSpawn = false
+
+    local main = Instance.new("Frame", sg)
+    main.Size = UDim2.fromOffset(800, 700)
+    main.Position = UDim2.fromScale(0.5, 0.5)
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.BackgroundColor3 = self.Config.BG
+    main.BorderSizePixel = 2
+    main.BorderColor3 = self.Config.ACCENT
+    main.Active = true
+
+    local header = Instance.new("Frame", main)
+    header.Size = UDim2.new(1, 0, 0, 35)
+    header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    header.BorderSizePixel = 0
+
+    local title = Instance.new("TextLabel", header)
+    title.Size = UDim2.new(0.7, 0, 1, 0)
+    title.Position = UDim2.fromOffset(15, 0)
+    title.Text = "🔌 PLUGIN MANAGER"
+    title.TextColor3 = self.Config.ACCENT
+    title.Font = Enum.Font.Code
+    title.TextSize = 16
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = "Left"
+
+    local closeBtn = Instance.new("TextButton", header)
+    closeBtn.Size = UDim2.fromOffset(35, 35)
+    closeBtn.Position = UDim2.new(1, -35, 0, 0)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1, 0, 0)
+    closeBtn.Font = Enum.Font.Code
+    closeBtn.TextSize = 16
+
+    closeBtn.MouseButton1Click:Connect(function()
+        sg:Destroy()
+        self.State.IsOpen = false
+    end)
+
+    -- Tab buttons
+    local tabFrame = Instance.new("Frame", main)
+    tabFrame.Size = UDim2.new(1, 0, 0, 40)
+    tabFrame.Position = UDim2.fromOffset(0, 35)
+    tabFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    tabFrame.BorderSizePixel = 1
+    tabFrame.BorderColor3 = self.Config.BORDER
+
+    local tabLayout = Instance.new("UIListLayout", tabFrame)
+    tabLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabLayout.Padding = UDim.new(0, 5)
+    tabLayout.VerticalAlignment = "Center"
+
+    local contentArea = Instance.new("Frame", main)
+    contentArea.Size = UDim2.new(1, -20, 1, -100)
+    contentArea.Position = UDim2.fromOffset(10, 80)
+    contentArea.BackgroundColor3 = self.Config.FG
+    contentArea.BorderSizePixel = 1
+    contentArea.BorderColor3 = self.Config.BORDER
+
+    local function switchTab(tabName)
+        for _, child in ipairs(contentArea:GetChildren()) do
+            if child ~= tabLayout then child:Destroy() end
+        end
+
+        if tabName == "Loaded" then
+            -- Plugin List Tab
+            local pluginScroll = Instance.new("ScrollingFrame", contentArea)
+            pluginScroll.Size = UDim2.new(1, 0, 1, 0)
+            pluginScroll.BackgroundTransparency = 1
+            pluginScroll.ScrollBarThickness = 3
+            pluginScroll.ScrollBarImageColor3 = self.Config.ACCENT
+            pluginScroll.AutomaticCanvasSize = "Y"
+
+            local pluginLayout = Instance.new("UIListLayout", pluginScroll)
+            pluginLayout.Padding = UDim.new(0, 5)
+            pluginLayout.FillDirection = Enum.FillDirection.Vertical
+
+            local function refreshPluginList()
+                for _, child in ipairs(pluginScroll:GetChildren()) do
+                    if child:IsA("Frame") then child:Destroy() end
+                end
+
+                if next(self.State.LoadedPlugins) == nil then
+                    local emptyLabel = Instance.new("TextLabel", pluginScroll)
+                    emptyLabel.Size = UDim2.new(1, -10, 0, 30)
+                    emptyLabel.BackgroundColor3 = self.Config.FG
+                    emptyLabel.BorderSizePixel = 0
+                    emptyLabel.Text = "No plugins loaded."
+                    emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+                    emptyLabel.Font = Enum.Font.Code
+                    emptyLabel.TextSize = 11
+                    return
+                end
+
+                for pluginName, pluginData in pairs(self.State.LoadedPlugins) do
+                    local pluginFrame = Instance.new("Frame", pluginScroll)
+                    pluginFrame.Size = UDim2.new(1, -10, 0, 45)
+                    pluginFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                    pluginFrame.BorderSizePixel = 1
+                    pluginFrame.BorderColor3 = self.Config.BORDER
+
+                    local nameLabel = Instance.new("TextLabel", pluginFrame)
+                    nameLabel.Size = UDim2.new(0.6, 0, 1, 0)
+                    nameLabel.Position = UDim2.fromOffset(10, 0)
+                    nameLabel.Text = pluginName
+                    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+                    nameLabel.Font = Enum.Font.Code
+                    nameLabel.TextSize = 11
+                    nameLabel.BackgroundTransparency = 1
+                    nameLabel.TextXAlignment = "Left"
+
+                    local statusLabel = Instance.new("TextLabel", pluginFrame)
+                    statusLabel.Size = UDim2.fromOffset(70, 20)
+                    statusLabel.Position = UDim2.fromOffset(10, 23)
+                    statusLabel.Text = pluginData.Enabled and "✓ ACTIVE" or "✗ DISABLED"
+                    statusLabel.TextColor3 = pluginData.Enabled and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(150, 150, 150)
+                    statusLabel.Font = Enum.Font.Code
+                    statusLabel.TextSize = 9
+                    statusLabel.BackgroundTransparency = 1
+
+                    local toggleBtn = Instance.new("TextButton", pluginFrame)
+                    toggleBtn.Size = UDim2.fromOffset(60, 20)
+                    toggleBtn.Position = UDim2.new(1, -200, 0, 12)
+                    toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                    toggleBtn.BorderSizePixel = 1
+                    toggleBtn.BorderColor3 = self.Config.ACCENT
+                    toggleBtn.Text = "TOGGLE"
+                    toggleBtn.TextColor3 = self.Config.ACCENT
+                    toggleBtn.Font = Enum.Font.Code
+                    toggleBtn.TextSize = 9
+
+                    toggleBtn.MouseButton1Click:Connect(function()
+                        self:TogglePlugin(pluginName)
+                        refreshPluginList()
+                    end)
+
+                    local unloadBtn = Instance.new("TextButton", pluginFrame)
+                    unloadBtn.Size = UDim2.fromOffset(60, 20)
+                    unloadBtn.Position = UDim2.new(1, -130, 0, 12)
+                    unloadBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+                    unloadBtn.BorderSizePixel = 0
+                    unloadBtn.Text = "UNLOAD"
+                    unloadBtn.TextColor3 = Color3.new(1, 1, 1)
+                    unloadBtn.Font = Enum.Font.Code
+                    unloadBtn.TextSize = 9
+
+                    unloadBtn.MouseButton1Click:Connect(function()
+                        self:UnloadPlugin(pluginName)
+                        refreshPluginList()
+                    end)
+                end
+            end
+
+            refreshPluginList()
+
+        elseif tabName == "Load" then
+            -- Load from URL/Paste Tab
+            local container = Instance.new("Frame", contentArea)
+            container.Size = UDim2.new(1, -20, 1, -20)
+            container.Position = UDim2.fromOffset(10, 10)
+            container.BackgroundTransparency = 1
+            container.AutomaticSize = "Y"
+
+            -- URL Input Section
+            local urlSection = Instance.new("Frame", container)
+            urlSection.Size = UDim2.new(1, 0, 0, 60)
+            urlSection.Position = UDim2.fromOffset(0, 0)
+            urlSection.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+            urlSection.BorderSizePixel = 1
+            urlSection.BorderColor3 = self.Config.BORDER
+
+            local urlLabel = Instance.new("TextLabel", urlSection)
+            urlLabel.Size = UDim2.fromOffset(80, 25)
+            urlLabel.Position = UDim2.fromOffset(10, 5)
+            urlLabel.Text = "Plugin URL:"
+            urlLabel.TextColor3 = self.Config.ACCENT
+            urlLabel.Font = Enum.Font.Code
+            urlLabel.TextSize = 11
+            urlLabel.BackgroundTransparency = 1
+            urlLabel.TextXAlignment = "Left"
+
+            local urlBox = Instance.new("TextBox", urlSection)
+            urlBox.Size = UDim2.new(1, -180, 0, 25)
+            urlBox.Position = UDim2.fromOffset(95, 5)
+            urlBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            urlBox.BorderSizePixel = 1
+            urlBox.BorderColor3 = self.Config.BORDER
+            urlBox.Text = ""
+            urlBox.PlaceholderText = "https://example.com/plugin.iy"
+            urlBox.TextColor3 = Color3.new(1, 1, 1)
+            urlBox.Font = Enum.Font.Code
+            urlBox.TextSize = 10
+
+            local loadUrlBtn = Instance.new("TextButton", urlSection)
+            loadUrlBtn.Size = UDim2.fromOffset(70, 25)
+            loadUrlBtn.Position = UDim2.new(1, -75, 0, 5)
+            loadUrlBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 150)
+            loadUrlBtn.BorderSizePixel = 0
+            loadUrlBtn.Text = "LOAD"
+            loadUrlBtn.TextColor3 = Color3.new(1, 1, 1)
+            loadUrlBtn.Font = Enum.Font.Code
+            loadUrlBtn.TextSize = 10
+
+            loadUrlBtn.MouseButton1Click:Connect(function()
+                if urlBox.Text ~= "" then
+                    self:LoadFromURL(urlBox.Text, urlBox.Text:match("([^/]+)$") or "Plugin")
+                    urlBox.Text = ""
+                end
+            end)
+
+            -- Paste Code Section
+            local pasteLabel = Instance.new("TextLabel", container)
+            pasteLabel.Size = UDim2.new(1, 0, 0, 25)
+            pasteLabel.Position = UDim2.fromOffset(0, 65)
+            pasteLabel.Text = "Paste Plugin Code:"
+            pasteLabel.TextColor3 = self.Config.ACCENT
+            pasteLabel.Font = Enum.Font.Code
+            pasteLabel.TextSize = 11
+            pasteLabel.BackgroundTransparency = 1
+            pasteLabel.TextXAlignment = "Left"
+
+            local codeBox = Instance.new("TextBox", container)
+            codeBox.Size = UDim2.new(1, 0, 0, 200)
+            codeBox.Position = UDim2.fromOffset(0, 95)
+            codeBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            codeBox.BorderSizePixel = 1
+            codeBox.BorderColor3 = self.Config.BORDER
+            codeBox.Text = ""
+            codeBox.PlaceholderText = "Paste your Nameless Admin plugin code here..."
+            codeBox.TextColor3 = Color3.new(1, 1, 1)
+            codeBox.Font = Enum.Font.Code
+            codeBox.TextSize = 10
+            codeBox.TextWrapped = true
+            codeBox.MultiLine = true
+
+            -- Plugin Name Input
+            local nameLabel = Instance.new("TextLabel", container)
+            nameLabel.Size = UDim2.fromOffset(100, 25)
+            nameLabel.Position = UDim2.fromOffset(0, 305)
+            nameLabel.Text = "Plugin Name:"
+            nameLabel.TextColor3 = self.Config.ACCENT
+            nameLabel.Font = Enum.Font.Code
+            nameLabel.TextSize = 11
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.TextXAlignment = "Left"
+
+            local nameBox = Instance.new("TextBox", container)
+            nameBox.Size = UDim2.new(0.6, 0, 0, 25)
+            nameBox.Position = UDim2.fromOffset(110, 305)
+            nameBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            nameBox.BorderSizePixel = 1
+            nameBox.BorderColor3 = self.Config.BORDER
+            nameBox.Text = ""
+            nameBox.PlaceholderText = "MyPlugin"
+            nameBox.TextColor3 = Color3.new(1, 1, 1)
+            nameBox.Font = Enum.Font.Code
+            nameBox.TextSize = 10
+
+            local loadPasteBtn = Instance.new("TextButton", container)
+            loadPasteBtn.Size = UDim2.fromOffset(100, 25)
+            loadPasteBtn.Position = UDim2.new(1, -110, 0, 305)
+            loadPasteBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+            loadPasteBtn.BorderSizePixel = 0
+            loadPasteBtn.Text = "LOAD PLUGIN"
+            loadPasteBtn.TextColor3 = Color3.new(0, 0, 0)
+            loadPasteBtn.Font = Enum.Font.Code
+            loadPasteBtn.TextSize = 10
+
+            loadPasteBtn.MouseButton1Click:Connect(function()
+                if codeBox.Text ~= "" then
+                    local pluginName = nameBox.Text ~= "" and nameBox.Text or ("Plugin_" .. os.time())
+                    self:LoadPlugin(codeBox.Text, pluginName)
+                    codeBox.Text = ""
+                    nameBox.Text = ""
+                else
+                    DoNotif("Please paste some code first.", 3)
+                end
+            end)
+
+            -- Save to Workspace Button
+            local saveWorkspaceBtn = Instance.new("TextButton", container)
+            saveWorkspaceBtn.Size = UDim2.fromOffset(100, 25)
+            saveWorkspaceBtn.Position = UDim2.new(0, 0, 0, 340)
+            saveWorkspaceBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 200)
+            saveWorkspaceBtn.BorderSizePixel = 0
+            saveWorkspaceBtn.Text = "SAVE TO WORKSPACE"
+            saveWorkspaceBtn.TextColor3 = Color3.new(1, 1, 1)
+            saveWorkspaceBtn.Font = Enum.Font.Code
+            saveWorkspaceBtn.TextSize = 9
+
+            saveWorkspaceBtn.MouseButton1Click:Connect(function()
+                if codeBox.Text ~= "" then
+                    local pluginName = nameBox.Text ~= "" and nameBox.Text or ("Plugin_" .. os.time())
+                    self:SavePlugin(codeBox.Text, pluginName, "root")
+                    codeBox.Text = ""
+                    nameBox.Text = ""
+                else
+                    DoNotif("Please paste some code first.", 3)
+                end
+            end)
+        elseif tabName == "Workspace" then
+            -- Plugin Workspace Tab
+            self:InitWorkspace()
+            local workspace = getgenv().ZukaPluginWorkspace
+            
+            local workspaceScroll = Instance.new("ScrollingFrame", contentArea)
+            workspaceScroll.Size = UDim2.new(1, 0, 1, 0)
+            workspaceScroll.BackgroundTransparency = 1
+            workspaceScroll.ScrollBarThickness = 3
+            workspaceScroll.ScrollBarImageColor3 = self.Config.ACCENT
+            workspaceScroll.AutomaticCanvasSize = "Y"
+
+            local wsLayout = Instance.new("UIListLayout", workspaceScroll)
+            wsLayout.Padding = UDim.new(0, 8)
+            wsLayout.FillDirection = Enum.FillDirection.Vertical
+
+            -- Render folder structure
+            local function renderFolder(folderPath, depth)
+                local folder = workspace.folders[folderPath]
+                if not folder then return end
+
+                -- Folder header
+                local folderFrame = Instance.new("Frame", workspaceScroll)
+                folderFrame.Size = UDim2.new(1, -10, 0, 30)
+                folderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                folderFrame.BorderSizePixel = 1
+                folderFrame.BorderColor3 = self.Config.BORDER
+
+                local folderLabel = Instance.new("TextLabel", folderFrame)
+                folderLabel.Size = UDim2.new(0.7, 0, 1, 0)
+                folderLabel.Position = UDim2.fromOffset(10 + (depth * 20), 0)
+                folderLabel.Text = "📁 " .. folder.name
+                folderLabel.TextColor3 = self.Config.ACCENT
+                folderLabel.Font = Enum.Font.Code
+                folderLabel.TextSize = 11
+                folderLabel.BackgroundTransparency = 1
+                folderLabel.TextXAlignment = "Left"
+
+                -- Render plugins in this folder
+                for _, pluginId in ipairs(folder.plugins) do
+                    local pluginData = workspace.pluginData[pluginId]
+                    if pluginData then
+                        local pluginFrame = Instance.new("Frame", workspaceScroll)
+                        pluginFrame.Size = UDim2.new(1, -10, 0, 35)
+                        pluginFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+                        pluginFrame.BorderSizePixel = 1
+                        pluginFrame.BorderColor3 = self.Config.BORDER
+
+                        local pluginLabel = Instance.new("TextLabel", pluginFrame)
+                        pluginLabel.Size = UDim2.new(0.6, 0, 1, 0)
+                        pluginLabel.Position = UDim2.fromOffset(30 + (depth * 20), 0)
+                        pluginLabel.Text = "📄 " .. pluginData.name
+                        pluginLabel.TextColor3 = Color3.new(1, 1, 1)
+                        pluginLabel.Font = Enum.Font.Code
+                        pluginLabel.TextSize = 10
+                        pluginLabel.BackgroundTransparency = 1
+                        pluginLabel.TextXAlignment = "Left"
+
+                        local loadBtn = Instance.new("TextButton", pluginFrame)
+                        loadBtn.Size = UDim2.fromOffset(60, 20)
+                        loadBtn.Position = UDim2.new(1, -150, 0, 7)
+                        loadBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 150)
+                        loadBtn.BorderSizePixel = 0
+                        loadBtn.Text = "LOAD"
+                        loadBtn.TextColor3 = Color3.new(1, 1, 1)
+                        loadBtn.Font = Enum.Font.Code
+                        loadBtn.TextSize = 9
+
+                        loadBtn.MouseButton1Click:Connect(function()
+                            self:LoadPlugin(pluginData.code, pluginData.name)
+                        end)
+
+                        local deleteBtn = Instance.new("TextButton", pluginFrame)
+                        deleteBtn.Size = UDim2.fromOffset(60, 20)
+                        deleteBtn.Position = UDim2.new(1, -80, 0, 7)
+                        deleteBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+                        deleteBtn.BorderSizePixel = 0
+                        deleteBtn.Text = "DELETE"
+                        deleteBtn.TextColor3 = Color3.new(1, 1, 1)
+                        deleteBtn.Font = Enum.Font.Code
+                        deleteBtn.TextSize = 9
+
+                        deleteBtn.MouseButton1Click:Connect(function()
+                            self:DeletePlugin(pluginId)
+                            switchTab("Workspace")
+                        end)
+                    end
+                end
+
+                -- Render subfolders
+                for _, subfolder in ipairs(folder.subfolders or {}) do
+                    local subfolderPath = folderPath .. "/" .. subfolder
+                    renderFolder(subfolderPath, depth + 1)
+                end
+            end
+
+            renderFolder("root", 0)
+
+            -- New Folder Input
+            local newFolderLabel = Instance.new("TextLabel", workspaceScroll)
+            newFolderLabel.Size = UDim2.new(1, -10, 0, 20)
+            newFolderLabel.BackgroundTransparency = 1
+            newFolderLabel.Text = "Create New Folder:"
+            newFolderLabel.TextColor3 = self.Config.ACCENT
+            newFolderLabel.Font = Enum.Font.Code
+            newFolderLabel.TextSize = 10
+            newFolderLabel.TextXAlignment = "Left"
+
+            local newFolderFrame = Instance.new("Frame", workspaceScroll)
+            newFolderFrame.Size = UDim2.new(1, -10, 0, 30)
+            newFolderFrame.BackgroundTransparency = 1
+
+            local newFolderBox = Instance.new("TextBox", newFolderFrame)
+            newFolderBox.Size = UDim2.new(0.6, 0, 1, 0)
+            newFolderBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            newFolderBox.BorderSizePixel = 1
+            newFolderBox.BorderColor3 = self.Config.BORDER
+            newFolderBox.Text = ""
+            newFolderBox.PlaceholderText = "Folder name..."
+            newFolderBox.TextColor3 = Color3.new(1, 1, 1)
+            newFolderBox.Font = Enum.Font.Code
+            newFolderBox.TextSize = 10
+
+            local createFolderBtn = Instance.new("TextButton", newFolderFrame)
+            createFolderBtn.Size = UDim2.fromOffset(80, 30)
+            createFolderBtn.Position = UDim2.new(0.65, 5, 0, 0)
+            createFolderBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+            createFolderBtn.BorderSizePixel = 0
+            createFolderBtn.Text = "CREATE"
+            createFolderBtn.TextColor3 = Color3.new(0, 0, 0)
+            createFolderBtn.Font = Enum.Font.Code
+            createFolderBtn.TextSize = 10
+
+            createFolderBtn.MouseButton1Click:Connect(function()
+                if newFolderBox.Text ~= "" then
+                    self:CreateFolder(newFolderBox.Text, "root")
+                    newFolderBox.Text = ""
+                    switchTab("Workspace")
+                end
+            end)
+        end
+    end
+
+    -- Create tab buttons
+    local tabNames = {"Loaded", "Load", "Workspace"}
+    for _, tabName in ipairs(tabNames) do
+        local tabBtn = Instance.new("TextButton", tabFrame)
+        tabBtn.Size = UDim2.fromOffset(120, 30)
+        tabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        tabBtn.BorderSizePixel = 1
+        tabBtn.BorderColor3 = self.Config.BORDER
+        tabBtn.Text = tabName
+        tabBtn.TextColor3 = Color3.new(1, 1, 1)
+        tabBtn.Font = Enum.Font.Code
+        tabBtn.TextSize = 12
+
+        tabBtn.MouseButton1Click:Connect(function()
+            switchTab(tabName)
+            for _, btn in ipairs(tabFrame:GetChildren()) do
+                if btn:IsA("TextButton") then
+                    btn.BackgroundColor3 = btn == tabBtn and self.Config.ACCENT or Color3.fromRGB(30, 30, 30)
+                    btn.TextColor3 = btn == tabBtn and Color3.new(0, 0, 0) or Color3.new(1, 1, 1)
+                end
+            end
+        end)
+    end
+
+    -- Default to "Loaded" tab
+    switchTab("Loaded")
+    tabFrame:FindFirstChildOfClass("TextButton").BackgroundColor3 = self.Config.ACCENT
+    tabFrame:FindFirstChildOfClass("TextButton").TextColor3 = Color3.new(0, 0, 0)
+
+    self.State.UI = sg
+    DoNotif("Plugin Manager Opened", 2)
+end
+
+function Modules.PluginManager:Initialize()
+    for _, s in ipairs(self.Dependencies) do
+        self.Services[s] = game:GetService(s)
+    end
+
+    RegisterCommand({
+        Name = "plugins",
+        Aliases = {"plugin", "pm"},
+        Description = "Opens the Plugin Manager UI"
+    }, function()
+        self:CreateUI()
+    end)
+
+    RegisterCommand({
+        Name = "loadplugin",
+        Aliases = {"lp"},
+        Description = "Loads a plugin from URL. Usage: ;loadplugin [url] [name]"
+    }, function(args)
+        if #args < 1 then
+            return DoNotif("Usage: ;loadplugin [url] [name]", 3)
+        end
+        self:LoadFromURL(args[1], args[2] or "Plugin")
+    end)
+
+    RegisterCommand({
+        Name = "unloadplugin",
+        Aliases = {"up"},
+        Description = "Unloads a plugin. Usage: ;unloadplugin [name]"
+    }, function(args)
+        if #args < 1 then
+            return DoNotif("Usage: ;unloadplugin [name]", 3)
+        end
+        self:UnloadPlugin(args[1])
+    end)
+end
+
+Modules.SettingsManager = {
+    State = {
+        UI = nil,
+        IsOpen = false,
+        Connections = {}
+    },
+    Config = {
+        ACCENT = Color3.fromRGB(0, 255, 255),
+        BG = Color3.fromRGB(10, 10, 10),
+        FG = Color3.fromRGB(25, 25, 25),
+        BORDER = Color3.fromRGB(50, 50, 50),
+        SETTINGS_FILE = "ZukaSettings.json"
+    },
+    Settings = {
+        General = {
+            NotificationsEnabled = {type = "boolean", value = true, label = "Enable Notifications"},
+            NotificationDuration = {type = "number", value = 2, label = "Notification Duration (s)", min = 0.5, max = 5},
+            DefaultUIAccent = {type = "color", value = Color3.fromRGB(0, 255, 255), label = "UI Accent Color"},
+            AutosaveEnabled = {type = "boolean", value = true, label = "Auto-save Settings"},
+        },
+        Visual = {
+            PanelOpacity = {type = "number", value = 0.95, label = "Panel Opacity", min = 0.5, max = 1},
+            PanelScale = {type = "number", value = 1, label = "Panel Scale", min = 0.7, max = 1.5},
+            TextSize = {type = "number", value = 14, label = "Text Size", min = 10, max = 20},
+            BorderThickness = {type = "number", value = 2, label = "Border Thickness", min = 1, max = 4},
+        },
+        Notifications = {
+            SoundEnabled = {type = "boolean", value = false, label = "Notification Sound"},
+            Position = {type = "string", value = "TopRight", label = "Notification Position", options = {"TopRight", "TopLeft", "BottomRight", "BottomLeft"}},
+            ShowStackTrace = {type = "boolean", value = false, label = "Show Error Stack Trace"},
+        },
+        Keybinds = {
+            OpenUI = {type = "keybind", value = Enum.KeyCode.RightControl, label = "Open Main UI"},
+            OpenSettings = {type = "keybind", value = Enum.KeyCode.RightShift, label = "Open Settings"},
+            QuickSearch = {type = "keybind", value = Enum.KeyCode.F, label = "Quick Script Search"},
+        },
+        Modules = {
+            -- This will be populated dynamically with module toggles
+        }
+    },
+    Dependencies = {"CoreGui", "UserInputService", "HttpService"},
+    Services = {}
+}
+
+function Modules.SettingsManager:SaveSettings()
+    if not self.Settings then return end
+    
+    -- Convert Color3 values to hex strings for JSON compatibility
+    local settingsToSave = {}
+    for category, settings in pairs(self.Settings) do
+        settingsToSave[category] = {}
+        for key, data in pairs(settings) do
+            if data.type == "color" then
+                local color = data.value
+                settingsToSave[category][key] = {
+                    type = "color",
+                    value = string.format("%02X%02X%02X", 
+                        math.floor(color.R * 255), 
+                        math.floor(color.G * 255), 
+                        math.floor(color.B * 255))
+                }
+            else
+                settingsToSave[category][key] = {type = data.type, value = data.value}
+            end
+        end
+    end
+    
+    local jsonData = self.Services.HttpService:JSONEncode(settingsToSave)
+    if getgenv().ZukaSettings then
+        getgenv().ZukaSettings = jsonData
+    end
+    DoNotif("Settings Saved!", 2)
+end
+
+function Modules.SettingsManager:LoadSettings()
+    local data = getgenv().ZukaSettings
+    if not data then return end
+    
+    local success, decoded = pcall(function()
+        return self.Services.HttpService:JSONDecode(data)
+    end)
+    
+    if not success then return end
+    
+    for category, settings in pairs(decoded) do
+        if self.Settings[category] then
+            for key, data in pairs(settings) do
+                if self.Settings[category][key] then
+                    if data.type == "color" then
+                        local hex = data.value
+                        local r = tonumber(hex:sub(1, 2), 16) / 255
+                        local g = tonumber(hex:sub(3, 4), 16) / 255
+                        local b = tonumber(hex:sub(5, 6), 16) / 255
+                        self.Settings[category][key].value = Color3.new(r, g, b)
+                    else
+                        self.Settings[category][key].value = data.value
+                    end
+                end
+            end
+        end
+    end
+    
+    DoNotif("Settings Loaded!", 2)
+end
+
+function Modules.SettingsManager:GetSetting(category, key)
+    if self.Settings[category] and self.Settings[category][key] then
+        return self.Settings[category][key].value
+    end
+    return nil
+end
+
+function Modules.SettingsManager:SetSetting(category, key, value)
+    if self.Settings[category] and self.Settings[category][key] then
+        self.Settings[category][key].value = value
+        if self:GetSetting("General", "AutosaveEnabled") then
+            self:SaveSettings()
+        end
+    end
+end
+
+function Modules.SettingsManager:_createSettingControl(parent, category, key, data, yOffset)
+    local container = Instance.new("Frame", parent)
+    container.Size = UDim2.new(1, -20, 0, 40)
+    container.Position = UDim2.fromOffset(10, yOffset)
+    container.BackgroundColor3 = self.Config.FG
+    container.BorderSizePixel = 1
+    container.BorderColor3 = self.Config.BORDER
+
+    local label = Instance.new("TextLabel", container)
+    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.Position = UDim2.fromOffset(10, 0)
+    label.Text = data.label
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.Code
+    label.TextSize = 12
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = "Left"
+
+    if data.type == "boolean" then
+        local toggle = Instance.new("TextButton", container)
+        toggle.Size = UDim2.fromOffset(60, 25)
+        toggle.Position = UDim2.new(1, -70, 0, 7)
+        toggle.BackgroundColor3 = data.value and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(100, 100, 100)
+        toggle.BorderSizePixel = 0
+        toggle.Text = data.value and "ON" or "OFF"
+        toggle.TextColor3 = Color3.new(1, 1, 1)
+        toggle.Font = Enum.Font.Code
+        toggle.TextSize = 11
+
+        toggle.MouseButton1Click:Connect(function()
+            data.value = not data.value
+            toggle.Text = data.value and "ON" or "OFF"
+            toggle.BackgroundColor3 = data.value and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(100, 100, 100)
+            self:SetSetting(category, key, data.value)
+        end)
+
+    elseif data.type == "number" then
+        local input = Instance.new("TextBox", container)
+        input.Size = UDim2.fromOffset(100, 25)
+        input.Position = UDim2.new(1, -110, 0, 7)
+        input.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        input.BorderSizePixel = 1
+        input.BorderColor3 = self.Config.BORDER
+        input.Text = tostring(data.value)
+        input.TextColor3 = Color3.new(1, 1, 1)
+        input.Font = Enum.Font.Code
+        input.TextSize = 11
+
+        input.FocusLost:Connect(function()
+            local num = tonumber(input.Text)
+            if num then
+                if data.min and num < data.min then num = data.min end
+                if data.max and num > data.max then num = data.max end
+                data.value = num
+                input.Text = tostring(num)
+                self:SetSetting(category, key, num)
+            end
+        end)
+
+    elseif data.type == "color" then
+        local colorBtn = Instance.new("TextButton", container)
+        colorBtn.Size = UDim2.fromOffset(100, 25)
+        colorBtn.Position = UDim2.new(1, -110, 0, 7)
+        colorBtn.BackgroundColor3 = data.value
+        colorBtn.BorderSizePixel = 1
+        colorBtn.BorderColor3 = self.Config.BORDER
+        colorBtn.Text = "PICK COLOR"
+        colorBtn.TextColor3 = Color3.new(1, 1, 1)
+        colorBtn.Font = Enum.Font.Code
+        colorBtn.TextSize = 9
+
+        colorBtn.MouseButton1Click:Connect(function()
+            DoNotif("Color picker not available in this version.", 2)
+        end)
+
+    elseif data.type == "string" and data.options then
+        local dropdown = Instance.new("TextButton", container)
+        dropdown.Size = UDim2.fromOffset(100, 25)
+        dropdown.Position = UDim2.new(1, -110, 0, 7)
+        dropdown.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        dropdown.BorderSizePixel = 1
+        dropdown.BorderColor3 = self.Config.BORDER
+        dropdown.Text = data.value
+        dropdown.TextColor3 = Color3.new(1, 1, 1)
+        dropdown.Font = Enum.Font.Code
+        dropdown.TextSize = 10
+
+        local currentIdx = table.find(data.options, data.value) or 1
+        dropdown.MouseButton1Click:Connect(function()
+            currentIdx = currentIdx % #data.options + 1
+            data.value = data.options[currentIdx]
+            dropdown.Text = data.value
+            self:SetSetting(category, key, data.value)
+        end)
+
+    elseif data.type == "keybind" then
+        local keybindBtn = Instance.new("TextButton", container)
+        keybindBtn.Size = UDim2.fromOffset(100, 25)
+        keybindBtn.Position = UDim2.new(1, -110, 0, 7)
+        keybindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        keybindBtn.BorderSizePixel = 1
+        keybindBtn.BorderColor3 = self.Config.ACCENT
+        keybindBtn.Text = data.value.Name
+        keybindBtn.TextColor3 = self.Config.ACCENT
+        keybindBtn.Font = Enum.Font.Code
+        keybindBtn.TextSize = 10
+
+        local listening = false
+        keybindBtn.MouseButton1Click:Connect(function()
+            listening = true
+            keybindBtn.Text = "LISTENING..."
+            keybindBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
+
+            local connection
+            connection = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
+                if gpe then return end
+                if listening then
+                    data.value = input.KeyCode
+                    keybindBtn.Text = input.KeyCode.Name
+                    keybindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                    listening = false
+                    self:SetSetting(category, key, input.KeyCode)
+                    connection:Disconnect()
+                end
+            end)
+
+            task.delay(5, function()
+                if listening then
+                    listening = false
+                    keybindBtn.Text = data.value.Name
+                    keybindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                    pcall(function() connection:Disconnect() end)
+                end
+            end)
+        end)
+    end
+
+    return container
+end
+
+function Modules.SettingsManager:CreateUI()
+    if self.State.IsOpen then return end
+    self.State.IsOpen = true
+
+    if self.State.UI then self.State.UI:Destroy() end
+
+    local sg = Instance.new("ScreenGui", self.Services.CoreGui)
+    sg.Name = "Zuka_SettingsUI"
+    sg.ResetOnSpawn = false
+    
+    local main = Instance.new("Frame", sg)
+    main.Size = UDim2.fromOffset(700, 650)
+    main.Position = UDim2.fromScale(0.5, 0.5)
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.BackgroundColor3 = self.Config.BG
+    main.BorderSizePixel = 2
+    main.BorderColor3 = self.Config.ACCENT
+    main.Active = true
+
+    local header = Instance.new("Frame", main)
+    header.Size = UDim2.new(1, 0, 0, 35)
+    header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    header.BorderSizePixel = 0
+
+    local title = Instance.new("TextLabel", header)
+    title.Size = UDim2.new(0.7, 0, 1, 0)
+    title.Position = UDim2.fromOffset(15, 0)
+    title.Text = "⚙️ SETTINGS MANAGER"
+    title.TextColor3 = self.Config.ACCENT
+    title.Font = Enum.Font.Code
+    title.TextSize = 16
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = "Left"
+
+    local closeBtn = Instance.new("TextButton", header)
+    closeBtn.Size = UDim2.fromOffset(35, 35)
+    closeBtn.Position = UDim2.new(1, -35, 0, 0)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1, 0, 0)
+    closeBtn.Font = Enum.Font.Code
+    closeBtn.TextSize = 16
+
+    closeBtn.MouseButton1Click:Connect(function()
+        sg:Destroy()
+        self.State.IsOpen = false
+    end)
+
+    -- Tabs
+    local tabs = Instance.new("Frame", main)
+    tabs.Size = UDim2.new(0.25, 0, 1, -35)
+    tabs.Position = UDim2.fromOffset(0, 35)
+    tabs.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    tabs.BorderSizePixel = 1
+    tabs.BorderColor3 = self.Config.BORDER
+
+    local tabScroll = Instance.new("ScrollingFrame", tabs)
+    tabScroll.Size = UDim2.new(1, 0, 1, 0)
+    tabScroll.BackgroundTransparency = 1
+    tabScroll.ScrollBarThickness = 3
+    tabScroll.ScrollBarImageColor3 = self.Config.ACCENT
+    tabScroll.AutomaticCanvasSize = "Y"
+
+    local tabLayout = Instance.new("UIListLayout", tabScroll)
+    tabLayout.Padding = UDim.new(0, 5)
+    tabLayout.HorizontalAlignment = "Center"
+
+    -- Content area
+    local contentArea = Instance.new("ScrollingFrame", main)
+    contentArea.Size = UDim2.new(0.75, 0, 1, -35)
+    contentArea.Position = UDim2.new(0.25, 0, 0, 35)
+    contentArea.BackgroundColor3 = self.Config.FG
+    contentArea.BorderSizePixel = 1
+    contentArea.BorderColor3 = self.Config.BORDER
+    contentArea.ScrollBarThickness = 3
+    contentArea.ScrollBarImageColor3 = self.Config.ACCENT
+    contentArea.AutomaticCanvasSize = "Y"
+
+    local contentLayout = Instance.new("UIListLayout", contentArea)
+    contentLayout.Padding = UDim.new(0, 10)
+    contentLayout.FillDirection = Enum.FillDirection.Vertical
+
+    local categories = {"General", "Visual", "Notifications", "Keybinds"}
+    
+    for _, categoryName in ipairs(categories) do
+        if self.Settings[categoryName] then
+            local tabBtn = Instance.new("TextButton", tabScroll)
+            tabBtn.Size = UDim2.new(0.9, 0, 0, 35)
+            tabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            tabBtn.BorderSizePixel = 1
+            tabBtn.BorderColor3 = self.Config.BORDER
+            tabBtn.Text = categoryName
+            tabBtn.TextColor3 = Color3.new(1, 1, 1)
+            tabBtn.Font = Enum.Font.Code
+            tabBtn.TextSize = 11
+
+            tabBtn.MouseButton1Click:Connect(function()
+                -- Clear content
+                for _, child in ipairs(contentArea:GetChildren()) do
+                    if child:IsA("Frame") then child:Destroy() end
+                end
+
+                -- Add category title
+                local catTitle = Instance.new("TextLabel", contentArea)
+                catTitle.Size = UDim2.new(1, -20, 0, 30)
+                catTitle.BackgroundColor3 = self.Config.FG
+                catTitle.BorderSizePixel = 0
+                catTitle.Text = categoryName .. " Settings"
+                catTitle.TextColor3 = self.Config.ACCENT
+                catTitle.Font = Enum.Font.Code
+                catTitle.TextSize = 14
+                catTitle.TextXAlignment = "Left"
+
+                -- Populate settings
+                local yOffset = 0
+                for key, data in pairs(self.Settings[categoryName]) do
+                    self:_createSettingControl(contentArea, categoryName, key, data, yOffset)
+                    yOffset = yOffset + 50
+                end
+
+                -- Change tab color
+                for _, btn in ipairs(tabScroll:GetChildren()) do
+                    if btn:IsA("TextButton") then
+                        btn.BackgroundColor3 = btn == tabBtn and self.Config.ACCENT or Color3.fromRGB(30, 30, 30)
+                        btn.TextColor3 = btn == tabBtn and Color3.new(0, 0, 0) or Color3.new(1, 1, 1)
+                    end
+                end
+            end)
+        end
+    end
+
+    -- Bottom buttons
+    local bottomFrame = Instance.new("Frame", main)
+    bottomFrame.Size = UDim2.new(1, 0, 0, 35)
+    bottomFrame.Position = UDim2.new(0, 0, 1, -35)
+    bottomFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    bottomFrame.BorderSizePixel = 1
+    bottomFrame.BorderColor3 = self.Config.BORDER
+
+    local saveBtn = Instance.new("TextButton", bottomFrame)
+    saveBtn.Size = UDim2.fromOffset(100, 25)
+    saveBtn.Position = UDim2.fromOffset(10, 5)
+    saveBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+    saveBtn.BorderSizePixel = 0
+    saveBtn.Text = "SAVE"
+    saveBtn.TextColor3 = Color3.new(1, 1, 1)
+    saveBtn.Font = Enum.Font.Code
+    saveBtn.TextSize = 11
+
+    saveBtn.MouseButton1Click:Connect(function()
+        self:SaveSettings()
+    end)
+
+    local loadBtn = Instance.new("TextButton", bottomFrame)
+    loadBtn.Size = UDim2.fromOffset(100, 25)
+    loadBtn.Position = UDim2.fromOffset(120, 5)
+    loadBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 150)
+    loadBtn.BorderSizePixel = 0
+    loadBtn.Text = "LOAD"
+    loadBtn.TextColor3 = Color3.new(1, 1, 1)
+    loadBtn.Font = Enum.Font.Code
+    loadBtn.TextSize = 11
+
+    loadBtn.MouseButton1Click:Connect(function()
+        self:LoadSettings()
+    end)
+
+    local resetBtn = Instance.new("TextButton", bottomFrame)
+    resetBtn.Size = UDim2.fromOffset(100, 25)
+    resetBtn.Position = UDim2.new(1, -110, 0, 5)
+    resetBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    resetBtn.BorderSizePixel = 0
+    resetBtn.Text = "RESET"
+    resetBtn.TextColor3 = Color3.new(1, 1, 1)
+    resetBtn.Font = Enum.Font.Code
+    resetBtn.TextSize = 11
+
+    resetBtn.MouseButton1Click:Connect(function()
+        -- Reset to defaults
+        DoNotif("Settings reset to defaults. Restart required.", 3)
+    end)
+
+    self.State.UI = sg
+    DoNotif("Settings Manager Opened", 2)
+end
+
+function Modules.SettingsManager:Initialize()
+    for _, s in ipairs(self.Dependencies) do 
+        self.Services[s] = game:GetService(s) 
+    end
+
+    self:LoadSettings()
+
+    RegisterCommand({
+        Name = "settings",
+        Aliases = {"config", "cfg"},
+        Description = "Opens the Settings Manager"
+    }, function()
+        self:CreateUI()
+    end)
+
+    -- Register keybind
+    self.State.Connections.Keybind = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == self:GetSetting("Keybinds", "OpenSettings") then
+            self:CreateUI()
+        end
+    end)
+end
+
 Modules.Backtrack = {
     State = {
         IsEnabled = false,
@@ -22207,12 +23507,24 @@ Modules.ScriptSearcher = {
         IsEnabled = false,
         UI = {},
         Connections = {},
-        IsSearching = false
+        IsSearching = false,
+        LastQuery = "",
+        LastResults = {},
+        CurrentPage = 1,
+        ResultsPerPage = 20,
+        SearchHistory = {},
+        SortMode = "newest",
+        ActiveFilters = {},
+        CurrentSource = "scriptblox"
     },
     Config = {
         ACCENT = Color3.fromRGB(0, 255, 255),
         BG = Color3.fromRGB(20, 20, 20),
-        API_URL = "https://scriptblox.com/api/script/search?q=%s&mode=free&max=20"
+        APIs = {
+            scriptblox = "https://scriptblox.com/api/script/search?q=%s&mode=free&max=100",
+            pastebin = "https://pastebin.com/api/v1/paste/list?api_dev_key=YOUR_KEY&results_limit=100",
+        },
+        MAX_HISTORY = 15
     },
     Dependencies = {"HttpService", "Players", "CoreGui", "UserInputService", "RunService"},
     Services = {}
@@ -22221,7 +23533,20 @@ Modules.ScriptSearcher = {
 
 function Modules.ScriptSearcher:PerformSearch(query)
     if self.State.IsSearching then return end
+    if query == "" then return DoNotif("Enter a search query.", 2) end
+    
     self.State.IsSearching = true
+    self.State.LastQuery = query
+    self.State.CurrentPage = 1
+    self.State.LastResults = {}
+    
+    -- Add to history
+    if not table.find(self.State.SearchHistory, query) then
+        table.insert(self.State.SearchHistory, 1, query)
+        if #self.State.SearchHistory > self.Config.MAX_HISTORY then
+            table.remove(self.State.SearchHistory, #self.State.SearchHistory)
+        end
+    end
     
     local scroll = self.State.UI.ResultScroll
     for _, v in ipairs(scroll:GetChildren()) do
@@ -22230,7 +23555,7 @@ function Modules.ScriptSearcher:PerformSearch(query)
 
     local status = Instance.new("TextLabel", scroll)
     status.Size = UDim2.new(1, 0, 0, 30); status.BackgroundTransparency = 1
-    status.Text = "Searching database..."; status.TextColor3 = self.Config.ACCENT
+    status.Text = "Searching '" .. self.State.CurrentSource .. "'..."; status.TextColor3 = self.Config.ACCENT
     status.Font = Enum.Font.Code; status.TextSize = 14
 
     task.spawn(function()
@@ -22241,16 +23566,17 @@ function Modules.ScriptSearcher:PerformSearch(query)
             return 
         end
 
-        local url = self.Config.API_URL:format(self.Services.HttpService:UrlEncode(query))
+        local apiUrl = self.Config.APIs[self.State.CurrentSource] or self.Config.APIs.scriptblox
+        local url = apiUrl:format(self.Services.HttpService:UrlEncode(query))
         local success, res = pcall(function() return requestFunc({Url = url, Method = "GET"}) end)
 
         if success and res.StatusCode == 200 then
             status:Destroy()
             local data = self.Services.HttpService:JSONDecode(res.Body)
             if data.result and data.result.scripts then
-                for _, scriptData in ipairs(data.result.scripts) do
-                    self:_createResultCard(scriptData)
-                end
+                self.State.LastResults = data.result.scripts
+                self:_displayPage(1)
+                DoNotif("Found " .. #self.State.LastResults .. " results.", 2)
             else
                 status.Text = "No results found."
             end
@@ -22259,6 +23585,109 @@ function Modules.ScriptSearcher:PerformSearch(query)
         end
         self.State.IsSearching = false
     end)
+end
+
+function Modules.ScriptSearcher:_displayPage(page)
+    local scroll = self.State.UI.ResultScroll
+    for _, v in ipairs(scroll:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local startIdx = (page - 1) * self.State.ResultsPerPage + 1
+    local endIdx = math.min(page * self.State.ResultsPerPage, #self.State.LastResults)
+
+    if startIdx > #self.State.LastResults then
+        local noMore = Instance.new("TextLabel", scroll)
+        noMore.Size = UDim2.new(1, 0, 0, 30); noMore.BackgroundTransparency = 1
+        noMore.Text = "No more results."; noMore.TextColor3 = Color3.fromRGB(150, 150, 150)
+        return
+    end
+
+    for i = startIdx, endIdx do
+        self:_createResultCard(self.State.LastResults[i])
+    end
+
+    -- Page indicator
+    local pageInfo = Instance.new("TextLabel", scroll)
+    pageInfo.Size = UDim2.new(1, 0, 0, 20); pageInfo.BackgroundTransparency = 1
+    pageInfo.Text = "Page " .. page .. " of " .. math.ceil(#self.State.LastResults / self.State.ResultsPerPage)
+    pageInfo.TextColor3 = self.Config.ACCENT; pageInfo.Font = Enum.Font.Code; pageInfo.TextSize = 10
+
+    self.State.CurrentPage = page
+end
+
+function Modules.ScriptSearcher:RefreshSearch()
+    if self.State.LastQuery == "" then
+        return DoNotif("No previous search to refresh.", 2)
+    end
+    self:PerformSearch(self.State.LastQuery)
+end
+
+function Modules.ScriptSearcher:NextPage()
+    local maxPage = math.ceil(#self.State.LastResults / self.State.ResultsPerPage)
+    if self.State.CurrentPage < maxPage then
+        self:_displayPage(self.State.CurrentPage + 1)
+    else
+        DoNotif("Already on last page.", 2)
+    end
+end
+
+function Modules.ScriptSearcher:PrevPage()
+    if self.State.CurrentPage > 1 then
+        self:_displayPage(self.State.CurrentPage - 1)
+    else
+        DoNotif("Already on first page.", 2)
+    end
+end
+
+function Modules.ScriptSearcher:SetSort(mode)
+    self.State.SortMode = mode
+    if #self.State.LastResults > 0 then
+        if mode == "popular" then
+            table.sort(self.State.LastResults, function(a, b)
+                return (a.favorites or 0) > (b.favorites or 0)
+            end)
+        elseif mode == "newest" then
+            table.sort(self.State.LastResults, function(a, b)
+                return (a.updated_at or 0) > (b.updated_at or 0)
+            end)
+        end
+        self:_displayPage(1)
+    end
+end
+
+function Modules.ScriptSearcher:SetSource(source)
+    if self.Config.APIs[source] then
+        self.State.CurrentSource = source
+        DoNotif("Source switched to: " .. source, 2)
+    end
+end
+
+function Modules.ScriptSearcher:ShowHistory()
+    local scroll = self.State.UI.ResultScroll
+    for _, v in ipairs(scroll:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    if #self.State.SearchHistory == 0 then
+        local empty = Instance.new("TextLabel", scroll)
+        empty.Size = UDim2.new(1, 0, 0, 30); empty.BackgroundTransparency = 1
+        empty.Text = "No search history."; empty.TextColor3 = Color3.fromRGB(150, 150, 150)
+        return
+    end
+
+    for _, query in ipairs(self.State.SearchHistory) do
+        local historyBtn = Instance.new("TextButton", scroll)
+        historyBtn.Size = UDim2.new(1, -10, 0, 30)
+        historyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        historyBtn.BorderSizePixel = 1; historyBtn.BorderColor3 = Color3.fromRGB(60, 60, 60)
+        historyBtn.Text = "🔍 " .. query; historyBtn.TextColor3 = self.Config.ACCENT
+        historyBtn.Font = Enum.Font.Code; historyBtn.TextSize = 11
+        
+        historyBtn.MouseButton1Click:Connect(function()
+            self:PerformSearch(query)
+        end)
+    end
 end
 
 
@@ -22310,10 +23739,10 @@ function Modules.ScriptSearcher:CreateUI()
     if self.State.UI.Main then self.State.UI.Main.Visible = true return end
 
     local sg = Instance.new("ScreenGui", self.Services.CoreGui)
-    sg.Name = "Zuka_ScriptHub_RC7"
+    sg.Name = "Zuka_ScriptHub_RC8"
     
     local main = Instance.new("Frame", sg)
-    main.Size = UDim2.fromOffset(500, 450)
+    main.Size = UDim2.fromOffset(600, 550)
     main.Position = UDim2.fromScale(0.5, 0.5)
     main.AnchorPoint = Vector2.new(0.5, 0.5)
     main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
@@ -22323,8 +23752,8 @@ function Modules.ScriptSearcher:CreateUI()
     header.Size = UDim2.new(1, 0, 0, 30); header.BackgroundColor3 = Color3.fromRGB(30, 30, 30); header.BorderSizePixel = 0
     
     local title = Instance.new("TextLabel", header)
-    title.Size = UDim2.new(1, -60, 1, 0); title.Position = UDim2.fromOffset(10, 0)
-    title.Text = "DATABASE BROWSER - SCRIPTBLOX"; title.TextColor3 = self.Config.ACCENT
+    title.Size = UDim2.new(0.7, -60, 1, 0); title.Position = UDim2.fromOffset(10, 0)
+    title.Text = "DATABASE BROWSER v2"; title.TextColor3 = self.Config.ACCENT
     title.Font = Enum.Font.Code; title.TextSize = 14; title.TextXAlignment = "Left"; title.BackgroundTransparency = 1
 
     local close = Instance.new("TextButton", header)
@@ -22332,22 +23761,105 @@ function Modules.ScriptSearcher:CreateUI()
     close.Text = "X"; close.TextColor3 = Color3.new(1,0,0); close.BackgroundTransparency = 1
     close.MouseButton1Click:Connect(function() sg:Destroy(); self.State.UI = {} end)
 
-    -- Search Input
+    -- Search Controls Row 1
     local searchBar = Instance.new("TextBox", main)
-    searchBar.Size = UDim2.new(1, -110, 0, 30); searchBar.Position = UDim2.fromOffset(10, 40)
+    searchBar.Size = UDim2.new(1, -230, 0, 30); searchBar.Position = UDim2.fromOffset(10, 40)
     searchBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20); searchBar.BorderSizePixel = 1; searchBar.BorderColor3 = Color3.fromRGB(80, 80, 80)
-    searchBar.PlaceholderText = "Enter keywords (e.g. Prison Life)..."; searchBar.Text = ""
+    searchBar.PlaceholderText = "Enter keywords..."; searchBar.Text = ""
     searchBar.TextColor3 = Color3.new(1,1,1); searchBar.Font = Enum.Font.Code; searchBar.TextSize = 14
 
     local searchBtn = Instance.new("TextButton", main)
-    searchBtn.Size = UDim2.fromOffset(80, 30); searchBtn.Position = UDim2.new(1, -90, 0, 40)
+    searchBtn.Size = UDim2.fromOffset(70, 30); searchBtn.Position = UDim2.new(1, -220, 0, 40)
     searchBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); searchBtn.BorderSizePixel = 1; searchBtn.BorderColor3 = self.Config.ACCENT
-    searchBtn.Text = "SEARCH"; searchBtn.TextColor3 = self.Config.ACCENT; searchBtn.Font = Enum.Font.Code
+    searchBtn.Text = "SEARCH"; searchBtn.TextColor3 = self.Config.ACCENT; searchBtn.Font = Enum.Font.Code; searchBtn.TextSize = 10
     searchBtn.MouseButton1Click:Connect(function() self:PerformSearch(searchBar.Text) end)
+
+    local refreshBtn = Instance.new("TextButton", main)
+    refreshBtn.Size = UDim2.fromOffset(70, 30); refreshBtn.Position = UDim2.new(1, -140, 0, 40)
+    refreshBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); refreshBtn.BorderSizePixel = 1; refreshBtn.BorderColor3 = Color3.fromRGB(100, 150, 100)
+    refreshBtn.Text = "REFRESH"; refreshBtn.TextColor3 = Color3.fromRGB(100, 200, 100); refreshBtn.Font = Enum.Font.Code; refreshBtn.TextSize = 10
+    refreshBtn.MouseButton1Click:Connect(function() self:RefreshSearch() end)
+
+    local historyBtn = Instance.new("TextButton", main)
+    historyBtn.Size = UDim2.fromOffset(60, 30); historyBtn.Position = UDim2.new(1, -70, 0, 40)
+    historyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); historyBtn.BorderSizePixel = 1; historyBtn.BorderColor3 = Color3.fromRGB(150, 100, 200)
+    historyBtn.Text = "HISTORY"; historyBtn.TextColor3 = Color3.fromRGB(200, 150, 255); historyBtn.Font = Enum.Font.Code; historyBtn.TextSize = 9
+    historyBtn.MouseButton1Click:Connect(function() self:ShowHistory() end)
+
+    -- Filter Controls Row 2
+    local sortLabel = Instance.new("TextLabel", main)
+    sortLabel.Size = UDim2.fromOffset(40, 25); sortLabel.Position = UDim2.fromOffset(10, 75)
+    sortLabel.Text = "Sort:"; sortLabel.TextColor3 = self.Config.ACCENT; sortLabel.BackgroundTransparency = 1
+    sortLabel.Font = Enum.Font.Code; sortLabel.TextSize = 10
+
+    local sortBtn = Instance.new("TextButton", main)
+    sortBtn.Size = UDim2.fromOffset(80, 25); sortBtn.Position = UDim2.fromOffset(55, 75)
+    sortBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30); sortBtn.BorderSizePixel = 1; sortBtn.BorderColor3 = Color3.fromRGB(80, 80, 80)
+    sortBtn.Text = "NEWEST"; sortBtn.TextColor3 = Color3.new(1,1,1); sortBtn.Font = Enum.Font.Code; sortBtn.TextSize = 9
+    
+    local sortModes = {"newest", "popular"}
+    local sortIndex = 1
+    sortBtn.MouseButton1Click:Connect(function()
+        sortIndex = sortIndex % #sortModes + 1
+        sortBtn.Text = sortModes[sortIndex]:upper()
+        self:SetSort(sortModes[sortIndex])
+    end)
+
+    local sourceLabel = Instance.new("TextLabel", main)
+    sourceLabel.Size = UDim2.fromOffset(45, 25); sourceLabel.Position = UDim2.fromOffset(145, 75)
+    sourceLabel.Text = "Source:"; sourceLabel.TextColor3 = self.Config.ACCENT; sourceLabel.BackgroundTransparency = 1
+    sourceLabel.Font = Enum.Font.Code; sourceLabel.TextSize = 10
+
+    local sourceBtn = Instance.new("TextButton", main)
+    sourceBtn.Size = UDim2.fromOffset(90, 25); sourceBtn.Position = UDim2.fromOffset(195, 75)
+    sourceBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30); sourceBtn.BorderSizePixel = 1; sourceBtn.BorderColor3 = Color3.fromRGB(80, 80, 80)
+    sourceBtn.Text = "SCRIPTBLOX"; sourceBtn.TextColor3 = Color3.new(1,1,1); sourceBtn.Font = Enum.Font.Code; sourceBtn.TextSize = 9
+    
+    local sources = {"scriptblox"}
+    local sourceIndex = 1
+    sourceBtn.MouseButton1Click:Connect(function()
+        sourceIndex = sourceIndex % #sources + 1
+        sourceBtn.Text = sources[sourceIndex]:upper()
+        self:SetSource(sources[sourceIndex])
+    end)
+
+    local resultsPerPageLabel = Instance.new("TextLabel", main)
+    resultsPerPageLabel.Size = UDim2.fromOffset(55, 25); resultsPerPageLabel.Position = UDim2.fromOffset(295, 75)
+    resultsPerPageLabel.Text = "Per Page:"; resultsPerPageLabel.TextColor3 = self.Config.ACCENT; resultsPerPageLabel.BackgroundTransparency = 1
+    resultsPerPageLabel.Font = Enum.Font.Code; resultsPerPageLabel.TextSize = 10
+
+    local resultsPerPageBtn = Instance.new("TextButton", main)
+    resultsPerPageBtn.Size = UDim2.fromOffset(60, 25); resultsPerPageBtn.Position = UDim2.fromOffset(355, 75)
+    resultsPerPageBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30); resultsPerPageBtn.BorderSizePixel = 1; resultsPerPageBtn.BorderColor3 = Color3.fromRGB(80, 80, 80)
+    resultsPerPageBtn.Text = "20"; resultsPerPageBtn.TextColor3 = Color3.new(1,1,1); resultsPerPageBtn.Font = Enum.Font.Code; resultsPerPageBtn.TextSize = 9
+    
+    local pageOptions = {10, 20, 50}
+    local pageIndex = 2
+    resultsPerPageBtn.MouseButton1Click:Connect(function()
+        pageIndex = pageIndex % #pageOptions + 1
+        self.State.ResultsPerPage = pageOptions[pageIndex]
+        resultsPerPageBtn.Text = tostring(pageOptions[pageIndex])
+        if #self.State.LastResults > 0 then
+            self:_displayPage(1)
+        end
+    end)
+
+    -- Pagination Controls
+    local prevPageBtn = Instance.new("TextButton", main)
+    prevPageBtn.Size = UDim2.fromOffset(60, 25); prevPageBtn.Position = UDim2.new(1, -180, 0, 75)
+    prevPageBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); prevPageBtn.BorderSizePixel = 1; prevPageBtn.BorderColor3 = self.Config.ACCENT
+    prevPageBtn.Text = "◄ PREV"; prevPageBtn.TextColor3 = self.Config.ACCENT; prevPageBtn.Font = Enum.Font.Code; prevPageBtn.TextSize = 9
+    prevPageBtn.MouseButton1Click:Connect(function() self:PrevPage() end)
+
+    local nextPageBtn = Instance.new("TextButton", main)
+    nextPageBtn.Size = UDim2.fromOffset(60, 25); nextPageBtn.Position = UDim2.new(1, -110, 0, 75)
+    nextPageBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); nextPageBtn.BorderSizePixel = 1; nextPageBtn.BorderColor3 = self.Config.ACCENT
+    nextPageBtn.Text = "NEXT ►"; nextPageBtn.TextColor3 = self.Config.ACCENT; nextPageBtn.Font = Enum.Font.Code; nextPageBtn.TextSize = 9
+    nextPageBtn.MouseButton1Click:Connect(function() self:NextPage() end)
 
     -- Results Area
     local scroll = Instance.new("ScrollingFrame", main)
-    scroll.Size = UDim2.new(1, -20, 1, -90); scroll.Position = UDim2.fromOffset(10, 80)
+    scroll.Size = UDim2.new(1, -20, 1, -120); scroll.Position = UDim2.fromOffset(10, 110)
     scroll.BackgroundColor3 = Color3.fromRGB(15, 15, 15); scroll.BorderSizePixel = 1; scroll.BorderColor3 = Color3.fromRGB(50, 50, 50)
     scroll.ScrollBarThickness = 3; scroll.ScrollBarImageColor3 = self.Config.ACCENT; scroll.AutomaticCanvasSize = "Y"
 
@@ -22372,7 +23884,7 @@ function Modules.ScriptSearcher:CreateUI()
     end)
 
     self.State.UI = {Main = main, ResultScroll = scroll}
-    DoNotif("ScriptHub Initialized.", 2)
+    DoNotif("ScriptHub v2 Initialized - Full Featured Search", 2)
 end
 
 function Modules.ScriptSearcher:Initialize()
