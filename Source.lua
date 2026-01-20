@@ -25,8 +25,7 @@ local function getLocalPlayer()
     end
     return lp
 end
-local LocalPlayer = getLocalPlayer()
-
+--[[local LocalPlayer = getLocalPlayer()
 local CoreGui = game:GetService("CoreGui")
 repeat task.wait(0.1) until CoreGui:FindFirstChild("RobloxGui")
 
@@ -113,7 +112,7 @@ else
         if setreadonly then setreadonly(LocalPlayer, true) end
     end)
     print("--> Anti-Kick Success!.")
-end
+end--]]
 
 local _GC_START = collectgarbage("count")
 local _TIMESTAMP = os.clock()
