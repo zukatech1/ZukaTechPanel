@@ -3,8 +3,92 @@ made by zuka @OverZuka on roblox
 
 this wont work on xeno probably.
 
-Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
+Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/Main-Repo/refs/heads/main/MainPanel.lua"))()
 --]]
+
+local getgenv = getgenv
+local getrawmetatable = getrawmetatable
+local setreadonly = setreadonly
+local checkcaller = checkcaller
+local newcclosure = newcclosure
+local getnamecallmethod = getnamecallmethod
+local hookmetamethod = hookmetamethod
+
+if getgenv().Vanguard_Active then
+    warn("--> [ZukaTech]: Shield already active. Interception skipped.")
+else
+    getgenv().Vanguard_Active = true
+
+    local ShieldConfig = {
+        Notify = true,
+        CrashCaller = true,
+        Silent = false,
+        SpoofMessage = "Connection timeout due to low bandwidth."
+    }
+
+    local Players = game:GetService("Players")
+    local StarterGui = game:GetService("StarterGui")
+    local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+
+    local function logInterception(method, caller_info)
+        if ShieldConfig.Silent then return end
+        print("-------------------------------------------")
+        warn("--> [ZukaTech]: KICK BLOCKED")
+        print("--> [METHOD]: " .. tostring(method))
+        print("--> [CALLER]: " .. tostring(caller_info))
+        print("-------------------------------------------")
+        if ShieldConfig.Notify then
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {
+                    Title = "ZukaTech Shield",
+                    Text = "Intercepted and neutralized a client-side kick.",
+                    Duration = 5,
+                    Button1 = "Dismiss"
+                })
+            end)
+        end
+    end
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if (method == "Kick" or method == "kick") and self == LocalPlayer then
+            if not checkcaller() then
+                logInterception("Namecall", "External Script")
+                if ShieldConfig.CrashCaller then
+                    error("Critical Engine Error: Memory access violation at 0x004F2")
+                end
+                return nil
+            end
+        end
+        return oldNamecall(self, ...)
+    end))
+    local mt = getrawmetatable(game)
+    local oldIndex = mt.__index
+    setreadonly(mt, false)
+    mt.__index = newcclosure(function(t, k)
+        if t == LocalPlayer and (k == "Kick" or k == "kick") then
+            if not checkcaller() then
+                logInterception("Index/Direct Call", "Advanced Anti-Cheat")
+                return newcclosure(function()
+                    if ShieldConfig.CrashCaller then
+                        error("ZukaTech: Thread terminated to prevent execution of unauthorized :Kick()")
+                    end
+                    return nil
+                end)
+            end
+        end
+        return oldIndex(t, k)
+    end)
+    setreadonly(mt, true)
+    pcall(function()
+        if setreadonly then setreadonly(LocalPlayer, false) end
+        LocalPlayer.Kick = newcclosure(function()
+            logInterception("Global Override", "Direct Method Call")
+        end)
+        if setreadonly then setreadonly(LocalPlayer, true) end
+    end)
+    print("--> Anti-Kick Success!.")    
+end
 
 local _GC_START = collectgarbage("count")
 local _TIMESTAMP = os.clock()
@@ -54,9 +138,9 @@ local Services = setmetatable({}, {
         return s
     end
 })
-print(string.format("--> [INTERNAL]: Memory Baseline: %.2f KB", _GC_START))
-print(string.format("--> [INTERNAL]: Environment Unlock: SUCCESS"))
-print(string.format("--> [INTERNAL]: C-Closure Wrapper: ACTIVE"))
+print(string.format("--> [ZukaTech]: Memory Baseline: %.2f KB", _GC_START))
+print(string.format("--> [ZukaTech]: Environment Unlock: SUCCESS"))
+print(string.format("--> [ZukaTech]: C-Closure Wrapper: ACTIVE"))
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
