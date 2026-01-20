@@ -10437,7 +10437,7 @@ Modules.AntiAim = {
         CharacterConnection = nil
     },
     Config = {
-        VelocityStrength = 7000,
+        VelocityStrength = 9000,
         SnapBack = true
     }
 }
@@ -24725,7 +24725,7 @@ local function loadstringCmd(url, notif)
 end
 RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin") end)
 RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!") end)
-RegisterCommand({Name = "Dex", Aliases = {}, Description = "Loads Dex"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit") end)
+RegisterCommand({Name = "Dex", Aliases = {}, Description = "Loads Dex"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Custom.lua", "we lit") end)
 RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/plainsight.lua", "Anti Gay Shield Activated.") end)
 RegisterCommand({Name = "plag", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameLaggerPlauncher.lua", "Loading Modification") end)
 RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RAPIDFIREPumpkinlauncher.lua", "Loading Modification") end)
