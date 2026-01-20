@@ -2886,7 +2886,7 @@ function Modules.AutoDecompiler:Initialize()
     local module = self
     RegisterCommand({
         Name = "autodecompile",
-        Aliases = {"adecompile", "decompile"},
+        Aliases = {"adecompile},
         Description = "Automatically decompiles scripts using a bytecode API."
     }, function(args)
         module:Toggle()
