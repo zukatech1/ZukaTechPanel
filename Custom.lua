@@ -1667,6 +1667,8 @@ local function main()
 			context:AddRegistered("TELEPORT_TO")
 			context:AddRegistered("VIEW_OBJECT")
 			context:AddRegistered("3DVIEW_MODEL")
+			context:AddRegistered("ESP_MODEL")
+			context:AddRegistered("ESP_CLEAR")
 		end
 		if presentClasses["Tween"] then context:AddRegistered("PLAY_TWEEN") end
 		if presentClasses["Animation"] then
@@ -1693,7 +1695,7 @@ local function main()
 		if presentClasses["BindableFunction"] then context:AddRegistered("BLOCK_REMOTE", env.hookfunction == nil) end
 		if presentClasses["BindableFunction"] then context:AddRegistered("UNBLOCK_REMOTE", env.hookfunction == nil) end
 
-		if presentClasses["Player"] then context:AddRegistered("SELECT_CHARACTER")context:AddRegistered("VIEW_PLAYER") end
+		if presentClasses["Player"] then context:AddRegistered("SELECT_CHARACTER")context:AddRegistered("VIEW_PLAYER")context:AddRegistered("ESP_PLAYER")end
 		if presentClasses["Players"] then
 			context:AddRegistered("SELECT_LOCAL_PLAYER")
 			context:AddRegistered("SELECT_ALL_CHARACTERS")
@@ -1963,6 +1965,45 @@ local function main()
 			end
 		end})
 
+		context:Register("BRING_TO_PLAYER",{Name = "Bring To Player", IconMap = Explorer.MiscIcons, Icon = "TeleportTo", OnClick = function()
+			local sList = selection.List
+			local plrRP = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+
+			if not plrRP then return end
+
+			for _,node in next, sList do
+				local Obj = node.Obj
+				local distance = 5 -- Distance in front of player
+
+				if Obj:IsA("BasePart") then
+					-- Calculate position in front of player
+					local offset = plrRP.CFrame.LookVector * distance
+					if Obj.CanCollide then
+						Obj.CanCollide = false
+						Obj.CFrame = plrRP.CFrame + offset
+						Obj.CanCollide = true
+					else
+						Obj.CFrame = plrRP.CFrame + offset
+					end
+					break
+				elseif Obj:IsA("Model") then
+					if Obj.PrimaryPart then
+						local offset = plrRP.CFrame.LookVector * distance
+						local newCFrame = plrRP.CFrame + offset
+						Obj:MoveTo(newCFrame.Position)
+						break
+					else
+						local part = Obj:FindFirstChildWhichIsA("BasePart", true)
+						if part then
+							local offset = plrRP.CFrame.LookVector * distance
+							Obj:MoveTo((plrRP.CFrame + offset).Position)
+							break
+						end
+					end
+				end
+			end
+		end})
+
 		local OldAnimation
 		context:Register("PLAY_TWEEN",{Name = "Play Tween", IconMap = Explorer.MiscIcons, Icon = "Play", OnClick = function()
 			local sList = selection.List
@@ -2133,21 +2174,22 @@ local function main()
 		}
 		context:Register("BLOCK_REMOTE",{Name = "Block From Firing", IconMap = Explorer.MiscIcons, Icon = "Delete", DisabledIcon = "Empty", OnClick = function()
 			local sList = selection.List
-			for i, list in sList do
-				local obj = list.Obj
+			for i = 1, #sList do
+				local obj = sList[i].Obj
 				if not remote_blocklist[obj] then
 					local functionToHook = ClassFire[obj.ClassName]
-					remote_blocklist[obj] = true
-					local old; old = env.hookmetamethod((oldgame or game), "__namecall", function(self, ...)
-						if remote_blocklist[obj] and self == obj and getnamecallmethod() == functionToHook then
-							return nil
+					if functionToHook then
+						remote_blocklist[obj] = true
+						local old; old = env.hookmetamethod((oldgame or game), "__namecall", function(self, ...)
+							if remote_blocklist[obj] and self == obj and getnamecallmethod() == functionToHook then
+								return nil
+							end
+							return old(self,...)
+						end)
+						if Settings.RemoteBlockWriteAttribute then
+							obj:SetAttribute("IsBlocked", true)
 						end
-						return old(self,...)
-					end)
-					if Settings.RemoteBlockWriteAttribute then
-						obj:SetAttribute("IsBlocked", true)
 					end
-
 				end
 			end
 		end})
@@ -2175,6 +2217,293 @@ local function main()
 			end
 		end})
 
+		context:Register("AI_ANALYZE_REMOTE",{Name = "Analyze Remote (AI)", IconMap = Explorer.MiscIcons, Icon = "Reference", OnClick = function()
+			local sList = selection.List
+			local HttpService = game:GetService("HttpService")
+			
+			for i = 1, #sList do
+				local obj = sList[i].Obj
+				local className = obj.ClassName
+				
+				if className == "RemoteEvent" or className == "RemoteFunction" then
+					local path = obj:GetFullName()
+					local prompt = string.format(
+						"Analyze this Roblox %s and provide a brief description of what it likely does:\n\nPath: %s\nName: %s\n\nProvide: 1) Purpose, 2) Likely parameters, 3) Expected behavior",
+						className, path, obj.Name
+					)
+					
+					-- Make API request (you'll need to set your API key)
+					local success, result = pcall(function()
+						return HttpService:PostAsyncJson(
+							"https://api.openai.com/v1/chat/completions",
+							{
+								model = "gpt-3.5-turbo",
+								messages = {{role = "user", content = prompt}},
+								max_tokens = 150
+							},
+							{
+								["Authorization"] = "Bearer YOUR_API_KEY_HERE"
+							}
+						)
+					end)
+					
+					if success and result and result.choices then
+						local analysis = result.choices[1].message.content
+						env.setclipboard(analysis)
+						print("Remote Analysis: " .. analysis)
+					else
+						print("AI Analysis failed - ensure API key is set")
+					end
+				end
+			end
+		end})
+
+		context:Register("AI_TRACE_REMOTE",{Name = "Find Remote Calls (AI)", IconMap = Explorer.MiscIcons, Icon = "Find", OnClick = function()
+			local sList = selection.List
+			
+			for i = 1, #sList do
+				local obj = sList[i].Obj
+				local className = obj.ClassName
+				
+				if className == "RemoteEvent" or className == "RemoteFunction" then
+					local remoteName = obj.Name
+					local found = {}
+					
+					-- Search all scripts for references to this remote
+					local function searchScripts(instance)
+						if instance:IsA("LuaSourceContainer") then
+							local source = instance.Source
+							if source:find(remoteName, 1, true) then
+								table.insert(found, instance:GetFullName())
+							end
+						end
+						
+						for _, child in pairs(instance:GetChildren()) do
+							searchScripts(child)
+						end
+					end
+					
+					searchScripts(game)
+					
+					if #found > 0 then
+						local result = remoteName .. " is called from:\n" .. table.concat(found, "\n")
+						env.setclipboard(result)
+						print(result)
+					else
+						print("No direct references found for " .. remoteName)
+					end
+				end
+			end
+		end})
+
+		context:Register("AI_GENERATE_MOCK",{Name = "Generate Mock Call (AI)", IconMap = Explorer.MiscIcons, Icon = "Play", OnClick = function()
+			local sList = selection.List
+			local HttpService = game:GetService("HttpService")
+			
+			for i = 1, #sList do
+				local obj = sList[i].Obj
+				local className = obj.ClassName
+				
+				if className == "RemoteEvent" or className == "RemoteFunction" then
+					local remoteName = obj.Name
+					local remoteType = className
+					
+					local prompt = string.format(
+						"Generate a realistic Lua mock call for this %s:\n\nName: %s\n\nProvide: 1) Sample call code, 2) Explanation of parameters\n\nKeep it concise.",
+						remoteType, remoteName
+					)
+					
+					local success, result = pcall(function()
+						return HttpService:PostAsyncJson(
+							"https://api.openai.com/v1/chat/completions",
+							{
+								model = "gpt-3.5-turbo",
+								messages = {{role = "user", content = prompt}},
+								max_tokens = 200
+							},
+							{
+								["Authorization"] = "Bearer YOUR_API_KEY_HERE"
+							}
+						)
+					end)
+					
+					if success and result and result.choices then
+						local mockCode = result.choices[1].message.content
+						env.setclipboard(mockCode)
+						print("Mock Call:\n" .. mockCode)
+					else
+						print("Mock generation failed - ensure API key is set")
+					end
+				end
+			end
+		end})
+
+		context:Register("REMOTE_PARAM_DETECTOR",{Name = "Detect Remote Parameters", IconMap = Explorer.MiscIcons, Icon = "Find", OnClick = function()
+			local sList = selection.List
+			local detectedParams = {}
+			
+			for i = 1, #sList do
+				local obj = sList[i].Obj
+				local className = obj.ClassName
+				
+				if className == "RemoteEvent" or className == "RemoteFunction" then
+					local remoteName = obj.Name
+					local found = {}
+					
+					-- Search scripts for FireServer/InvokeServer calls with this remote
+					local function analyzeScripts(instance)
+						if instance:IsA("LuaSourceContainer") then
+							local source = instance.Source
+							-- Look for patterns like remoteName:FireServer(...) or remoteName:InvokeServer(...)
+							local patterns = {
+								remoteName .. ":FireServer%s*%(",
+								remoteName .. ":InvokeServer%s*%(",
+								remoteName .. ":Fire%s*%(",
+								remoteName .. ":Invoke%s*%("
+							}
+							
+							for _, pattern in ipairs(patterns) do
+								if source:find(pattern) then
+									-- Extract lines with the remote call
+									for line in source:gmatch("[^\n]+") do
+										if line:find(remoteName) and (line:find("FireServer") or line:find("InvokeServer") or line:find(":Fire") or line:find(":Invoke")) then
+											table.insert(found, line:gsub("^%s+", ""))
+										end
+									end
+								end
+							end
+						end
+						
+						for _, child in pairs(instance:GetChildren()) do
+							analyzeScripts(child)
+						end
+					end
+					
+					analyzeScripts(game)
+					
+					if #found > 0 then
+						local result = "Parameter calls for " .. remoteName .. ":\n\n" .. table.concat(found, "\n")
+						env.setclipboard(result)
+						print(result)
+					else
+						print("No parameter patterns found for " .. remoteName)
+					end
+				end
+			end
+		end})
+
+		context:Register("REMOTE_SECURITY_CHECK",{Name = "Security Analysis (AI)", IconMap = Explorer.MiscIcons, Icon = "Delete", OnClick = function()
+			local sList = selection.List
+			local HttpService = game:GetService("HttpService")
+			
+			for i = 1, #sList do
+				local obj = sList[i].Obj
+				local className = obj.ClassName
+				
+				if className == "RemoteEvent" or className == "RemoteFunction" then
+					local remoteName = obj.Name
+					local remotePath = obj:GetFullName()
+					
+					-- Check for common security issues
+					local risks = {}
+					
+					-- Risk 1: Directly under ReplicatedStorage (public)
+					if remotePath:find("ReplicatedStorage") then
+						table.insert(risks, "⚠️ Located in ReplicatedStorage - publicly accessible")
+					end
+					
+					-- Risk 2: Generic names
+					if remoteName:lower():find("event") or remoteName:lower():find("function") then
+						table.insert(risks, "⚠️ Generic name - hard to understand purpose")
+					end
+					
+					-- Risk 3: No obvious parent validation
+					table.insert(risks, "⚠️ Unable to validate server-side checks from explorer")
+					
+					local prompt = string.format(
+						"Security analysis for Roblox %s '%s' at %s\n\nCommon risks detected:\n%s\n\nProvide security recommendations in 2-3 sentences.",
+						className, remoteName, remotePath, table.concat(risks, "\n")
+					)
+					
+					local success, result = pcall(function()
+						return HttpService:PostAsyncJson(
+							"https://api.openai.com/v1/chat/completions",
+							{
+								model = "gpt-3.5-turbo",
+								messages = {{role = "user", content = prompt}},
+								max_tokens = 200
+							},
+							{
+								["Authorization"] = "Bearer YOUR_API_KEY_HERE"
+							}
+						)
+					end)
+					
+					if success and result and result.choices then
+						local analysis = "Security Check: " .. remoteName .. "\n\n" .. table.concat(risks, "\n") .. "\n\nAI Recommendations:\n" .. result.choices[1].message.content
+						env.setclipboard(analysis)
+						print(analysis)
+					else
+						local analysis = "Security Check: " .. remoteName .. "\n\n" .. table.concat(risks, "\n")
+						env.setclipboard(analysis)
+						print(analysis)
+					end
+				end
+			end
+		end})
+
+		context:Register("REMOTE_NETWORK_LOGGER",{Name = "Network Logger (Toggle)", IconMap = Explorer.MiscIcons, Icon = "Play", OnClick = function()
+			if not _remoteNetworkLogger then
+				_remoteNetworkLogger = {}
+				_loggerActive = true
+				
+				-- Hook all remote fires
+				local HttpService = game:GetService("HttpService")
+				local old; old = env.hookmetamethod(game, "__namecall", function(self, ...)
+					if _loggerActive and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
+						local method = getnamecallmethod()
+						if method == "FireServer" or method == "InvokeServer" or method == "Fire" or method == "Invoke" then
+							local args = {...}
+							local logEntry = {
+								time = tick(),
+								remote = self.Name,
+								path = self:GetFullName(),
+								method = method,
+								argCount = #args,
+								args = args
+							}
+							table.insert(_remoteNetworkLogger, logEntry)
+							
+							-- Print to console
+							local argStr = ""
+							for j = 1, math.min(#args, 3) do
+								argStr = argStr .. typeof(args[j]) .. " "
+							end
+							print(string.format("[REMOTE] %s:%s(%s) - %d args", self.Name, method, argStr, #args))
+						end
+					end
+					return old(self, ...)
+				end)
+				
+				print("Network Logger ENABLED - tracking all remote calls")
+			else
+				_loggerActive = not _loggerActive
+				if _loggerActive then
+					print("Network Logger RESUMED")
+				else
+					print("Network Logger PAUSED")
+					-- Export log
+					local logText = "Remote Network Log:\n\n"
+					for i, entry in ipairs(_remoteNetworkLogger) do
+						logText = logText .. string.format("[%d] %s:%s at %s (%.2f args)\n", 
+							i, entry.remote, entry.method, entry.path, entry.argCount)
+					end
+					env.setclipboard(logText)
+					print(logText)
+				end
+			end
+		end})
+
 		context:Register("3DVIEW_MODEL",{Name = "3D Preview Object", IconMap = Explorer.LegacyClassIcons, Icon = 54, OnClick = function()
 			local sList = selection.List
 			local isa = game.IsA
@@ -2183,6 +2512,121 @@ local function main()
 				if isa(sList[1].Obj,"BasePart") or isa(sList[1].Obj,"Model") then
 					ModelViewer.ViewModel(sList[1].Obj)
 					return
+				end
+			end
+		end})
+
+		context:Register("ESP_MODEL",{Name = "Toggle ESP Box (Model)", IconMap = Explorer.MiscIcons, Icon = "ViewObject", OnClick = function()
+			local sList = selection.List
+			local isa = game.IsA
+			
+			for i = 1, #sList do
+				local obj = sList[i].Obj
+				if isa(obj, "Model") or isa(obj, "BasePart") then
+					-- Create/Toggle ESP box
+					if obj:FindFirstChild("ESP_Box") then
+						obj:FindFirstChild("ESP_Box"):Destroy()
+					else
+						local part = Instance.new("Part")
+						part.Name = "ESP_Box"
+						part.Shape = Enum.PartType.Block
+						part.Material = Enum.Material.Neon
+						part.CanCollide = false
+						part.Anchored = true
+						part.CFrame = obj:IsA("Model") and obj:GetBoundingBox() or obj.CFrame
+						part.Size = obj:IsA("Model") and obj:GetExtentsSize() or obj.Size
+						part.Transparency = 0.5
+						part.Color = Color3.fromRGB(0, 255, 0)
+						part.TopSurface = Enum.SurfaceType.Smooth
+						part.BottomSurface = Enum.SurfaceType.Smooth
+						part.CanQuery = false
+						part.CanTouch = false
+						part.Parent = obj
+						
+						-- Add name label
+						local billboard = Instance.new("BillboardGui")
+						billboard.Name = "NameLabel"
+						billboard.Size = UDim2.new(4, 0, 2, 0)
+						billboard.MaxDistance = 500
+						billboard.Parent = part
+						
+						local textLabel = Instance.new("TextLabel")
+						textLabel.Name = "TextLabel"
+						textLabel.Size = UDim2.new(1, 0, 1, 0)
+						textLabel.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+						textLabel.BackgroundTransparency = 0.3
+						textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+						textLabel.TextScaled = true
+						textLabel.Text = obj.Name
+						textLabel.Parent = billboard
+				end
+			end
+		end
+		end})
+
+		context:Register("ESP_PLAYER",{Name = "Toggle ESP Box (Player)", IconMap = Explorer.MiscIcons, Icon = "ViewObject", OnClick = function()
+			local sList = selection.List
+			local isa = game.IsA
+			
+			for i = 1, #sList do
+				local obj = sList[i].Obj
+				local playerName = nil
+				-- Check if it's a player or character
+				if isa(obj, "Player") then
+					playerName = obj.Name
+					obj = obj.Character
+				end
+				
+				if obj and isa(obj, "Model") then
+					if obj:FindFirstChild("ESP_Box") then
+						obj:FindFirstChild("ESP_Box"):Destroy()
+					else
+						local part = Instance.new("Part")
+						part.Name = "ESP_Box"
+						part.Shape = Enum.PartType.Block
+						part.Material = Enum.Material.Neon
+						part.CanCollide = false
+						part.Anchored = true
+						local cframe, size = obj:GetBoundingBox()
+						part.CFrame = cframe
+						part.Size = size
+						part.Transparency = 0.5
+						part.Color = Color3.fromRGB(255, 0, 0)
+						part.TopSurface = Enum.SurfaceType.Smooth
+						part.BottomSurface = Enum.SurfaceType.Smooth
+						part.CanQuery = false
+						part.CanTouch = false
+						part.Parent = obj
+						
+						-- Add name label
+						local billboard = Instance.new("BillboardGui")
+						billboard.Name = "NameLabel"
+						billboard.Size = UDim2.new(4, 0, 2, 0)
+						billboard.MaxDistance = 500
+						billboard.Parent = part
+						
+						local textLabel = Instance.new("TextLabel")
+						textLabel.Name = "TextLabel"
+						textLabel.Size = UDim2.new(1, 0, 1, 0)
+						textLabel.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+						textLabel.BackgroundTransparency = 0.3
+						textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+						textLabel.TextScaled = true
+						textLabel.Text = playerName or obj.Name
+						textLabel.Parent = billboard
+					end
+				end
+			end
+		end})
+
+		context:Register("ESP_CLEAR",{Name = "Clear ESP", IconMap = Explorer.MiscIcons, Icon = "Delete", OnClick = function()
+			local sList = selection.List
+			
+			for i = 1, #sList do
+				local obj = sList[i].Obj
+				local espBox = obj:FindFirstChild("ESP_Box")
+				if espBox then
+					espBox:Destroy()
 				end
 			end
 		end})
