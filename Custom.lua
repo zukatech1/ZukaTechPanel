@@ -2235,23 +2235,24 @@ local function main()
 						className, path, obj.Name
 					)
 					
-					-- Make API request (you'll need to set your API key)
+					-- Make API request to Claude
 					local success, result = pcall(function()
 						return HttpService:PostAsyncJson(
-							"https://api.openai.com/v1/chat/completions",
+							"https://api.anthropic.com/v1/messages",
 							{
-								model = "gpt-3.5-turbo",
-								messages = {{role = "user", content = prompt}},
-								max_tokens = 150
+								model = "claude-3-5-sonnet-20241022",
+								max_tokens = 150,
+								messages = {{role = "user", content = prompt}}
 							},
 							{
-								["Authorization"] = "Bearer YOUR_API_KEY_HERE"
+								["x-api-key"] = " ",
+								["anthropic-version"] = "2023-06-01"
 							}
 						)
 					end)
 					
-					if success and result and result.choices then
-						local analysis = result.choices[1].message.content
+					if success and result and result.content then
+						local analysis = result.content[1].text
 						env.setclipboard(analysis)
 						print("Remote Analysis: " .. analysis)
 					else
@@ -2318,20 +2319,21 @@ local function main()
 					
 					local success, result = pcall(function()
 						return HttpService:PostAsyncJson(
-							"https://api.openai.com/v1/chat/completions",
+							"https://api.anthropic.com/v1/messages",
 							{
-								model = "gpt-3.5-turbo",
-								messages = {{role = "user", content = prompt}},
-								max_tokens = 200
+								model = "claude-3-5-sonnet-20241022",
+								max_tokens = 200,
+								messages = {{role = "user", content = prompt}}
 							},
 							{
-								["Authorization"] = "Bearer YOUR_API_KEY_HERE"
+								["x-api-key"] = " ",
+								["anthropic-version"] = "2023-06-01"
 							}
 						)
 					end)
 					
-					if success and result and result.choices then
-						local mockCode = result.choices[1].message.content
+					if success and result and result.content then
+						local mockCode = result.content[1].text
 						env.setclipboard(mockCode)
 						print("Mock Call:\n" .. mockCode)
 					else
@@ -2430,20 +2432,21 @@ local function main()
 					
 					local success, result = pcall(function()
 						return HttpService:PostAsyncJson(
-							"https://api.openai.com/v1/chat/completions",
+							"https://api.anthropic.com/v1/messages",
 							{
-								model = "gpt-3.5-turbo",
-								messages = {{role = "user", content = prompt}},
-								max_tokens = 200
+								model = "claude-3-5-sonnet-20241022",
+								max_tokens = 200,
+								messages = {{role = "user", content = prompt}}
 							},
 							{
-								["Authorization"] = "Bearer YOUR_API_KEY_HERE"
+								["x-api-key"] = " ",
+								["anthropic-version"] = "2023-06-01"
 							}
 						)
 					end)
 					
-					if success and result and result.choices then
-						local analysis = "Security Check: " .. remoteName .. "\n\n" .. table.concat(risks, "\n") .. "\n\nAI Recommendations:\n" .. result.choices[1].message.content
+					if success and result and result.content then
+						local analysis = "Security Check: " .. remoteName .. "\n\n" .. table.concat(risks, "\n") .. "\n\nAI Recommendations:\n" .. result.content[1].text
 						env.setclipboard(analysis)
 						print(analysis)
 					else
@@ -2731,14 +2734,17 @@ local function main()
 				elseif n == "FireRate" or n == "BurstRate" or n == "ReloadTime" or n == "EquipTime" then return 0
 				elseif n == "TacticalReloadTime" or n == "SwitchTime" or lowerN:find("delay") then return 0
                 elseif n == "AmmoPerMag" then return 999999
-				
+                elseif n == "Auto" then return true
+				elseif n == "Recoil" then return 0
+                elseif n == "BulletPerShot" then return 15
+                elseif n == "FriendlyFire" then return true
+
 				-- Physics & Accuracy
 				elseif n == "Recoil" or n == "Spread" or n == "Accuracy" then return 0
 				elseif lowerN:find("angle") and (lowerN:find("min") or lowerN:find("max")) then return 0
 				elseif n == "BulletSpeed" or n == "Range" then return 90000
 				
 				-- Mechanics
-				elseif n == "Auto" or n == "SelectiveFireEnabled" then return true
 				elseif n == "LimitedAmmoEnabled" or n == "DamageDropOffEnabled" then return false
 				elseif n == "WalkSpeedRedutionEnabled" then return false
 				elseif n == "WalkSpeedRedution" then return 0
