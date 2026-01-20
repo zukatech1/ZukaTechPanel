@@ -6255,6 +6255,13 @@ Modules.Attacher = {
         selectedPlayerName = "Nearest Player",
         isFollowing = false,
         isAttaching = false,
+        isAutoAttacking = false,
+        attackSpeed = 1,
+        isChaosMode = false,
+        flingStrength = 0.5,
+        oscillationValue = 1,
+        lastChaosTime = 0,
+        chaosInterval = 0.1,
         
         -- UI and Connection Storage
         UI = {},
@@ -6399,6 +6406,24 @@ function Modules.Attacher:Activate()
         self.State.isAttaching = bool
         notify("Attach", bool and "Enabled" or "Disabled")
     end)
+    
+    local combatFolder = w:CreateFolder("Combat")
+    combatFolder:Slider("Attack Speed", {min = 0.1; max = 5; precise = true;}, function(value)
+        self.State.attackSpeed = value
+    end)
+    combatFolder:Toggle("Auto Attack (M1)", function(bool)
+        self.State.isAutoAttacking = bool
+        notify("Auto Attack", bool and "ENABLED - Spamming M1" or "Disabled")
+    end)
+    
+    local chaosFolder = w:CreateFolder("Anti-Aimbot")
+    chaosFolder:Slider("Fling Strength", {min = 0.1; max = 2; precise = true;}, function(value)
+        self.State.flingStrength = value
+    end)
+    chaosFolder:Toggle("Chaos Movement", function(bool)
+        self.State.isChaosMode = bool
+        notify("Chaos Mode", bool and "ENABLED - Breaking Aimbots" or "Disabled")
+    end)
 
     -- Helper functions for the main loop
     local function getNearestPlayer()
@@ -6431,6 +6456,8 @@ function Modules.Attacher:Activate()
     end
 
     --// --- Event Connections ---
+    local lastAttackTime = 0
+    
     self.State.Connections.RenderStepped = self.Services.RunService.RenderStepped:Connect(function()
         local target = getSelectedPlayer()
         if (self.State.isFollowing or self.State.isAttaching) and target then
@@ -6455,6 +6482,74 @@ function Modules.Attacher:Activate()
             local c = LocalPlayer.Character
             if c and c:FindFirstChildOfClass("Humanoid") then c:FindFirstChildOfClass("Humanoid").AutoRotate = true end
         end
+        
+        -- Chaos Mode (Anti-Aimbot Oscillation) - Applied every 0.1 seconds, not every frame
+        if self.State.isChaosMode then
+            local character = LocalPlayer.Character
+            local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                local currentTime = tick()
+                if currentTime - self.State.lastChaosTime >= self.State.chaosInterval then
+                    self.State.lastChaosTime = currentTime
+                    
+                    -- Visible CFrame movement for local client
+                    self.State.oscillationValue = -self.State.oscillationValue
+                    local offsetX = math.sin(currentTime * 8) * self.State.flingStrength * 5
+                    local offsetY = self.State.oscillationValue * self.State.flingStrength * 3
+                    local offsetZ = math.cos(currentTime * 8) * self.State.flingStrength * 5
+                    
+                    rootPart.CFrame = rootPart.CFrame * CFrame.new(offsetX, offsetY, offsetZ)
+                    
+                    -- Server-side velocity desync for aimbot (invisible but effective)
+                    local oscillationVelocity = Vector3.new(
+                        math.sin(currentTime * 5) * self.State.flingStrength * 30,
+                        self.State.oscillationValue * self.State.flingStrength * 15,
+                        math.cos(currentTime * 5) * self.State.flingStrength * 30
+                    )
+                    rootPart.Velocity = rootPart.Velocity + oscillationVelocity
+                end
+            end
+        end
+        
+        -- Auto Attack Logic
+        if self.State.isAutoAttacking and target then
+            local localChar = LocalPlayer.Character
+            if localChar then
+                local currentTime = tick()
+                local attackDelay = 1 / self.State.attackSpeed
+                
+                if currentTime - lastAttackTime >= attackDelay then
+                    lastAttackTime = currentTime
+                    
+                    -- Find and equip a weapon
+                    local backpack = LocalPlayer:FindFirstChild("Backpack")
+                    local equippedTool = localChar:FindFirstChildOfClass("Tool")
+                    
+                    if not equippedTool and backpack then
+                        local tool = backpack:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool.Parent = localChar
+                            equippedTool = tool
+                        end
+                    end
+                    
+                    -- Spam M1 attack
+                    if equippedTool and equippedTool:FindFirstChild("Handle") then
+                        local targetChar = target.Character
+                        if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+                            -- Point weapon at target
+                            local handle = equippedTool:FindFirstChild("Handle")
+                            if handle then
+                                handle.CFrame = CFrame.new(handle.Position, targetChar.HumanoidRootPart.Position)
+                            end
+                            
+                            -- Activate tool (M1 click)
+                            equippedTool:Activate()
+                        end
+                    end
+                end
+            end
+        end
     end)
 
     self.State.Connections.KeyDown = LocalPlayer:GetMouse().KeyDown:Connect(function(k)
@@ -6465,6 +6560,12 @@ function Modules.Attacher:Activate()
         elseif k == "z" then
             self.State.isAttaching = not self.State.isAttaching
             notify("Attach", self.State.isAttaching and "Enabled" or "Disabled")
+        elseif k == "c" then
+            self.State.isAutoAttacking = not self.State.isAutoAttacking
+            notify("Auto Attack", self.State.isAutoAttacking and "ENABLED - Spamming M1" or "Disabled")
+        elseif k == "v" then
+            self.State.isChaosMode = not self.State.isChaosMode
+            notify("Chaos Mode", self.State.isChaosMode and "ENABLED - Breaking Aimbots" or "Disabled")
         end
     end)
     
