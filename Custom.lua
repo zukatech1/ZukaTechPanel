@@ -1,5 +1,3 @@
---[[ I am the prophecy. ]]--
-
 local selection
 local nodes = {}
 
@@ -2265,7 +2263,7 @@ local function main()
 			end
 		end})
 		
-		context:Register("GENERATE_POISON_PATCH",{Name = "Generate Poison Patch", IconMap = Explorer.MiscIcons, Icon = "CallFunction", OnClick = function()
+		context:Register("GENERATE_POISON_PATCH",{Name = "Poison!", IconMap = Explorer.MiscIcons, Icon = "CallFunction", OnClick = function()
 			local node = selection.List[1]
 			if not node or not node.Obj:IsA("ModuleScript") then return end
 			local module = node.Obj
@@ -2285,6 +2283,7 @@ local function main()
 				-- Fire Rate & Reloads
 				elseif n == "FireRate" or n == "BurstRate" or n == "ReloadTime" or n == "EquipTime" then return 0
 				elseif n == "TacticalReloadTime" or n == "SwitchTime" or lowerN:find("delay") then return 0
+                elseif n == "AmmoPerMag" then return 999999
 				
 				-- Physics & Accuracy
 				elseif n == "Recoil" or n == "Spread" or n == "Accuracy" then return 0
