@@ -1,10 +1,11 @@
 --[[
-made by zuka @OverZuka on roblox
 
-this wont work on xeno probably.
+loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/Main-Repo/refs/heads/main/MainPanel.lua"))()
 
-Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/Main-Repo/refs/heads/main/MainPanel.lua"))()
---]]
+Made By Zuka. @OverRuka on ROBLOX.
+
+]]
+
 
 if getgenv().ZukaTech_Loaded then
     return
@@ -111,7 +112,7 @@ else
         end)
         if setreadonly then setreadonly(LocalPlayer, true) end
     end)
-    print("--> Anti-Kick Success!.")    
+    print("--> Anti-Kick Success!.")
 end
 
 local _GC_START = collectgarbage("count")
@@ -421,7 +422,7 @@ function RegisterCommand(info, func)
             end
         end
     end
-    table.insert(CommandInfo, info)  -- This should be INSIDE the function
+    table.insert(CommandInfo, info)
 end
 
 if cmd and cmd.add then
@@ -455,7 +456,7 @@ local function loadAimbotGUI(args)
 	end
 
 	local success, err = pcall(function()
-		-- Services
+
 		local UserInputService = game:GetService("UserInputService")
 		local RunService = game:GetService("RunService")
 		local Players = game:GetService("Players")
@@ -546,7 +547,7 @@ end
 		end
 		
 		local MainWindow = MainScreenGui:FindFirstChild("MainWindow")
-		if MainWindow then MainWindow:Destroy() end -- Destroy old window to redraw
+		if MainWindow then MainWindow:Destroy() end
 
 		getgenv().TargetScope = Workspace
 		getgenv().TargetIndex = {}
@@ -555,7 +556,7 @@ end
 		
 		local explorerWindow = nil
 		local function createExplorerWindow(statusLabel, indexerUpdateSignal)
-			-- This function remains unchanged
+
 			if explorerWindow and explorerWindow.Parent then
 				explorerWindow.Visible = not explorerWindow.Visible;
 				return explorerWindow
@@ -1019,10 +1020,9 @@ end
 				while task.wait(2) and MainScreenGui.Parent do RebuildTargetIndex() end
 			end)
 			indexerUpdateSignal:Fire()
-			
-			-- [NEW FEATURE] Handle command-line arguments for locking a target
+
 			if args and args[1] then
-				task.wait(0.1) -- Wait a brief moment for UI to be fully ready
+				task.wait(0.1)
 				local targetName = args[1]
 				if targetName:lower() == "clear" or targetName:lower() == "reset" or targetName:lower() == "off" then
 					playerTargetEnabled = false
@@ -1056,12 +1056,12 @@ end
 	end
 end
 
-RegisterCommand({ 
-    Name = "aimbot", 
-    Aliases = { "aim", "gamingchair", "a" }, 
-    Description = "Loads the aimbot GUI. Optional: [player name] to lock target." 
+RegisterCommand({
+    Name = "aimbot",
+    Aliases = { "aim", "gamingchair", "a" },
+    Description = "Loads the aimbot GUI. Optional: [player name] to lock target."
 }, function(args)
-    -- Check if the GUI exists. If not, create it and pass the args.
+
     if not game:GetService("CoreGui"):FindFirstChild("UTS_CGE_Suite") then
         loadAimbotGUI(args)
     else
@@ -1073,7 +1073,6 @@ RegisterCommand({
     end
 end)
 
-
 Modules.Performance = {
     State = {
         IsEnabled = false,
@@ -1084,14 +1083,12 @@ Modules.Performance = {
 function Modules.Performance:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
-    self.State.OriginalProperties = {} -- Reset cache
+    self.State.OriginalProperties = {}
 
-    -- Services
     local lighting = game:GetService("Lighting")
     local terrain = Workspace:FindFirstChildOfClass("Terrain")
     local materialService = game:GetService("MaterialService")
 
-    -- Cache and modify Lighting properties
     self.State.OriginalProperties.Lighting = {
         Technology = lighting.Technology,
         GlobalShadows = lighting.GlobalShadows,
@@ -1103,7 +1100,6 @@ function Modules.Performance:Enable()
     lighting.EnvironmentDiffuseScale = 0
     lighting.EnvironmentSpecularScale = 0
 
-    -- Cache and modify Terrain properties if it exists
     if terrain then
         self.State.OriginalProperties.Terrain = {
             Decoration = terrain.Decoration
@@ -1111,13 +1107,11 @@ function Modules.Performance:Enable()
         terrain.Decoration = false
     end
 
-    -- Cache and modify MaterialService properties
     self.State.OriginalProperties.MaterialService = {
         MaterialQuality = materialService.MaterialQuality
     }
     materialService.MaterialQuality = Enum.MaterialQuality.Low
-	
-	-- Cache and disable atmospheric effects
+
 	self.State.OriginalProperties.LightingEffects = {}
 	for _, effect in ipairs(lighting:GetChildren()) do
 		if effect:IsA("Atmosphere") or effect:IsA("Clouds") or effect:IsA("BloomEffect") or effect:IsA("BlurEffect") then
@@ -1135,42 +1129,37 @@ function Modules.Performance:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
 
-    -- Services
     local lighting = game:GetService("Lighting")
     local terrain = Workspace:FindFirstChildOfClass("Terrain")
     local materialService = game:GetService("MaterialService")
 
-    -- Restore Lighting properties safely
     if self.State.OriginalProperties.Lighting then
         for prop, value in pairs(self.State.OriginalProperties.Lighting) do
             pcall(function() lighting[prop] = value end)
         end
     end
 
-    -- Restore Terrain properties safely
     if terrain and self.State.OriginalProperties.Terrain then
         for prop, value in pairs(self.State.OriginalProperties.Terrain) do
             pcall(function() terrain[prop] = value end)
         end
     end
 
-    -- Restore MaterialService properties safely
     if self.State.OriginalProperties.MaterialService then
         for prop, value in pairs(self.State.OriginalProperties.MaterialService) do
             pcall(function() materialService[prop] = value end)
         end
     end
-	
-	-- Restore atmospheric effects
+
 	if self.State.OriginalProperties.LightingEffects then
 		for effect, props in pairs(self.State.OriginalProperties.LightingEffects) do
-			if effect and effect.Parent then -- Check if effect still exists
+			if effect and effect.Parent then
 				pcall(function() effect.Enabled = props.Enabled end)
 			end
 		end
 	end
 
-    self.State.OriginalProperties = {} -- Clear cache
+    self.State.OriginalProperties = {}
     DoNotif("Performance Mode: DISABLED. Graphics restored.", 2)
 end
 
@@ -1352,7 +1341,7 @@ function Modules.AstralProjection:Initialize()
     astralButton.Name = "AstralToggleButton"
     astralButton.Size = UDim2.fromOffset(64, 64)
     astralButton.AnchorPoint = Vector2.new(1, 1)
-    astralButton.Position = UDim2.new(1, -20, 1, -100) 
+    astralButton.Position = UDim2.new(1, -20, 1, -100)
     astralButton.Font = Enum.Font.GothamBold
     astralButton.Text = "DSYNC"
     astralButton.TextSize = 14
@@ -1488,7 +1477,7 @@ function Modules.CommandList:Initialize()
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
 
     local uiStroke = Instance.new("UIStroke", mainFrame)
-    uiStroke.Color = Color3.fromRGB(255, 105, 180) -- Hot Pink
+    uiStroke.Color = Color3.fromRGB(255, 105, 180)
     uiStroke.Thickness = 2
     
     local glowConnection
@@ -1548,8 +1537,7 @@ function Modules.CommandList:Initialize()
     scrollingFrame.BorderSizePixel = 0
     scrollingFrame.ScrollBarThickness = 6
     scrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 105, 180)
-    -- [FIX] Removed invalid ScrollBarBackgroundColor3 property
-    
+
     local listLayout = Instance.new("UIListLayout", scrollingFrame)
     listLayout.Padding = UDim.new(0, 5)
 
@@ -1600,7 +1588,6 @@ function Modules.CommandList:Populate()
     local listLayout = Instance.new("UIListLayout", scrollingFrame)
     listLayout.Padding = UDim.new(0, 8)
 
-    -- [FIX] This connection automatically updates the scrollable area to fit all content.
     listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         scrollingFrame.CanvasSize = UDim2.fromOffset(0, listLayout.AbsoluteContentSize.Y)
     end)
@@ -1689,7 +1676,6 @@ function Modules.CommandList:Toggle()
     end
 end
 
-
 Modules.CommandBar = {
     State = {
         UI = nil,
@@ -1734,14 +1720,12 @@ end
 
 function Modules.CommandBar:CopySelectedText(): ()
     if not self.State.LogFrame then return end
-    
-    -- Copy text from the input field if it has content
+
     if self.State.TextBox.Text ~= "" then
         setclipboard(self.State.TextBox.Text)
         return
     end
-    
-    -- Copy selected text from output if selection exists
+
     if self.State.SelectionStart and self.State.SelectionEnd then
         local children: {Instance} = self.State.LogFrame:GetChildren()
         local selectedText: string = ""
@@ -1759,8 +1743,7 @@ function Modules.CommandBar:CopySelectedText(): ()
             return
         end
     end
-    
-    -- Otherwise copy all output
+
     self:CopyOutputToClipboard()
 end
 
@@ -1784,8 +1767,8 @@ function Modules.CommandBar:Toggle(): ()
         self.State.TextBox:CaptureFocus()
         task.spawn(function()
             task.wait()
-            if self.State.IsEnabled then 
-                self.State.TextBox.Text = "" 
+            if self.State.IsEnabled then
+                self.State.TextBox.Text = ""
                 self.State.SuggestionLabel.Text = ""
                 self.State.CurrentSuggestion = ""
             end
@@ -1914,7 +1897,6 @@ function Modules.CommandBar:Initialize(): ()
     GlowEffect.Thickness = 2
     GlowEffect.Transparency = 0.4
 
-    -- Title Header
     local TitleBar: Frame = Instance.new("Frame", MainContainer)
     TitleBar.Name = "TitleBar"
     TitleBar.Position = UDim2.new(0, 0, 0, 0)
@@ -2041,15 +2023,14 @@ function Modules.CommandBar:Initialize(): ()
     local dragging, resizing = false, false
     local dragStart, resizeStart, startPos, startSize
 
-    -- Dragging from title bar
     TitleBar.InputBegan:Connect(function(input: InputObject)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos = MainContainer.Position
             local conn; conn = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then 
-                    dragging = false 
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
                     conn:Disconnect()
                 end
             end)
@@ -2062,8 +2043,8 @@ function Modules.CommandBar:Initialize(): ()
             resizeStart = input.Position
             startSize = MainContainer.Size
             local conn; conn = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then 
-                    resizing = false 
+                if input.UserInputState == Enum.UserInputState.End then
+                    resizing = false
                     conn:Disconnect()
                 end
             end)
@@ -2084,7 +2065,6 @@ function Modules.CommandBar:Initialize(): ()
         end
     end)
 
-    -- Text selection tracking
     OutputLog.InputBegan:Connect(function(input: InputObject)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             self.State.IsSelecting = true
@@ -2124,7 +2104,7 @@ function Modules.CommandBar:Initialize(): ()
                     if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and
                        mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
                         self.State.SelectionEnd = i
-                        -- Visual feedback: highlight selected lines
+
                         for j, c in ipairs(children) do
                             if c:IsA("TextLabel") then
                                 local startIdx = math.min(self.State.SelectionStart, self.State.SelectionEnd)
@@ -2178,7 +2158,6 @@ function Modules.CommandBar:Initialize(): ()
             end
         end
 
-        -- Copy hotkey: Ctrl+C while terminal is open
         if not gpe and input.KeyCode == Enum.KeyCode.C and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
             if self.State.IsEnabled then
                 self:CopySelectedText()
@@ -2200,7 +2179,6 @@ function DoNotif(text: string, duration: number?): ()
         Modules.CommandBar:AddOutput("[SYS]: " .. tostring(text), Modules.CommandBar.Theme.Accent)
     end
 end
---[[ending for command terminal]]--
 
 Modules.UnlockMouse = { State = { Enabled = false, Connection = nil } }
 RegisterCommand({ Name = "unlockmouse", Aliases = {"unlockcursor", "freemouse", "um"}, Description = "Toggles a persistent loop to unlock the mouse cursor." }, function()
@@ -2218,7 +2196,6 @@ if State.Connection then State.Connection:Disconnect(); State.Connection = nil e
     DoNotif("Mouse Unlock Disabled", 2)
 end
 end)
-
 
 Modules.ESP = {
     State = {
@@ -2624,19 +2601,17 @@ function Modules.NoClip:_processCharacter(character)
     table.insert(self.State.Connections[character], descRemovingConn)
 end
 
-
 function Modules.NoClip:_cleanup()
-    -- Disconnect all active connections
+
     for key, conn in pairs(self.State.Connections) do
-        if type(conn) == "table" then -- Character-specific connections
+        if type(conn) == "table" then
             for _, innerConn in ipairs(conn) do innerConn:Disconnect() end
-        else -- Main connections (Stepped, CharacterAdded, etc.)
+        else
             conn:Disconnect()
         end
     end
     table.clear(self.State.Connections)
-    
-    -- Restore original collision properties
+
     for part in pairs(self.State.TrackedParts) do
         if part and part.Parent then
 
@@ -2646,23 +2621,19 @@ function Modules.NoClip:_cleanup()
     table.clear(self.State.TrackedParts)
 end
 
-
 function Modules.NoClip:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
     
     local localPlayer = self.Services.Players.LocalPlayer
 
-    -- Apply to the current character immediately
     if localPlayer.Character then
         self:_processCharacter(localPlayer.Character)
     end
 
-    -- Set up listeners for character respawns
     self.State.Connections.CharacterAdded = localPlayer.CharacterAdded:Connect(function(char)
         self:_processCharacter(char)
     end)
-
 
     self.State.Connections.Enforcer = self.Services.RunService.Stepped:Connect(function()
         for part in pairs(self.State.TrackedParts) do
@@ -2675,7 +2646,6 @@ function Modules.NoClip:Enable()
     DoNotif("Persistent NoClip Enabled", 2)
 end
 
-
 function Modules.NoClip:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
@@ -2684,7 +2654,6 @@ function Modules.NoClip:Disable()
     
     DoNotif("NoClip Disabled", 2)
 end
-
 
 function Modules.NoClip:Toggle()
     if self.State.IsEnabled then
@@ -2784,114 +2753,6 @@ RegisterCommand({
 }, function()
     Modules.AnimationFreezer:Toggle()
 end)
-
-Modules.AutoDecompiler = {
-    State = {
-        IsEnabled = false,
-        IsReady = false,
-        Connections = {},
-        LastAPICall = 0
-    },
-    API_URL = "http://api.plusgiant5.com"
-}
-function Modules.AutoDecompiler:_prepareDecompiler()
-    if self.State.IsReady then return true end
-    if not getscriptbytecode or not request then
-        warn("AutoDecompiler Error: 'getscriptbytecode' and/or 'request' are not available in this environment.")
-        return false
-    end
-    print("AutoDecompiler: Executor dependencies found. Ready.")
-    self.State.IsReady = true
-    return true
-end
-function Modules.AutoDecompiler:_decompileViaAPI(scriptObject)
-    local success, bytecode = pcall(getscriptbytecode, scriptObject)
-    if not success then
-        warn("AutoDecompiler:", scriptObject:GetFullName(), "- Failed to get bytecode:", tostring(bytecode))
-        return nil
-    end
-    local timeElapsed = os.clock() - self.State.LastAPICall
-    if timeElapsed < 0.5 then
-        task.wait(0.5 - timeElapsed)
-    end
-    local success, httpResult = pcall(request, {
-        Url = self.API_URL .. "/konstant/decompile",
-        Body = bytecode,
-        Method = "POST",
-        Headers = { ["Content-Type"] = "text/plain" }
-    })
-    self.State.LastAPICall = os.clock()
-    if not success then
-        warn("AutoDecompiler: request() function failed:", tostring(httpResult))
-        return nil
-    end
-    if httpResult and httpResult.StatusCode == 200 then
-        return httpResult.Body
-    else
-        warn("AutoDecompiler: API returned non-200 status:", httpResult.StatusCode, httpResult.Body)
-        return nil
-    end
-end
-function Modules.AutoDecompiler:Disable()
-    DoNotif("Auto Decompiler Disabled.", 3)
-    for _, connection in ipairs(self.State.Connections) do
-        if connection.Connected then
-            connection:Disconnect()
-        end
-    end
-    table.clear(self.State.Connections)
-end
-function Modules.AutoDecompiler:Enable()
-    if not self:_prepareDecompiler() then
-        DoNotif("Decompiler dependencies not met. Check console.", 5)
-        self.State.Enabled = false
-        return
-    end
-    DoNotif("Auto Decompiler Enabled. Sweeping existing scripts...", 4)
-    local function processScript(script)
-        local decompiledSource = self:_decompileViaAPI(script)
-        if decompiledSource then
-            local success, err = pcall(function() script.Source = decompiledSource end)
-            if not success then
-                warn("Could not set source for", script:GetFullName(), "- it may be read-only. Error:", err)
-            end
-        end
-    end
-    task.spawn(function()
-        for _, descendant in ipairs(game:GetDescendants()) do
-            if descendant:IsA("LuaSourceContainer") then
-                processScript(descendant)
-                task.wait()
-            end
-        end
-        print("Initial script sweep completed.")
-    end)
-    local conn = game.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("LuaSourceContainer") then
-            print("New script detected:", descendant:GetFullName())
-            processScript(descendant)
-        end
-    end)
-    table.insert(self.State.Connections, conn)
-end
-function Modules.AutoDecompiler:Toggle()
-    self.State.Enabled = not self.State.Enabled
-    if self.State.Enabled then
-        self:Enable()
-    else
-        self:Disable()
-    end
-end
-function Modules.AutoDecompiler:Initialize()
-    local module = self
-    RegisterCommand({
-        Name = "autodecompile",
-        Aliases = {"adecompile},
-        Description = "Automatically decompiles scripts using a bytecode API."
-    }, function(args)
-        module:Toggle()
-    end)
-end
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -3655,8 +3516,6 @@ Modules.AdvancedFling = {
     }
 }
 
--- NOTE: The original findFlingTargets function is retained as it is more comprehensive
--- and already integrated with the command system's argument parsing.
 local function findFlingTargets(targetName)
     local targets = {}
     local localPlayer = Players.LocalPlayer
@@ -3724,15 +3583,13 @@ function Modules.AdvancedFling:Execute(targetPlayer)
     end
     
     self.State.IsFlinging = true
-    
-    -- Store original state for restoration
+
     local originalPosition = localRootPart.CFrame
     local originalCameraSubject = Workspace.CurrentCamera.CameraSubject
     local originalDestroyHeight = Workspace.FallenPartsDestroyHeight
 
     task.spawn(function()
         local success, err = pcall(function()
-            --// --- START: New "SkidFling" Logic Integration ---
 
             local TCharacter = targetPlayer.Character
             local THumanoid = TCharacter and TCharacter:FindFirstChildOfClass("Humanoid")
@@ -3749,7 +3606,6 @@ function Modules.AdvancedFling:Execute(targetPlayer)
                 return DoNotif("Fling failed: Target is sitting.", 3)
             end
 
-            -- Set camera subject
             if THead then
                 Workspace.CurrentCamera.CameraSubject = THead
             elseif Handle then
@@ -3759,7 +3615,7 @@ function Modules.AdvancedFling:Execute(targetPlayer)
             end
 
             if not TCharacter:FindFirstChildWhichIsA("BasePart") then
-                return -- Target has no parts, abort.
+                return
             end
 
             local function FPos(BasePart, Pos, Ang)
@@ -3808,7 +3664,7 @@ function Modules.AdvancedFling:Execute(targetPlayer)
                     or tick() > Time + TimeToWait
             end
 
-            Workspace.FallenPartsDestroyHeight = 0/0 -- NaN value to disable void
+            Workspace.FallenPartsDestroyHeight = 0/0
             localHumanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
             local primaryFlingPart
@@ -3828,7 +3684,6 @@ function Modules.AdvancedFling:Execute(targetPlayer)
 
         end)
 
-        -- This unified cleanup block will run regardless of success or failure.
         pcall(function()
             localHumanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
             Workspace.CurrentCamera.CameraSubject = localCharacter
@@ -3874,7 +3729,7 @@ RegisterCommand({ Name = "fling", Aliases = {"fl"}, Description = "Fling a playe
     for _, targetPlayer in ipairs(targets) do
         if targetPlayer ~= LocalPlayer then
             Modules.AdvancedFling:Execute(targetPlayer)
-            task.wait(0.1) -- Stagger for multiple targets
+            task.wait(0.1)
         end
     end
 end)
@@ -3977,7 +3832,6 @@ Modules.AntiReset = {
     }
 }
 
---- Enables the anti-reset system.
 function Modules.AntiReset:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
@@ -3995,7 +3849,6 @@ function Modules.AntiReset:Enable()
 
         local isResetting = false
 
-        -- [VECTOR 1] Health-Based Reset Protection
         self.State.CharacterConnections.HealthChanged = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
             if humanoid.Health <= 0 and not isResetting then
                 isResetting = true
@@ -4004,7 +3857,6 @@ function Modules.AntiReset:Enable()
             end
         end)
 
-        -- [VECTOR 2] Void Reset Protection
         local lastSafePosition = hrp.Position
         local fallenPartsHeight = Workspace.FallenPartsDestroyHeight
 
@@ -4029,7 +3881,6 @@ function Modules.AntiReset:Enable()
     DoNotif("Anti-Reset: ENABLED.", 2)
 end
 
---- Disables the anti-reset system and cleans up all resources.
 function Modules.AntiReset:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
@@ -4042,7 +3893,6 @@ function Modules.AntiReset:Disable()
     DoNotif("Anti-Reset: DISABLED.", 2)
 end
 
---- Toggles the anti-reset state.
 function Modules.AntiReset:Toggle()
     if self.State.IsEnabled then
         self:Disable()
@@ -4050,20 +3900,6 @@ function Modules.AntiReset:Toggle()
         self:Enable()
     end
 end
-
-
---[[
-
-READ THIS TO KNOW HOW TO USE THE COMMAND BELOW, THIS WORKS FOR ANY GAME. A BUILT IN REMOTE FIRE AND EQUIPPER
-
-use dex to find the paths,, after you found said path copy and paste it into the commandbar. below is an example
-
-how to: ,setpath "game:GetService("ReplicatedStorage").Remotes.Shop.EquipWeapon" and then ,forceequip Shovel
-use .settype "event" or settype "function" for the type you want to fire,
-
-hell yeah this is an example that works for zombie game upd3, this can work for any game with low security, you'd be surprised how easy they can be to come across.
-
---]]
 
 Modules.NetCommander = {
     State = {
@@ -4074,23 +3910,46 @@ Modules.NetCommander = {
     Dependencies = {"HttpService", "ReplicatedStorage"}
 }
 
---// --- Internal Forensic Utilities ---
-
 function Modules.NetCommander:_resolvePath(path)
     if not path or path == "" then return nil end
-    local current = game
-    -- Handle shorthand for common services
-    path = path:gsub("^RS%.", "ReplicatedStorage."):gsub("^WS%.", "Workspace.")
     
-    for segment in string.gmatch(path, "[^%.]+") do
-        local serviceMatch = segment:match(":GetService%(['\"](.+)['\"]%)")
-        if serviceMatch then
-            current = game:GetService(serviceMatch)
-        else
-            current = current and current:FindFirstChild(segment)
+    local current = game
+
+    path = path:gsub("^RS%.", "ReplicatedStorage.")
+    path = path:gsub("^WS%.", "Workspace.")
+    path = path:gsub("^game%.", "")
+    path = path:gsub("^Workspace%.", "workspace.")
+
+    local serviceName = path:match("^:GetService%(['\"](.+)['\"]%)")
+    if serviceName then
+        local success, service = pcall(game.GetService, game, serviceName)
+        if success and service then
+            current = service
+
+            path = path:gsub("^:GetService%(['\"](.+)['\"]%)%.?", "")
         end
-        if not current then break end
     end
+
+    if path == "" then return current end
+
+    for segment in string.gmatch(path, "([^%.]+)") do
+        if current then
+            local found = current:FindFirstChild(segment)
+            if not found then
+
+                local midService = segment:match("GetService%(['\"](.+)['\"]%)")
+                if midService then
+                    current = game:GetService(midService)
+                else
+                    current = nil
+                    break
+                end
+            else
+                current = found
+            end
+        end
+    end
+    
     return current
 end
 
@@ -4098,27 +3957,21 @@ function Modules.NetCommander:_parseArgs(argsTable)
     local processed = {}
     for _, arg in ipairs(argsTable) do
         local lower = arg:lower()
-        -- 1. Numbers
         if tonumber(arg) then
             table.insert(processed, tonumber(arg))
-        -- 2. Booleans
         elseif lower == "true" then
             table.insert(processed, true)
         elseif lower == "false" then
             table.insert(processed, false)
-        -- 3. Nil
         elseif lower == "nil" then
             table.insert(processed, nil)
-        -- 4. JSON Tables (e.g. {"Amount":500})
         elseif arg:sub(1,1) == "{" and arg:sub(-1,-1) == "}" then
-            local success, tbl = pcall(function() 
-                return game:GetService("HttpService"):JSONDecode(arg) 
+            local success, tbl = pcall(function()
+                return game:GetService("HttpService"):JSONDecode(arg)
             end)
             table.insert(processed, success and tbl or arg)
-        -- 5. LocalPlayer Shorthand
         elseif lower == "me" or lower == "localplayer" then
             table.insert(processed, game:GetService("Players").LocalPlayer)
-        -- 6. String (Default)
         else
             table.insert(processed, arg)
         end
@@ -4126,19 +3979,41 @@ function Modules.NetCommander:_parseArgs(argsTable)
     return processed
 end
 
---// --- Core Execution ---
+function Modules.NetCommander:Execute(pathArray, isInvoke)
 
-function Modules.NetCommander:Execute(path, args, isInvoke)
-    local target = self:_resolvePath(path)
-    if not target then 
-        return DoNotif("Target not found: " .. tostring(path), 3) 
+    local target = nil
+    local remainingArgs = {}
+    local resolvedPath = ""
+
+    for i = 1, #pathArray do
+        local testPath = table.concat(pathArray, " ", 1, i)
+        local result = self:_resolvePath(testPath)
+        
+        if result then
+            target = result
+            resolvedPath = testPath
+
+            remainingArgs = {}
+            for j = i + 1, #pathArray do
+                table.insert(remainingArgs, pathArray[j])
+            end
+        end
     end
 
-    local cleanArgs = self:_parseArgs(args)
+    if not target then
+        return DoNotif("Target not found: " .. table.concat(pathArray, " "), 3)
+    end
+
+    local cleanArgs = self:_parseArgs(remainingArgs)
     
     if target:IsA("RemoteEvent") then
-        pcall(function() target:FireServer(unpack(cleanArgs)) end)
-        DoNotif("Fired Event: " .. target.Name, 2)
+        local success, err = pcall(function() target:FireServer(unpack(cleanArgs)) end)
+        if success then
+            DoNotif("Fired Event: " .. target.Name, 2)
+        else
+            warn("--> [NET]: FireServer Error:", err)
+            DoNotif("FireServer Failed. Check F9.", 3)
+        end
     elseif target:IsA("RemoteFunction") then
         DoNotif("Invoking Function...", 1.5)
         task.spawn(function()
@@ -4153,60 +4028,64 @@ function Modules.NetCommander:Execute(path, args, isInvoke)
             end
         end)
     else
-        DoNotif("Error: Target is not a Remote.", 3)
+        DoNotif("Error: '" .. target.Name .. "' is a " .. target.ClassName .. " (Not a Remote).", 3)
     end
 end
-
---// --- Command Registration ---
 
 function Modules.NetCommander:Initialize()
     local module = self
 
-    -- Command: One-off Fire (Usage: ;fire RS.Remotes.Eat Apple 1 true)
+    module.Services = {
+        HttpService = game:GetService("HttpService"),
+        Players = game:GetService("Players")
+    }
+
     RegisterCommand({
         Name = "fire",
         Aliases = {"fremote", "rf"},
-        Description = "Fires any RemoteEvent. Usage: ;fire [Path] [Args...]"
+        Description = "Fires a RemoteEvent. Handles paths with spaces."
     }, function(args)
         if #args < 1 then return DoNotif("Usage: ;fire [Path] [Args]", 3) end
-        local path = table.remove(args, 1)
-        module:Execute(path, args, false)
+        module:Execute(args, false)
     end)
 
-    -- Command: One-off Invoke (Usage: ;inv RS.Functions.GetData true)
     RegisterCommand({
         Name = "invoke",
         Aliases = {"inv", "rfcall"},
-        Description = "Invokes any RemoteFunction. Usage: ;inv [Path] [Args...]"
+        Description = "Invokes a RemoteFunction. Handles paths with spaces."
     }, function(args)
         if #args < 1 then return DoNotif("Usage: ;inv [Path] [Args]", 3) end
-        local path = table.remove(args, 1)
-        module:Execute(path, args, true)
+        module:Execute(args, true)
     end)
 
-    -- Command: Pin a Remote for quick spamming/usage
     RegisterCommand({
         Name = "pin",
-        Aliases = {"setremote", "mark"},
-        Description = "Pins a remote path for the ;run command."
+        Aliases = {"mark"},
+        Description = "Pins a remote path."
     }, function(args)
         if not args[1] then return DoNotif("Usage: ;pin [Path]", 3) end
-        module.State.PinnedPath = args[1]
-        DoNotif("Pinned: " .. args[1], 2)
+        module.State.PinnedPath = table.concat(args, " ")
+        DoNotif("Pinned: " .. module.State.PinnedPath, 2)
     end)
 
-    -- Command: Run the pinned remote
     RegisterCommand({
         Name = "runpin",
-        Aliases = {"r", "execpin"},
-        Description = "Fires/Invokes the pinned remote with new args."
+        Aliases = {"r"},
+        Description = "Runs the pinned remote."
     }, function(args)
-        if module.State.PinnedPath == "" then return DoNotif("No remote pinned. Use ;pin", 3) end
-        module:Execute(module.State.PinnedPath, args)
+        if module.State.PinnedPath == "" then return DoNotif("No remote pinned.", 3) end
+
+        local combinedArgs = {}
+        for part in string.gmatch(module.State.PinnedPath, "%S+") do
+            table.insert(combinedArgs, part)
+        end
+        for _, arg in ipairs(args) do
+            table.insert(combinedArgs, arg)
+        end
+        
+        module:Execute(combinedArgs, false)
     end)
 end
-
-
 
 RegisterCommand({
     Name = "antireset",
@@ -4650,7 +4529,7 @@ function Modules.ScriptHunter:Execute(keywords)
 
         if #findings > 0 then
             DoNotif("Scan complete. Found " .. #findings .. " matching script(s). Results printed to console (F9).", 4)
-            -- ARCHITECT'S NOTE: Corrected the malformed multi-line print statements.
+
             print("--- [Zuka's ScriptHunter Report] ---")
             for _, path in ipairs(findings) do
                 print("  [!] Match Found: " .. path)
@@ -4683,21 +4562,21 @@ Modules.AdvancedAirwalk = {
         RenderConnection = nil,
         Connections = {},
         GUIs = {},
-        -- Input state
+
         IsTyping = false,
         Increase = false,
         Decrease = false,
-        -- Physics state
+
         Offset = 0
     },
     Config = {
         VerticalSpeed = 1.75,
         Keybinds = {
-            Increase = Enum.KeyCode.Space, -- Or Enum.KeyCode.E
-            Decrease = Enum.KeyCode.LeftControl -- Or Enum.KeyCode.Q
+            Increase = Enum.KeyCode.Space,
+            Decrease = Enum.KeyCode.LeftControl
         }
     },
-    -- Forward-declare services for robustness
+
     Services = {
         RunService = game:GetService("RunService"),
         UserInputService = game:GetService("UserInputService"),
@@ -4707,25 +4586,21 @@ Modules.AdvancedAirwalk = {
     }
 }
 
-
 function Modules.AdvancedAirwalk:Disable()
     if not self.State.IsEnabled then
         return
     end
 
-    -- Disconnect the main render loop first
     if self.State.RenderConnection then
         self.State.RenderConnection:Disconnect()
         self.State.RenderConnection = nil
     end
 
-    -- Destroy the invisible airwalk part
     if self.State.AirwalkPart and self.State.AirwalkPart.Parent then
         self.State.AirwalkPart:Destroy()
     end
     self.State.AirwalkPart = nil
 
-    -- Disconnect all input and event connections
     for key, conn in pairs(self.State.Connections) do
         if conn then
             conn:Disconnect()
@@ -4733,7 +4608,6 @@ function Modules.AdvancedAirwalk:Disable()
         self.State.Connections[key] = nil
     end
 
-    -- Destroy all GUI elements
     for key, gui in pairs(self.State.GUIs) do
         if gui and gui.Parent then
             gui:Destroy()
@@ -4741,7 +4615,6 @@ function Modules.AdvancedAirwalk:Disable()
         self.State.GUIs[key] = nil
     end
 
-    -- Reset state variables
     self.State.IsEnabled = false
     self.State.IsTyping = false
     self.State.Increase = false
@@ -4750,7 +4623,6 @@ function Modules.AdvancedAirwalk:Disable()
 
     DoNotif("Advanced Airwalk: OFF", 2)
 end
-
 
 function Modules.AdvancedAirwalk:Enable()
     if self.State.IsEnabled then
@@ -4780,23 +4652,20 @@ function Modules.AdvancedAirwalk:Enable()
         stroke.Color = Color3.fromRGB(255, 255, 255)
         stroke.Thickness = 1.5
 
-        -- Event connections for press and release
         button.MouseButton1Down:Connect(callbackDown)
         button.MouseButton1Up:Connect(callbackUp)
-        button.TouchTap:Connect(callbackDown) -- Handle quick taps
+        button.TouchTap:Connect(callbackDown)
         button.TouchEnded:Connect(callbackUp)
 
         return button
     end
 
-    --// Setup Input Handling (Platform-Specific)
     if isMobile then
         local mobileGui = Instance.new("ScreenGui", self.Services.CoreGui)
         mobileGui.Name = "AdvancedAirwalkMobileControls"
         mobileGui.ResetOnSpawn = false
         self.State.GUIs.MobileControls = mobileGui
 
-        -- Create UP and DOWN buttons
         createMobileButton(mobileGui, "UP", UDim2.new(0.9, 0, 0.55, 0),
             function() self.State.Increase = true end,
             function() self.State.Increase = false end)
@@ -4805,7 +4674,7 @@ function Modules.AdvancedAirwalk:Enable()
             function() self.State.Decrease = true end,
             function() self.State.Decrease = false end)
     else
-        -- Desktop input handling
+
         self.State.Connections.Focused = uis.TextBoxFocused:Connect(function() self.State.IsTyping = true end)
         self.State.Connections.Released = uis.TextBoxFocusReleased:Connect(function() self.State.IsTyping = false end)
 
@@ -4821,21 +4690,19 @@ function Modules.AdvancedAirwalk:Enable()
         end)
     end
 
-    --// Create the physical Airwalk Part
     local awPart = Instance.new("Part")
     awPart.Name = "Zuka_AirwalkPart"
-    awPart.Size = Vector3.new(8, 1.5, 8) -- Wider base for stability
+    awPart.Size = Vector3.new(8, 1.5, 8)
     awPart.Transparency = 1
     awPart.Anchored = true
     awPart.CanCollide = true
-    awPart.CanQuery = false -- Important for performance
+    awPart.CanQuery = false
     awPart.Parent = self.Services.Workspace
     self.State.AirwalkPart = awPart
 
-    --// Main Render Loop
     self.State.RenderConnection = self.Services.RunService.RenderStepped:Connect(function()
         if not (self.State.IsEnabled and self.State.AirwalkPart and self.State.AirwalkPart.Parent) then
-            -- Failsafe in case part is destroyed externally
+
             self:Disable()
             return
         end
@@ -4846,7 +4713,7 @@ function Modules.AdvancedAirwalk:Enable()
         end)
 
         if not (success and char and root and hum and hum.Health > 0) then
-            -- Hide the part if the character is missing or dead
+
             self.State.AirwalkPart.CanCollide = false
             return
         end
@@ -4862,27 +4729,23 @@ function Modules.AdvancedAirwalk:Enable()
         end
         local baseOffset = feetFromRoot + (self.State.AirwalkPart.Size.Y * 0.5)
 
-        -- Determine vertical movement from input state
         local delta = 0
         if self.State.Increase then delta = -self.Config.VerticalSpeed end
         if self.State.Decrease then delta = self.Config.VerticalSpeed end
-        
-        -- Update the offset smoothly
+
         self.State.Offset = self.State.Offset + delta
-        
-        -- Apply the new position to the airwalk part
+
         local newY = root.Position.Y - baseOffset - self.State.Offset
         self.State.AirwalkPart.CFrame = CFrame.new(root.Position.X, newY, root.Position.Z)
     end)
 end
 
---// --- Command Registration ---
 RegisterCommand({
     Name = "airwalk",
     Aliases = {"float", "aw"},
     Description = "Toggles an advanced airwalk. Use Space/LCtrl or GUI to move."
 }, function()
-    -- This single command will now toggle the state.
+
     if Modules.AdvancedAirwalk.State.IsEnabled then
         Modules.AdvancedAirwalk:Disable()
     else
@@ -4898,12 +4761,11 @@ RegisterCommand({
     Modules.AdvancedAirwalk:Disable()
 end)
 
-
 Modules.AntiDestroy = {
     State = {
         IsEnabled = false,
         OriginalNamecall = nil,
-        ProtectedNames = {} 
+        ProtectedNames = {}
     }
 }
 
@@ -4917,7 +4779,7 @@ function Modules.AntiDestroy:Enable(): ()
     end
 
     self.State.OriginalNamecall = mt.__namecall
-    local original_nc = self.State.OriginalNamecall 
+    local original_nc = self.State.OriginalNamecall
 
     setreadonly(mt, false)
     mt.__namecall = newcclosure(function(...)
@@ -4958,7 +4820,7 @@ function Modules.AntiDestroy:Disable(): ()
 end
 
 function Modules.AntiDestroy:Initialize(): ()
-    self:Enable() 
+    self:Enable()
 
     RegisterCommand({
         Name = "protect",
@@ -4996,8 +4858,8 @@ Modules.Blackhole = {
         IsEnabled = false,
         IsForceActive = false,
         TargetCFrame = CFrame.new(),
-        BlackholePart = nil,      -- The invisible anchor part in the workspace
-        BlackholeAttachment = nil, -- The specific point movers are attracted to
+        BlackholePart = nil,
+        BlackholeAttachment = nil,
         Connections = {},
         UI = {}
     },
@@ -5005,39 +4867,33 @@ Modules.Blackhole = {
         ForceResponsiveness = 200,
         TorqueMagnitude = 100000,
         MoveKey = Enum.KeyCode.E,
-        -- A unique name to identify physics objects created by this script for easy cleanup.
+
         MoverName = "Zuka_BlackholeMover"
     },
     Dependencies = {"RunService", "UserInputService", "Players", "Workspace", "CoreGui"},
     Services = {}
 }
 
-
 function Modules.Blackhole:_cleanupForces()
     for _, descendant in ipairs(self.Services.Workspace:GetDescendants()) do
         if descendant.Name == self.Config.MoverName and descendant:IsA("Instance") then
-            -- This also implicitly destroys the AlignPosition and Torque as they are parented to the attachment.
+
             descendant:Destroy()
         end
-        -- Restore collision for parts we might have modified
+
         if descendant:IsA("BasePart") and not descendant.CanCollide then
             pcall(function() descendant.CanCollide = true end)
         end
     end
 end
 
----
--- [Private] Applies the black hole physics forces to a given part if eligible.
---
 function Modules.Blackhole:_applyForce(part)
-    -- Only apply forces if the black hole is active and the part is a valid target.
+
     if not self.State.IsForceActive or not (part and part:IsA("BasePart")) then return end
     if part.Anchored or part:FindFirstAncestorOfClass("Humanoid") then return end
-    
-    -- Failsafe to prevent movers from being added to our own character parts.
+
     if part:IsDescendantOf(self.Services.Players.LocalPlayer.Character) then return end
 
-    -- Clean up any existing physics movers to ensure ours takes priority.
     for _, child in ipairs(part:GetChildren()) do
         if child:IsA("BodyMover") or child:IsA("RocketPropulsion") then
             child:Destroy()
@@ -5048,10 +4904,9 @@ function Modules.Blackhole:_applyForce(part)
     end
     
     part.CanCollide = false
-    
-    -- Create and configure the new physics movers.
+
     local attachment = Instance.new("Attachment", part)
-    attachment.Name = self.Config.MoverName -- Tag our instances for cleanup
+    attachment.Name = self.Config.MoverName
     
     local align = Instance.new("AlignPosition", attachment)
     align.Attachment0 = attachment
@@ -5065,26 +4920,22 @@ function Modules.Blackhole:_applyForce(part)
     torque.Torque = Vector3.new(self.Config.TorqueMagnitude, self.Config.TorqueMagnitude, self.Config.TorqueMagnitude)
 end
 
-
 function Modules.Blackhole:Disable()
     if not self.State.IsEnabled then return end
 
-    -- Disconnect all event listeners
     for _, conn in pairs(self.State.Connections) do
         conn:Disconnect()
     end
     table.clear(self.State.Connections)
 
-    -- Restore simulation radii to default behavior
     pcall(function()
         for _, plr in ipairs(self.Services.Players:GetPlayers()) do
-            plr.MaximumSimulationRadius = -1 -- -1 resets to default
+            plr.MaximumSimulationRadius = -1
         end
     end)
     
     self:_cleanupForces()
 
-    -- Destroy the core black hole part and the UI
     if self.State.BlackholePart and self.State.BlackholePart.Parent then
         self.State.BlackholePart:Destroy()
     end
@@ -5092,7 +4943,6 @@ function Modules.Blackhole:Disable()
         self.State.UI.ScreenGui:Destroy()
     end
 
-    -- Reset state
     self.State = {
         IsEnabled = false,
         IsForceActive = false,
@@ -5103,14 +4953,12 @@ function Modules.Blackhole:Disable()
     DoNotif("Blackhole destroyed.", 2)
 end
 
-
 function Modules.Blackhole:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
     
     local localPlayer = self.Services.Players.LocalPlayer
 
-    -- Create the central black hole part and attachment
     local bhPart = Instance.new("Part")
     bhPart.Name = "Zuka_BlackholeCore"
     bhPart.Anchored = true
@@ -5124,7 +4972,6 @@ function Modules.Blackhole:Enable()
     local mouse = localPlayer:GetMouse()
     self.State.TargetCFrame = mouse.Hit + Vector3.new(0, 5, 0)
     bhPart.Parent = self.Services.Workspace
-
 
     self.State.Connections.SimRadius = self.Services.RunService.Heartbeat:Connect(function()
         pcall(function()
@@ -5151,7 +4998,6 @@ function Modules.Blackhole:Enable()
         end
     end)
 
-    
     local screenGui = Instance.new("ScreenGui", self.Services.CoreGui)
     screenGui.Name = "BlackholeControlGUI"
     screenGui.ResetOnSpawn = false
@@ -5177,7 +5023,6 @@ function Modules.Blackhole:Enable()
     moveBtn.BackgroundColor3 = Color3.fromRGB(51, 51, 51)
     moveBtn.Parent = screenGui
 
-    -- UI Event Handlers
     toggleBtn.MouseButton1Click:Connect(function()
         self.State.IsForceActive = not self.State.IsForceActive
         toggleBtn.Text = self.State.IsForceActive and "Disable Blackhole" or "Enable Blackhole"
@@ -5198,7 +5043,6 @@ function Modules.Blackhole:Enable()
     DoNotif("Blackhole created. Tap button or press E to move.", 3)
 end
 
-
 function Modules.Blackhole:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -5218,13 +5062,12 @@ function Modules.Blackhole:Initialize()
     end)
 end
 
-
 Modules.PathfinderFollow = {
     State = {
         IsEnabled = false,
         TargetPlayer = nil,
         FollowConnection = nil,
-        -- Pathfinding state
+
         Path = nil,
         CurrentWaypointIndex = 1,
         LastPathRecalculation = 0,
@@ -5232,13 +5075,13 @@ Modules.PathfinderFollow = {
         LastTargetPos = Vector3.new()
     },
     Config = {
-        -- How often (in seconds) the path is allowed to be recalculated.
+
         RECALCULATION_INTERVAL = 0.5,
-        -- How far the player or target must move to trigger a path recalculation.
+
         RECALCULATION_DISTANCE = 3,
-        -- How close we need to get to a waypoint to advance to the next one.
+
         WAYPOINT_PROXIMITY = 4,
-        -- Parameters for the pathfinding algorithm.
+
         PATH_PARAMS = {
             AgentRadius = 3,
             AgentHeight = 6,
@@ -5249,14 +5092,12 @@ Modules.PathfinderFollow = {
     Services = {}
 }
 
-
 function Modules.PathfinderFollow:_onHeartbeat()
     if not (self.State.IsEnabled and self.State.TargetPlayer and self.State.TargetPlayer.Parent) then
         self:Disable()
         return
     end
 
-    -- 1. Get all necessary character components safely.
     local localPlayer = self.Services.Players.LocalPlayer
     local localChar = localPlayer.Character
     local localHrp = localChar and localChar:FindFirstChild("HumanoidRootPart")
@@ -5266,13 +5107,12 @@ function Modules.PathfinderFollow:_onHeartbeat()
     local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
 
     if not (localHrp and localHum and targetHrp and localHum.Health > 0) then
-        return -- Do nothing if characters are not in a valid state.
+        return
     end
 
     local sourcePos = localHrp.Position
     local targetPos = targetHrp.Position
 
-    -- 2. Check if the path needs to be recalculated.
     local timeSinceRecalc = os.clock() - self.State.LastPathRecalculation
     local sourceMoved = (sourcePos - self.State.LastSourcePos).Magnitude > self.Config.RECALCULATION_DISTANCE
     local targetMoved = (targetPos - self.State.LastTargetPos).Magnitude > self.Config.RECALCULATION_DISTANCE
@@ -5281,28 +5121,25 @@ function Modules.PathfinderFollow:_onHeartbeat()
         self.State.LastPathRecalculation = os.clock()
         self.State.LastSourcePos = sourcePos
         self.State.LastTargetPos = targetPos
-        
-        -- Compute the path asynchronously.
+
         local success = pcall(function() self.State.Path:ComputeAsync(sourcePos, targetPos) end)
         
         if success and self.State.Path.Status == Enum.PathStatus.Success then
-            self.State.CurrentWaypointIndex = 1 -- Reset to the beginning of the new path.
+            self.State.CurrentWaypointIndex = 1
         end
     end
 
-    -- 3. Traverse the current path without blocking.
     if self.State.Path and self.State.Path.Status == Enum.PathStatus.Success then
         local waypoints = self.State.Path:GetWaypoints()
         if #waypoints == 0 or self.State.CurrentWaypointIndex > #waypoints then return end
 
         local currentWaypoint = waypoints[self.State.CurrentWaypointIndex]
-        
-        -- Check if we've reached the current waypoint.
+
         local distanceToWaypoint = (localHrp.Position - currentWaypoint.Position).Magnitude
         if distanceToWaypoint < self.Config.WAYPOINT_PROXIMITY then
             self.State.CurrentWaypointIndex = self.State.CurrentWaypointIndex + 1
         else
-            -- If not close enough, continue moving towards it.
+
             if currentWaypoint.Action == Enum.PathWaypointAction.Jump then
                 localHum.Jump = true
             end
@@ -5311,9 +5148,6 @@ function Modules.PathfinderFollow:_onHeartbeat()
     end
 end
 
----
--- Disables the pathfinding loop and cleans up all state.
---
 function Modules.PathfinderFollow:Disable()
     if not self.State.IsEnabled then return end
 
@@ -5322,7 +5156,6 @@ function Modules.PathfinderFollow:Disable()
         self.State.FollowConnection = nil
     end
 
-    -- Stop the character's current movement
     pcall(function()
         local char = self.Services.Players.LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -5330,39 +5163,30 @@ function Modules.PathfinderFollow:Disable()
     end)
     
     DoNotif("Pathfinder follow disabled.", 2)
-    
-    -- Reset state
+
     self.State.IsEnabled = false
     self.State.TargetPlayer = nil
     self.State.Path = nil
 end
 
----
--- Enables pathfinding to follow a specified target player.
--- @param targetPlayer <Player> The player object to follow.
---
 function Modules.PathfinderFollow:Enable(targetPlayer)
     if not targetPlayer or targetPlayer == self.Services.Players.LocalPlayer then
         DoNotif("Invalid target for pathfinding.", 3)
         return
     end
 
-    self:Disable() -- Ensure a clean state before starting a new follow.
+    self:Disable()
 
     self.State.IsEnabled = true
     self.State.TargetPlayer = targetPlayer
     self.State.Path = self.Services.PathfindingService:CreatePath(self.Config.PATH_PARAMS)
-    self.State.LastPathRecalculation = 0 -- Force initial calculation.
+    self.State.LastPathRecalculation = 0
 
-    -- Connect the main logic loop.
     self.State.FollowConnection = self.Services.RunService.Heartbeat:Connect(function() self:_onHeartbeat() end)
 
     DoNotif("Pathfinder following: " .. targetPlayer.Name, 2)
 end
 
----
--- Initializes the module and registers its commands.
---
 function Modules.PathfinderFollow:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -5393,18 +5217,16 @@ Modules.CharacterMorph = {
     State = {
         IsMorphed = false,
         OriginalDescription = nil,
-        -- Connection to disconnect CharacterAdded event after reverting
+
         CharacterAddedConnection = nil
     },
     Dependencies = {"Players"},
     Services = {}
 }
 
-
 function Modules.CharacterMorph:_resolveDescription(target)
     local targetId = tonumber(target)
-    
-    -- If the target is not a valid number, assume it's a username and get the ID.
+
     if not targetId then
         local success, idFromName = pcall(function()
             return self.Services.Players:GetUserIdFromNameAsync(target)
@@ -5416,7 +5238,6 @@ function Modules.CharacterMorph:_resolveDescription(target)
         targetId = idFromName
     end
 
-    -- Now, fetch the HumanoidDescription using the resolved UserId.
     DoNotif("Loading avatar for ID: " .. targetId, 1.5)
     local success, description = pcall(function()
         return self.Services.Players:GetHumanoidDescriptionFromUserId(targetId)
@@ -5430,41 +5251,32 @@ function Modules.CharacterMorph:_resolveDescription(target)
     return description
 end
 
-
 function Modules.CharacterMorph:_applyAndRespawn(description)
     local localPlayer = self.Services.Players.LocalPlayer
     if not description then return end
 
-    -- Disconnect any previous post-respawn event to prevent conflicts.
     if self.State.CharacterAddedConnection then
         self.State.CharacterAddedConnection:Disconnect()
         self.State.CharacterAddedConnection = nil
     end
 
-    -- Connect a one-time event to apply the description as soon as the new character spawns.
     self.State.CharacterAddedConnection = localPlayer.CharacterAdded:Once(function(character)
         local humanoid = character:WaitForChild("Humanoid", 5)
         if humanoid then
-            -- Wrap in a pcall as ApplyDescription can sometimes fail.
+
             pcall(humanoid.ApplyDescription, humanoid, description)
         end
     end)
-    
-    -- Trigger the respawn.
+
     localPlayer:LoadCharacter()
 end
 
----
--- Morphs the player's character into the target's appearance.
--- @param target <string> The username or UserId of the target.
---
 function Modules.CharacterMorph:Morph(target)
     if not target then
         DoNotif("Usage: ;char <username/userid>", 3)
         return
     end
 
-    -- Cache the player's original description if we haven't already.
     if not self.State.OriginalDescription then
         local success, originalDesc = pcall(function()
             return self.Services.Players:GetHumanoidDescriptionFromUserId(self.Services.Players.LocalPlayer.UserId)
@@ -5486,9 +5298,6 @@ function Modules.CharacterMorph:Morph(target)
     end)
 end
 
----
--- Reverts the player's character to their original appearance.
---
 function Modules.CharacterMorph:Revert()
     if not self.State.IsMorphed then
         DoNotif("You are not currently morphed.", 2)
@@ -5497,7 +5306,7 @@ function Modules.CharacterMorph:Revert()
 
     if not self.State.OriginalDescription then
         DoNotif("Could not find original avatar to revert to. Re-fetching...", 3)
-        -- Attempt to re-fetch if the cache was lost.
+
         local success, originalDesc = pcall(function()
             return self.Services.Players:GetHumanoidDescriptionFromUserId(self.Services.Players.LocalPlayer.UserId)
         end)
@@ -5513,9 +5322,6 @@ function Modules.CharacterMorph:Revert()
     end
 end
 
----
--- Initializes the module and registers its commands.
---
 function Modules.CharacterMorph:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -5566,8 +5372,6 @@ Modules.StalkerBot = {
     Services = {}
 }
 
---// --- Private: Core Logic ---
-
 function Modules.StalkerBot:_onRenderStepped()
     if not (self.State.IsEnabled and self.State.TargetPlayer) then return end
     
@@ -5586,7 +5390,6 @@ function Modules.StalkerBot:_onRenderStepped()
     if not self.State.OriginalNeckC0 then
         self.State.OriginalNeckC0 = neck.C0
     end
-    
 
     local lookAtCFrame = CFrame.lookAt(neck.Part0.Position, targetHead.Position)
     
@@ -5659,8 +5462,6 @@ function Modules.StalkerBot:_onHeartbeat()
         end
     end
 end
-
---// --- Public: Control Methods ---
 
 function Modules.StalkerBot:Enable(targetPlayer: Player)
     if not targetPlayer or targetPlayer == self.Services.LocalPlayer then
@@ -5951,8 +5752,6 @@ Modules.StalkBot = {
     Services = {}
 }
 
-
-
 function Modules.StalkerBot:_onRenderStepped()
     if not (self.State.IsEnabled and self.State.TargetPlayer) then return end
     
@@ -5966,7 +5765,6 @@ function Modules.StalkerBot:_onRenderStepped()
     
     if not (myRoot and targetRoot) then return end
 
-    -- Calculate the CFrame that looks at the target's position from our position.
     local lookAtCFrame = CFrame.lookAt(myRoot.Position, targetRoot.Position)
     
     myRoot.CFrame = CFrame.fromMatrix(myRoot.Position, lookAtCFrame.XVector, myRoot.CFrame.YVector)
@@ -6037,7 +5835,6 @@ function Modules.StalkerBot:_onHeartbeat()
     end
 end
 
-
 function Modules.StalkerBot:Enable(targetPlayer: Player)
     if not targetPlayer or targetPlayer == self.Services.LocalPlayer then
         return DoNotif("Invalid target for StalkerBot.", 3)
@@ -6064,12 +5861,11 @@ function Modules.StalkerBot:Disable()
     for _, conn in pairs(self.State.Connections) do conn:Disconnect() end
     table.clear(self.State.Connections)
 
-    -- [CRITICAL CHANGE] Give rotation control back to the Humanoid.
     pcall(function()
         local humanoid = self.Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.AutoRotate = true
-            humanoid:MoveTo(humanoid.RootPart.Position) -- Stop any movement
+            humanoid:MoveTo(humanoid.RootPart.Position)
         end
     end)
     
@@ -6082,7 +5878,6 @@ function Modules.StalkerBot:Disable()
 end
 
 function Modules.StalkerBot:Initialize()
-
 
     RegisterCommand({
         Name = "stalkstare",
@@ -6112,11 +5907,9 @@ Modules.TimeStop = {
     Services = {}
 }
 
----
---
 function Modules.TimeStop:_freezeCharacter(character)
     if not character then return end
-    task.wait() 
+    task.wait()
     local success, err = pcall(function()
         for _, descendant in ipairs(character:GetDescendants()) do
             if descendant:IsA("BasePart") then
@@ -6126,7 +5919,6 @@ function Modules.TimeStop:_freezeCharacter(character)
     end)
     if not success then warn("[TimeStop] Failed to freeze character:", err) end
 end
-
 
 function Modules.TimeStop:_unfreezeCharacter(character)
     if not character then return end
@@ -6139,19 +5931,14 @@ function Modules.TimeStop:_unfreezeCharacter(character)
     end)
 end
 
----
--- Disables the time stop effect and cleans up all resources.
---
 function Modules.TimeStop:Disable()
     if not self.State.IsEnabled then return end
 
-    -- Disconnect all event listeners to stop applying the freeze.
     for key, conn in pairs(self.State.Connections) do
         conn:Disconnect()
     end
     table.clear(self.State.Connections)
 
-    -- Iterate through all players and unfreeze them.
     for _, player in ipairs(self.Services.Players:GetPlayers()) do
         if player.Character then
             self:_unfreezeCharacter(player.Character)
@@ -6162,40 +5949,31 @@ function Modules.TimeStop:Disable()
     DoNotif("Time has resumed.", 2)
 end
 
----
--- Enables the time stop effect on all current and future players.
---
 function Modules.TimeStop:Enable()
     if self.State.IsEnabled then return end
-    -- It's good practice to call Disable first to ensure a clean state.
+
     self:Disable()
     self.State.IsEnabled = true
 
-    -- [Helper] Sets up the freeze logic for a given player.
     local function setupPlayer(player)
-        -- Don't freeze ourselves.
+
         if player == self.Services.Players.LocalPlayer then return end
 
-        -- Freeze their current character if it exists.
         if player.Character then
             self:_freezeCharacter(player.Character)
         end
-        
-        -- Connect to their CharacterAdded event for future respawns.
+
         local conn = player.CharacterAdded:Connect(function(character)
             self:_freezeCharacter(character)
         end)
-        
-        -- Store the connection so we can disconnect it later.
+
         self.State.Connections[player.UserId] = conn
     end
 
-    -- Apply to all existing players.
     for _, player in ipairs(self.Services.Players:GetPlayers()) do
         setupPlayer(player)
     end
 
-    -- Connect to PlayerAdded to handle players who join while timestop is active.
     self.State.Connections.PlayerAdded = self.Services.Players.PlayerAdded:Connect(setupPlayer)
     
     DoNotif("ZA WARUDO! Time has been stopped.", 3)
@@ -6218,8 +5996,7 @@ function Modules.TimeStop:Initialize()
             module:Enable()
         end
     end)
-    
-    -- Keep the `untimestop` command for convenience, pointing it to the Disable function.
+
     RegisterCommand({
         Name = "untimestop",
         Aliases = {"untstop"},
@@ -6228,7 +6005,6 @@ function Modules.TimeStop:Initialize()
         module:Disable()
     end)
 end
-
 
 Modules.AnimationSpeed = {
     State = {
@@ -6240,20 +6016,15 @@ Modules.AnimationSpeed = {
     Services = {}
 }
 
----
--- Disables the animation speed override and cleans up resources.
---
 function Modules.AnimationSpeed:Disable()
     if not self.State.IsEnabled then return end
 
-    -- Disconnect the main loop to stop overriding the speed.
     if self.State.LoopConnection then
         self.State.LoopConnection:Disconnect()
         self.State.LoopConnection = nil
     end
 
     self.State.IsEnabled = false
-
 
     task.spawn(function()
         local char = self.Services.Players.LocalPlayer.Character
@@ -6272,10 +6043,6 @@ function Modules.AnimationSpeed:Disable()
     DoNotif("Animation speed control disabled.", 2)
 end
 
----
--- Enables or updates the animation speed override.
--- @param speed <number> The desired playback speed (e.g., 2 for double speed).
---
 function Modules.AnimationSpeed:Enable(speed)
     local targetSpeed = tonumber(speed)
     if not targetSpeed or targetSpeed < 0 then
@@ -6285,27 +6052,23 @@ function Modules.AnimationSpeed:Enable(speed)
 
     self.State.TargetSpeed = targetSpeed
 
-    -- If the loop is already running, we just needed to update the speed value.
     if self.State.IsEnabled then
         DoNotif("Animation speed updated to " .. targetSpeed, 2)
         return
     end
 
     self.State.IsEnabled = true
-    
-    -- Connect the main loop to RunService.Stepped for physics-related updates.
+
     self.State.LoopConnection = self.Services.RunService.Stepped:Connect(function()
         local char = self.Services.Players.LocalPlayer.Character
         if not char then return end
-        
-        -- Find the Humanoid or AnimationController, which manages animations.
+
         local animator = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChildOfClass("AnimationController")
         if not animator then return end
 
-        -- Use a pcall to prevent a single broken animation track from erroring the whole loop.
         local success, err = pcall(function()
             for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-                -- Only adjust speed if it's not already at the target, to be efficient.
+
                 if track.Speed ~= self.State.TargetSpeed then
                     track:AdjustSpeed(self.State.TargetSpeed)
                 end
@@ -6314,7 +6077,7 @@ function Modules.AnimationSpeed:Enable(speed)
         
         if not success then
             warn("[AnimationSpeed] Error during loop:", err)
-            -- Automatically disable the module if a persistent error occurs.
+
             self:Disable()
         end
     end)
@@ -6322,9 +6085,6 @@ function Modules.AnimationSpeed:Enable(speed)
     DoNotif("Animation speed set to " .. targetSpeed, 2)
 end
 
----
--- Initializes the module and registers its commands.
---
 function Modules.AnimationSpeed:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -6345,7 +6105,6 @@ function Modules.AnimationSpeed:Initialize()
         end
     end)
 
-    -- Registering the "un" command for convenience, which simply calls the Disable function.
     RegisterCommand({
         Name = "unanimspeed",
         Aliases = {"unaspeed", "unanimationspeed"},
@@ -6354,7 +6113,6 @@ function Modules.AnimationSpeed:Initialize()
         module:Disable()
     end)
 end
-
 
 Modules.Attacher = {
     State = {
@@ -6370,25 +6128,21 @@ Modules.Attacher = {
         oscillationValue = 1,
         lastChaosTime = 0,
         chaosInterval = 0.1,
-        
-        -- UI and Connection Storage
+
         UI = {},
         Connections = {}
     },
     Services = {}
 }
 
---// Deactivation Logic (Cleanup)
 function Modules.Attacher:Deactivate()
     if not self.State.isGuiBuilt then return end
 
-    -- Disconnect all active RunService/input connections
     for _, conn in pairs(self.State.Connections) do
         conn:Disconnect()
     end
     table.clear(self.State.Connections)
 
-    -- Destroy all UI elements
     if self.State.UI.window and self.State.UI.window.Parent then
         self.State.UI.window:Destroy()
     end
@@ -6403,8 +6157,7 @@ end
 
 function Modules.Attacher:Activate()
     if self.State.isGuiBuilt then return end
-    
-    -- Localize self for easier access within functions
+
     local self = self
 
     self.Services.Players = self.Services.Players or game:GetService("Players")
@@ -6445,7 +6198,7 @@ function Modules.Attacher:Activate()
     end
 
     local function findPlayerByPartialName(partialName)
-        -- This function remains the same as your previous version
+
         local localChar = LocalPlayer.Character
         if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return nil end
         local myPos = localChar.HumanoidRootPart.Position
@@ -6481,7 +6234,6 @@ function Modules.Attacher:Activate()
         end
     end
 
-    -- Build the GUI
     local mainFolder = w:CreateFolder("Follow Settings")
     mainFolder:Slider("Speed", {min = 0; max = 5; precise = true;}, function(value)
         self.State.followSpeed = value
@@ -6533,7 +6285,6 @@ function Modules.Attacher:Activate()
         notify("Chaos Mode", bool and "ENABLED - Breaking Aimbots" or "Disabled")
     end)
 
-    -- Helper functions for the main loop
     local function getNearestPlayer()
         local localChar = LocalPlayer.Character
         if not (localChar and localChar:FindFirstChild("HumanoidRootPart")) then return nil end
@@ -6563,7 +6314,6 @@ function Modules.Attacher:Activate()
         return nil
     end
 
-    --// --- Event Connections ---
     local lastAttackTime = 0
     
     self.State.Connections.RenderStepped = self.Services.RunService.RenderStepped:Connect(function()
@@ -6590,8 +6340,7 @@ function Modules.Attacher:Activate()
             local c = LocalPlayer.Character
             if c and c:FindFirstChildOfClass("Humanoid") then c:FindFirstChildOfClass("Humanoid").AutoRotate = true end
         end
-        
-        -- Chaos Mode (Anti-Aimbot Oscillation) - Applied every 0.1 seconds, not every frame
+
         if self.State.isChaosMode then
             local character = LocalPlayer.Character
             local rootPart = character and character:FindFirstChild("HumanoidRootPart")
@@ -6599,16 +6348,14 @@ function Modules.Attacher:Activate()
                 local currentTime = tick()
                 if currentTime - self.State.lastChaosTime >= self.State.chaosInterval then
                     self.State.lastChaosTime = currentTime
-                    
-                    -- Visible CFrame movement for local client
+
                     self.State.oscillationValue = -self.State.oscillationValue
                     local offsetX = math.sin(currentTime * 8) * self.State.flingStrength * 5
                     local offsetY = self.State.oscillationValue * self.State.flingStrength * 3
                     local offsetZ = math.cos(currentTime * 8) * self.State.flingStrength * 5
                     
                     rootPart.CFrame = rootPart.CFrame * CFrame.new(offsetX, offsetY, offsetZ)
-                    
-                    -- Server-side velocity desync for aimbot (invisible but effective)
+
                     local oscillationVelocity = Vector3.new(
                         math.sin(currentTime * 5) * self.State.flingStrength * 30,
                         self.State.oscillationValue * self.State.flingStrength * 15,
@@ -6618,8 +6365,7 @@ function Modules.Attacher:Activate()
                 end
             end
         end
-        
-        -- Auto Attack Logic
+
         if self.State.isAutoAttacking and target then
             local localChar = LocalPlayer.Character
             if localChar then
@@ -6628,8 +6374,7 @@ function Modules.Attacher:Activate()
                 
                 if currentTime - lastAttackTime >= attackDelay then
                     lastAttackTime = currentTime
-                    
-                    -- Find and equip a weapon
+
                     local backpack = LocalPlayer:FindFirstChild("Backpack")
                     local equippedTool = localChar:FindFirstChildOfClass("Tool")
                     
@@ -6640,18 +6385,16 @@ function Modules.Attacher:Activate()
                             equippedTool = tool
                         end
                     end
-                    
-                    -- Spam M1 attack
+
                     if equippedTool and equippedTool:FindFirstChild("Handle") then
                         local targetChar = target.Character
                         if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
-                            -- Point weapon at target
+
                             local handle = equippedTool:FindFirstChild("Handle")
                             if handle then
                                 handle.CFrame = CFrame.new(handle.Position, targetChar.HumanoidRootPart.Position)
                             end
-                            
-                            -- Activate tool (M1 click)
+
                             equippedTool:Activate()
                         end
                     end
@@ -6681,7 +6424,6 @@ function Modules.Attacher:Activate()
     DoNotif("Attacher module activated.", 2)
 end
 
---// Main Toggle Function
 function Modules.Attacher:Toggle()
     if self.State.isGuiBuilt then
         self:Deactivate()
@@ -6695,10 +6437,9 @@ RegisterCommand({
     Aliases = {"attachui", "followui"},
     Description = "Toggles the Player Attacher/Follower UI."
 }, function()
-    -- This ensures the module is initialized before being used
+
     if not Modules.Attacher.Toggle then
-        -- Handle potential script reloads by re-attaching methods if necessary
-        -- (This is an advanced robustness check)
+
         local originalFunctions = loadfile("path/to/your/AttacherModule.lua")()
         Modules.Attacher.Activate = originalFunctions.Activate
         Modules.Attacher.Deactivate = originalFunctions.Deactivate
@@ -6707,12 +6448,11 @@ RegisterCommand({
     Modules.Attacher:Toggle()
 end)
 
-
 Modules.StaffSentry = {
     State = {
         IsEnabled = false,
         AutoJoinConnection = nil,
-        StaffGroups = {1200769, 2868472, 4199740} 
+        StaffGroups = {1200769, 2868472, 4199740}
     }
 }
 
@@ -6797,7 +6537,7 @@ end
 Modules.AntiCheatBypass = {
     State = {
         IsEnabled = false,
-        HookedHumanoids = setmetatable({}, {__mode = "k"}), 
+        HookedHumanoids = setmetatable({}, {__mode = "k"}),
         Connections = {}
     },
     Config = {
@@ -6808,7 +6548,6 @@ Modules.AntiCheatBypass = {
     }
 }
 
---- Applies the metatable hooks to a character's humanoid.
 function Modules.AntiCheatBypass:_applyHooks(character)
     if not character then return end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -6856,7 +6595,6 @@ function Modules.AntiCheatBypass:_applyHooks(character)
     setreadonly(mt, true)
 end
 
---- Removes the metatable hooks and restores original behavior.
 function Modules.AntiCheatBypass:_removeHooks(character)
     if not character then return end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -6885,7 +6623,6 @@ function Modules.AntiCheatBypass:_removeHooks(character)
     self.State.HookedHumanoids[humanoid] = nil
 end
 
---- Enables the Anti-Cheat Bypass system.
 function Modules.AntiCheatBypass:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
@@ -6904,7 +6641,6 @@ function Modules.AntiCheatBypass:Enable()
     DoNotif("Anti-Cheat Bypass: ENABLED. Humanoid properties sanitized.", 3)
 end
 
---- Disables the Anti-Cheat Bypass system.
 function Modules.AntiCheatBypass:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
@@ -6927,7 +6663,6 @@ function Modules.AntiCheatBypass:Disable()
     DoNotif("Anti-Cheat Bypass: DISABLED. Humanoid properties restored.", 3)
 end
 
---- Toggles the state of the bypass.
 function Modules.AntiCheatBypass:Toggle()
     if self.State.IsEnabled then
         self:Disable()
@@ -6936,7 +6671,6 @@ function Modules.AntiCheatBypass:Toggle()
     end
 end
 
--- [FIX]: This entire function call was missing, causing the syntax error on the next module.
 RegisterCommand({
     Name = "acbypass",
     Aliases = {"anticheatbypass", "sanitize"},
@@ -6951,11 +6685,10 @@ Modules.AntiVoid = {
         Connection = nil,
     },
     Config = {
-        SafetyBuffer = 20, -- Distance above the "Kill Zone" to trigger
+        SafetyBuffer = 20,
     }
 }
 
--- [Internal] Resolves a safe location, prioritizing actual SpawnLocations
 function Modules.AntiVoid:_getSafeCFrame()
     local spawns = {}
     for _, desc in ipairs(Workspace:GetDescendants()) do
@@ -6965,10 +6698,10 @@ function Modules.AntiVoid:_getSafeCFrame()
     end
     
     if #spawns > 0 then
-        -- Return the first active spawn with a slight Y offset
+
         return spawns[1].CFrame + Vector3.new(0, 5, 0)
     end
-    -- Fallback to world origin if no spawns exist
+
     return CFrame.new(0, 100, 0)
 end
 
@@ -6980,13 +6713,10 @@ function Modules.AntiVoid:Enable()
         local char = Players.LocalPlayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        
-        -- Detect if we are below the world's kill height + our safety buffer
+
         local killHeight = Workspace.FallenPartsDestroyHeight
         if hrp.Position.Y < (killHeight + self.Config.SafetyBuffer) then
-            
-            -- THE ARCHITECT'S FIX: Zero velocity before teleporting
-            -- This prevents the "Elastic Void" glitch where you keep falling
+
             hrp.AssemblyLinearVelocity = Vector3.zero
             hrp.AssemblyAngularVelocity = Vector3.zero
             
@@ -7009,8 +6739,6 @@ end
 function Modules.AntiVoid:Toggle()
     if self.State.IsEnabled then self:Disable() else self:Enable() end
 end
-
---// --- Command Registration ---
 
 RegisterCommand({
     Name = "antivoid",
@@ -7036,11 +6764,10 @@ function Modules.codedoor:GetCode()
     local foundCode = nil
     local workspaceService = game:GetService("Workspace")
 
-    -- Iterating through known freemodel paths for the codedoor
     for _, config in ipairs(self.Config.Paths) do
         local rootObject = workspaceService:FindFirstChild(config.Root)
         if rootObject then
-            -- Deep search for the target inside the root
+
             local current = rootObject
             local segments = string.split(config.Target, ".")
             
@@ -7061,15 +6788,13 @@ function Modules.codedoor:GetCode()
     if foundCode then
         self.State.LastFoundCode = foundCode
         DoNotif("Success: Code extracted.", 3)
-        
-        -- Utilizing the internal notification system for the display
+
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Door Unlocker",
             Text = "Code: " .. foundCode,
             Duration = 9
         })
-        
-        -- Log to the CommandBar if it's initialized
+
         if Modules.CommandBar and Modules.CommandBar.AddOutput then
             Modules.CommandBar:AddOutput("[DECRYPTED]: Door Code is " .. foundCode, Modules.CommandBar.Theme.Accent)
         end
@@ -7092,8 +6817,8 @@ end
 
 Modules.AdvancedShiftLock = {
     State = {
-        IsEnabled = false, 
-        IsLocked = false,  
+        IsEnabled = false,
+        IsLocked = false,
         UI = {},
         Connections = {},
         Originals = {},
@@ -7104,7 +6829,7 @@ Modules.AdvancedShiftLock = {
             On = "rbxasset://textures/ui/mouseLock_on.png",
             Off = "rbxasset://textures/ui/mouseLock_off.png"
         },
-        CameraOffset = Vector3.new(1.75, 0, 0), 
+        CameraOffset = Vector3.new(1.75, 0, 0),
         Smoothing = 0.25,
         ToggleKey = Enum.KeyCode.LeftShift
     },
@@ -7112,7 +6837,6 @@ Modules.AdvancedShiftLock = {
     Services = {}
 }
 
---// Missing Draggable Method Fix
 function Modules.AdvancedShiftLock:_makeDraggable(guiObject, dragHandle)
     local UIS = self.Services.UserInputService
     local dragging = false
@@ -7137,9 +6861,9 @@ function Modules.AdvancedShiftLock:_makeDraggable(guiObject, dragHandle)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             guiObject.Position = UDim2.new(
-                startPos.X.Scale, 
-                startPos.X.Offset + delta.X, 
-                startPos.Y.Scale, 
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
                 startPos.Y.Offset + delta.Y
             )
         end
@@ -7258,7 +6982,6 @@ function Modules.AdvancedShiftLock:Disable()
     DoNotif("Shift-Lock Disabled.", 2)
 end
 
---// Necessary for service loading
 function Modules.AdvancedShiftLock:Initialize()
     local module = self
     module.Services = {}
@@ -7282,14 +7005,13 @@ end
 Modules.AntiTrip = {
     State = {
         IsEnabled = false,
-        -- Using a weak-keyed table for the cache ensures that if a character/humanoid
-        -- is destroyed, its entry in the cache is automatically garbage collected.
+
         OriginalStateCache = setmetatable({}, {__mode = "k"}),
-        -- Tracks all active connections for robust cleanup.
+
         Connections = {}
     },
     Config = {
-        -- The humanoid states that this module will actively block.
+
         StatesToBlock = {
             Enum.HumanoidStateType.FallingDown,
             Enum.HumanoidStateType.Ragdoll,
@@ -7300,9 +7022,6 @@ Modules.AntiTrip = {
     Services = {}
 }
 
----
--- [Private] Forces a character to recover from a blocked state.
---
 function Modules.AntiTrip:_forceRecovery(humanoid)
     if not humanoid then return end
     pcall(function()
@@ -7312,20 +7031,16 @@ function Modules.AntiTrip:_forceRecovery(humanoid)
             rootPart.AssemblyLinearVelocity = Vector3.zero
         end
         humanoid.PlatformStand = false
-        -- GettingUp is often more reliable for breaking out of physics states than Running.
+
         humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
     end)
 end
 
----
--- [Private] Applies the anti-trip logic to a specific character.
---
 function Modules.AntiTrip:_applyToCharacter(character)
     if not character then return end
     local humanoid = character:WaitForChild("Humanoid", 5)
     if not humanoid then return end
 
-    -- Cache the original state of the humanoid properties we are about to change.
     local savedStates = {}
     for _, stateType in ipairs(self.Config.StatesToBlock) do
         local success, isEnabled = pcall(humanoid.GetStateEnabled, humanoid, stateType)
@@ -7336,28 +7051,22 @@ function Modules.AntiTrip:_applyToCharacter(character)
     end
     self.State.OriginalStateCache[humanoid] = savedStates
 
-    -- Create a single, efficient loop on Stepped (runs before physics simulation).
     local loopConnection = self.Services.RunService.Stepped:Connect(function()
         local currentState = humanoid:GetState()
         for _, blockedState in ipairs(self.Config.StatesToBlock) do
             if currentState == blockedState then
                 self:_forceRecovery(humanoid)
-                break -- No need to check other states in this frame
+                break
             end
         end
     end)
-    
-    -- Store the connection for this specific character.
+
     self.State.Connections[character] = loopConnection
 end
 
----
--- [Private] Reverts all changes made to a specific character.
---
 function Modules.AntiTrip:_revertForCharacter(character)
     if not character then return end
-    
-    -- Disconnect the recovery loop for this character.
+
     if self.State.Connections[character] then
         self.State.Connections[character]:Disconnect()
         self.State.Connections[character] = nil
@@ -7365,49 +7074,39 @@ function Modules.AntiTrip:_revertForCharacter(character)
 
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if humanoid and self.State.OriginalStateCache[humanoid] then
-        -- Restore the original humanoid state settings from our cache.
+
         for stateType, wasEnabled in pairs(self.State.OriginalStateCache[humanoid]) do
             pcall(humanoid.SetStateEnabled, humanoid, stateType, wasEnabled)
         end
-        -- Remove the entry from the cache.
+
         self.State.OriginalStateCache[humanoid] = nil
     end
 end
 
----
--- Enables the anti-trip module.
---
 function Modules.AntiTrip:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
 
     local localPlayer = self.Services.Players.LocalPlayer
-    
-    -- Apply to the current character if it exists.
+
     if localPlayer.Character then
         self:_applyToCharacter(localPlayer.Character)
     end
 
-    -- Hook into future character spawns and despawns.
     self.State.Connections.CharacterAdded = localPlayer.CharacterAdded:Connect(function(char) self:_applyToCharacter(char) end)
     self.State.Connections.CharacterRemoving = localPlayer.CharacterRemoving:Connect(function(char) self:_revertForCharacter(char) end)
 
     DoNotif("Anti-Trip Enabled", 2)
 end
 
----
--- Disables the anti-trip module and cleans up all resources.
---
 function Modules.AntiTrip:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
 
-    -- Disconnect the main CharacterAdded/Removing hooks.
     if self.State.Connections.CharacterAdded then self.State.Connections.CharacterAdded:Disconnect() end
     if self.State.Connections.CharacterRemoving then self.State.Connections.CharacterRemoving:Disconnect() end
     self.State.Connections.CharacterAdded, self.State.Connections.CharacterRemoving = nil, nil
 
-    -- Revert the effect for the current character.
     if self.Services.Players.LocalPlayer.Character then
         self:_revertForCharacter(self.Services.Players.LocalPlayer.Character)
     end
@@ -7423,9 +7122,6 @@ function Modules.AntiTrip:Toggle()
     end
 end
 
----
--- Initializes the module and registers its commands.
---
 function Modules.AntiTrip:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -7448,7 +7144,6 @@ Modules.AdBlock = {
     Dependencies = {"Workspace", "Players", "CoreGui"},
     Services = {}
 }
-
 
 local AD_KEYWORDS = {
     "ad", "ads", "advert", "sponsor", "promo", "promotion"
@@ -7473,7 +7168,6 @@ end
 function Modules.AdBlock:_processObject(obj)
     if not obj or not obj.Parent then return end
 
-    -- UI ADS
     if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
         self:_destroy(obj)
         return
@@ -7486,7 +7180,6 @@ function Modules.AdBlock:_processObject(obj)
         return
     end
 
-    -- PART-BASED ADS
     if obj:IsA("BasePart") then
         if obj:FindFirstChildWhichIsA("BillboardGui") then
             self:_destroy(obj)
@@ -7494,7 +7187,6 @@ function Modules.AdBlock:_processObject(obj)
         end
     end
 
-    -- LEGACY / SPONSORED STRUCTURES
     if nameLooksLikeAd(obj.Name) then
         self:_destroy(obj)
         return
@@ -7505,7 +7197,6 @@ function Modules.AdBlock:_processObject(obj)
         return
     end
 end
-
 
 function Modules.AdBlock:Enable()
     if self.State.IsEnabled then
@@ -7522,7 +7213,6 @@ function Modules.AdBlock:Enable()
         end
     end
 
-    -- Initial scans
     scan(self.Services.Workspace)
 
     local player = self.Services.Players.LocalPlayer
@@ -7533,7 +7223,6 @@ function Modules.AdBlock:Enable()
 
     scan(self.Services.CoreGui)
 
-    -- Live listeners
     local function watch(container)
         table.insert(self.State.Connections,
             container.DescendantAdded:Connect(function(obj)
@@ -7588,7 +7277,6 @@ function Modules.AdBlock:Initialize()
     end)
 end
 
-
 Modules.Fakeout = {
     State = {
         IsExecuting = false
@@ -7597,9 +7285,6 @@ Modules.Fakeout = {
     Services = {}
 }
 
----
--- Executes the fakeout sequence.
---
 function Modules.Fakeout:Execute()
     if self.State.IsExecuting then
         DoNotif("A fakeout is already in progress.", 1.5)
@@ -7617,30 +7302,25 @@ function Modules.Fakeout:Execute()
 
     self.State.IsExecuting = true
 
-    -- Safely run the sequence in a new thread to prevent yielding the main script.
     task.spawn(function()
-        -- 1. PREPARATION: Save state and temporarily disable conflicting modules.
+
         local originalCFrame = rootPart.CFrame
         local originalDestroyHeight = self.Services.Workspace.FallenPartsDestroyHeight
         local wasAntiVoidEnabled = false
 
-        -- Decoupled interaction with the AntiVoid module.
         if Modules.AntiVoid and Modules.AntiVoid.State.IsEnabled then
             wasAntiVoidEnabled = true
             Modules.AntiVoid:Disable()
         end
 
-        -- 2. EXECUTION: Perform the fakeout. Use pcall for guaranteed cleanup.
         local success, err = pcall(function()
-            -- A large negative number is more explicit than NaN for disabling the void.
+
             self.Services.Workspace.FallenPartsDestroyHeight = -1e9
-            
-            -- Teleport just below the original void height.
+
             rootPart.CFrame = CFrame.new(originalCFrame.Position.X, originalDestroyHeight - 50, originalCFrame.Position.Z)
             
             task.wait(1)
-            
-            -- If the character still exists, teleport back.
+
             if rootPart and rootPart.Parent then
                 rootPart.CFrame = originalCFrame
             end
@@ -7650,10 +7330,8 @@ function Modules.Fakeout:Execute()
             warn("[Fakeout] Sequence failed:", err)
         end
 
-        -- 3. CLEANUP: Restore all original states. This block runs regardless of success.
         self.Services.Workspace.FallenPartsDestroyHeight = originalDestroyHeight
-        
-        -- If the AntiVoid module was active before, re-enable it.
+
         if wasAntiVoidEnabled and Modules.AntiVoid then
             Modules.AntiVoid:Enable()
         end
@@ -7662,9 +7340,6 @@ function Modules.Fakeout:Execute()
     end)
 end
 
----
--- Initializes the module, loads services, and registers the command.
---
 function Modules.Fakeout:Initialize()
     local module = self
     for _, serviceName in ipairs(self.Dependencies) do
@@ -7682,18 +7357,13 @@ end
 Modules.R6Enforcer = {
     State = {
         IsEnabled = false,
-        -- This connection is now the sole component that hooks the respawn process.
+
         CharacterAddedConnection = nil
     },
     Dependencies = {"Players"},
     Services = {}
 }
 
---// --- Private Methods ---
-
----
--- [FIXED] Client-sided function to trigger a respawn by ending the character's life.
---
 function Modules.R6Enforcer:_forceRespawn()
     local character = self.Services.Players.LocalPlayer.Character
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -7701,8 +7371,6 @@ function Modules.R6Enforcer:_forceRespawn()
         humanoid.Health = 0
     end
 end
-
---// --- Public Methods ---
 
 function Modules.R6Enforcer:Enable()
     if self.State.IsEnabled then return end
@@ -7712,27 +7380,22 @@ function Modules.R6Enforcer:Enable()
 
     self.State.IsEnabled = true
 
-    -- Disconnect any previous hook to ensure a clean state.
     if self.State.CharacterAddedConnection then self.State.CharacterAddedConnection:Disconnect() end
-    
-    -- This is the core of the exploit: when the character respawns,
-    -- we intercept it and apply a blank description to force R6.
+
     self.State.CharacterAddedConnection = localPlayer.CharacterAdded:Connect(function(character)
-        -- We only apply this logic if the module is still enabled.
+
         if not self.State.IsEnabled then return end
         
         local humanoid = character:WaitForChild("Humanoid", 5)
         if humanoid then
-            -- [CRITICAL FIX] Applying a new, empty HumanoidDescription forces
-            -- the character to load with the default R6 rig and appearance.
+
             local r6Description = Instance.new("HumanoidDescription")
             humanoid:ApplyDescription(r6Description)
         end
     end)
     
     DoNotif("R6 Enforcer: ENABLED. Respawning to apply...", 3)
-    
-    -- Trigger the respawn, which our CharacterAdded connection will catch.
+
     self:_forceRespawn()
 end
 
@@ -7740,8 +7403,6 @@ function Modules.R6Enforcer:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
 
-    -- [CRITICAL FIX] Disconnect the hook. Now, when the player respawns,
-    -- nothing will intercept the process, and their normal avatar will load.
     if self.State.CharacterAddedConnection then
         self.State.CharacterAddedConnection:Disconnect()
         self.State.CharacterAddedConnection = nil
@@ -7749,7 +7410,6 @@ function Modules.R6Enforcer:Disable()
 
     DoNotif("R6 Enforcer: DISABLED. Respawning to revert...", 3)
 
-    -- Trigger a respawn to revert to the default character.
     self:_forceRespawn()
 end
 
@@ -7776,13 +7436,11 @@ function Modules.R6Enforcer:Initialize()
     end)
 end
 
-
-
 Modules.AntiPlayerPhysics = {
     State = {
         IsEnabled = false,
         SteppedConnection = nil,
-        OriginalProperties = setmetatable({}, {__mode = "k"}) -- Automatically cleans up when a part is destroyed
+        OriginalProperties = setmetatable({}, {__mode = "k"})
     },
     Services = {
         Players = game:GetService("Players"),
@@ -7790,34 +7448,32 @@ Modules.AntiPlayerPhysics = {
     }
 }
 
---- [Private] Reverts physics properties for a character to their original state.
 function Modules.AntiPlayerPhysics:_revertCharacter(character)
     if not character then return end
     for _, part in ipairs(character:GetDescendants()) do
         if part:IsA("BasePart") and self.State.OriginalProperties[part] then
-            -- Restore from our cache
+
             part.CanCollide = self.State.OriginalProperties[part].CanCollide
             part.Massless = self.State.OriginalProperties[part].Massless
-            -- Clear the cache entry for this part
+
             self.State.OriginalProperties[part] = nil
         end
     end
 end
 
---- Enables the anti-physics protection loop.
 function Modules.AntiPlayerPhysics:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
 
     self.State.SteppedConnection = self.Services.RunService.Stepped:Connect(function()
-        -- This loop must run continuously to fight against the server replicating the original properties back.
+
         for _, player in ipairs(self.Services.Players:GetPlayers()) do
             if player ~= self.Services.Players.LocalPlayer and player.Character then
-                -- pcall to prevent errors if a character part is removed during the loop
+
                 pcall(function()
                     for _, part in ipairs(player.Character:GetChildren()) do
                         if part:IsA("BasePart") then
-                            -- Cache the original properties ONCE.
+
                             if not self.State.OriginalProperties[part] then
                                 self.State.OriginalProperties[part] = {
                                     CanCollide = part.CanCollide,
@@ -7825,9 +7481,8 @@ function Modules.AntiPlayerPhysics:Enable()
                                 }
                             end
 
-                            -- Apply anti-physics properties
                             part.CanCollide = false
-                            if part.Name == "Torso" then -- Still effective on R6
+                            if part.Name == "Torso" then
                                 part.Massless = true
                             end
                             part.Velocity = Vector3.new()
@@ -7841,7 +7496,6 @@ function Modules.AntiPlayerPhysics:Enable()
     DoNotif("Anti-Player Physics: ENABLED.", 2)
 end
 
---- Disables the anti-physics protection and cleans up all changes.
 function Modules.AntiPlayerPhysics:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
@@ -7851,18 +7505,16 @@ function Modules.AntiPlayerPhysics:Disable()
         self.State.SteppedConnection = nil
     end
 
-    -- Restore all modified characters to their original state
     for _, player in ipairs(self.Services.Players:GetPlayers()) do
         if player.Character then
             self:_revertCharacter(player.Character)
         end
     end
-    table.clear(self.State.OriginalProperties) -- Clear the cache
+    table.clear(self.State.OriginalProperties)
 
     DoNotif("Anti-Player Physics: DISABLED.", 2)
 end
 
---- Toggles the state of the system.
 function Modules.AntiPlayerPhysics:Toggle()
     if self.State.IsEnabled then
         self:Disable()
@@ -7871,7 +7523,6 @@ function Modules.AntiPlayerPhysics:Toggle()
     end
 end
 
---- Initializes the module and registers its command.
 function Modules.AntiPlayerPhysics:Initialize()
     local module = self
     RegisterCommand({
@@ -7892,34 +7543,31 @@ Modules.ForensicAntiFling = {
         TrackedPlayers = {}
     },
     Config = {
-        MAX_SPEED = 35,          -- Velocity threshold for snapback
-        SAFE_Y_BUFFER = 5,       -- Minimum height considered "safe"
-        VOID_THRESHOLD = -15,    -- Teleport back if fallen this far
-        PROTECT_RADIUS = 18,     -- Distance to freeze nearby flingers
-        FREEZE_DURATION = 0.5,   -- How long to freeze an impacting part
-        OTHER_VEL_LIMIT = 60     -- Velocity threshold to ghost other players
+        MAX_SPEED = 35,
+        SAFE_Y_BUFFER = 5,
+        VOID_THRESHOLD = -15,
+        PROTECT_RADIUS = 18,
+        FREEZE_DURATION = 0.5,
+        OTHER_VEL_LIMIT = 60
     }
 }
 
--- [Internal] Removes all physics movers from a character
 function Modules.ForensicAntiFling:_purgeForces(character)
     for _, obj in ipairs(character:GetDescendants()) do
-        if obj:IsA("BodyMover") or obj:IsA("LinearVelocity") or obj:IsA("AngularVelocity") 
+        if obj:IsA("BodyMover") or obj:IsA("LinearVelocity") or obj:IsA("AngularVelocity")
         or obj:IsA("AlignPosition") or obj:IsA("AlignOrientation") or obj:IsA("VectorForce") then
             pcall(function() obj:Destroy() end)
         end
     end
 end
 
--- [Internal] Intercepts high-velocity parts on contact and freezes them locally
 function Modules.ForensicAntiFling:_onTouchFreeze(otherPart)
     if not self.State.IsEnabled then return end
     if otherPart:IsA("BasePart") and otherPart.AssemblyLinearVelocity.Magnitude > self.Config.MAX_SPEED then
         local origVel = otherPart.AssemblyLinearVelocity
         otherPart.AssemblyLinearVelocity = Vector3.zero
         otherPart.AssemblyAngularVelocity = Vector3.zero
-        
-        -- Restore after a micro-delay to prevent physics crashing while maintaining defense
+
         task.delay(self.Config.FREEZE_DURATION, function()
             if otherPart and otherPart.Parent then
                 otherPart.AssemblyLinearVelocity = origVel
@@ -7928,29 +7576,24 @@ function Modules.ForensicAntiFling:_onTouchFreeze(otherPart)
     end
 end
 
--- [Internal] The main defense loop
 function Modules.ForensicAntiFling:_startDefense(character)
     local hrp = character:WaitForChild("HumanoidRootPart", 5)
     local hum = character:WaitForChild("Humanoid", 5)
     if not hrp or not hum then return end
 
     self.State.SafeCFrame = hrp.CFrame
-    
-    -- Connection 1: Impact Interception
+
     table.insert(self.State.Connections, hrp.Touched:Connect(function(p) self:_onTouchFreeze(p) end))
 
-    -- Connection 2: Velocity & Positional Integrity
     table.insert(self.State.Connections, RunService.Heartbeat:Connect(function()
         if not self.State.IsEnabled or hum.Health <= 0 then return end
 
         local vel = hrp.AssemblyLinearVelocity.Magnitude
-        
-        -- Update Safe Zone: Only cache CFrame if we are moving normally and above the void
+
         if vel <= self.Config.MAX_SPEED and hrp.Position.Y > self.Config.SAFE_Y_BUFFER then
             self.State.SafeCFrame = hrp.CFrame
         end
 
-        -- Vector A: Void Protection
         if hrp.Position.Y < self.Config.VOID_THRESHOLD then
             hrp.CFrame = self.State.SafeCFrame or CFrame.new(0, 50, 0)
             hrp.AssemblyLinearVelocity = Vector3.zero
@@ -7958,16 +7601,14 @@ function Modules.ForensicAntiFling:_startDefense(character)
             return
         end
 
-        -- Vector B: Fling Detection (Speed or illegal height change)
         if vel > self.Config.MAX_SPEED or hrp.Position.Y < self.Config.SAFE_Y_BUFFER then
-            -- Snapback to last known safe CFrame
+
             hrp.CFrame = self.State.SafeCFrame or hrp.CFrame
             hrp.AssemblyLinearVelocity = Vector3.zero
             hrp.AssemblyAngularVelocity = Vector3.zero
             
             self:_purgeForces(character)
-            
-            -- Kinetic Drain: Neutralize anyone in the immediate radius
+
             for _, part in pairs(Workspace:GetPartBoundsInRadius(hrp.Position, self.Config.PROTECT_RADIUS)) do
                 if part:IsA("BasePart") and not part:IsDescendantOf(character) then
                     if part.Parent:FindFirstChildOfClass("Humanoid") then
@@ -7980,7 +7621,6 @@ function Modules.ForensicAntiFling:_startDefense(character)
     end))
 end
 
--- [Internal] background monitor for other players (Ghosting high-speed players)
 function Modules.ForensicAntiFling:_monitorOthers()
     table.insert(self.State.Connections, RunService.Heartbeat:Connect(function()
         if not self.State.IsEnabled then return end
@@ -7989,7 +7629,7 @@ function Modules.ForensicAntiFling:_monitorOthers()
             if plr ~= LocalPlayer and plr.Character and plr.Character.PrimaryPart then
                 local root = plr.Character.PrimaryPart
                 if root.AssemblyLinearVelocity.Magnitude > self.Config.OTHER_VEL_LIMIT or root.AssemblyAngularVelocity.Magnitude > self.Config.OTHER_VEL_LIMIT then
-                    -- Locally strip their physics properties
+
                     for _, v in ipairs(plr.Character:GetDescendants()) do
                         if v:IsA("BasePart") then
                             v.CanCollide = false
@@ -8028,8 +7668,6 @@ function Modules.ForensicAntiFling:Toggle()
     if self.State.IsEnabled then self:Disable() else self:Enable() end
 end
 
---// --- Command Registration ---
-
 RegisterCommand({
     Name = "antifling",
     Aliases = {"anf", "unfling", "safezone"},
@@ -8044,7 +7682,7 @@ Modules.AntiKill = {
         RenderConnection = nil,
         CameraConnection = nil
     },
-    Services = { -- Pre-loading services is a good pattern.
+    Services = {
         Players = game:GetService("Players"),
         RunService = game:GetService("RunService"),
         UserInputService = game:GetService("UserInputService"),
@@ -8052,7 +7690,6 @@ Modules.AntiKill = {
     }
 }
 
---- Enables the Anti-Kill protection loop.
 function Modules.AntiKill:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
@@ -8060,13 +7697,11 @@ function Modules.AntiKill:Enable()
     local Player = self.Services.Players.LocalPlayer
     local Camera = self.Services.Workspace.CurrentCamera
 
-    -- A handler to ensure the Camera variable is always current.
     local function onCameraChanged()
        Camera = self.Services.Workspace.CurrentCamera
     end
     self.State.CameraConnection = self.Services.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(onCameraChanged)
 
-    -- The core protection logic, connected to RenderStepped for high-frequency execution.
     local function protectionLoop()
         local Character = Player.Character
         if not Character then return end
@@ -8076,15 +7711,11 @@ function Modules.AntiKill:Enable()
 
         if not (Humanoid and RootPart) then return end
 
-        -- [DEFENSE 1] If in shift-lock, lock character rotation to camera to prevent forced turning.
         if self.Services.UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
             local _, cameraY, _ = Camera.CFrame:ToEulerAnglesYXZ()
             RootPart.CFrame = CFrame.new(RootPart.Position) * CFrame.Angles(0, cameraY, 0)
         end
-        
-        -- [DEFENSE 2] Forcing the Sit state gives character physics higher network priority,
-        -- making it highly resistant to external forces. We then disable the 'Seated'
-        -- state so the character doesn't actually perform the sit animation.
+
         Humanoid.Sit = true
         Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
     end
@@ -8093,12 +7724,10 @@ function Modules.AntiKill:Enable()
     DoNotif("Anti-Kill System: ENABLED.", 2)
 end
 
---- Disables the Anti-Kill protection and cleans up resources.
 function Modules.AntiKill:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
 
-    -- Disconnect connections to prevent memory leaks.
     if self.State.RenderConnection then
         self.State.RenderConnection:Disconnect()
         self.State.RenderConnection = nil
@@ -8108,7 +7737,6 @@ function Modules.AntiKill:Disable()
         self.State.CameraConnection = nil
     end
 
-    -- Restore the character to a normal state.
     pcall(function()
         local Humanoid = self.Services.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Humanoid then
@@ -8120,7 +7748,6 @@ function Modules.AntiKill:Disable()
     DoNotif("Anti-Kill System: DISABLED.", 2)
 end
 
---- Toggles the state of the Anti-Kill system.
 function Modules.AntiKill:Toggle()
     if self.State.IsEnabled then
         self:Disable()
@@ -8129,9 +7756,8 @@ function Modules.AntiKill:Toggle()
     end
 end
 
---- Initializes the module and registers its command.
 function Modules.AntiKill:Initialize()
-    local module = self -- Capture self for the command function.
+    local module = self
     RegisterCommand({
         Name = "antikill",
         Aliases = {},
@@ -8482,14 +8108,11 @@ function Modules.HumanoidIntegrity:Initialize()
 end)
 end
 
-
-
-
 Modules.TeleporterScanner = {
 	State = {
-		UI = nil, -- Will hold the ScreenGui instance
+		UI = nil,
 		IsScanning = false,
-		Highlights = {} -- Module-specific highlight table
+		Highlights = {}
 	}
 }
 
@@ -8515,7 +8138,6 @@ function Modules.TeleporterScanner:ToggleGUI()
 	local TweenService = game:GetService("TweenService")
 	local CoreGui = game:GetService("CoreGui")
 
-	-- FIXED: Refined keywords for much higher accuracy
 	local SCRIPT_KEYWORDS = { "TeleportService", ":Teleport(", ":TeleportToPlaceInstance(", "fireproximityprompt" }
 	local NAME_KEYWORDS = { "teleport", "portal", "warp" }
 	local DATA_PAYLOAD_NAMES = { "placeid", "gameid", "targetplace" }
@@ -8564,7 +8186,6 @@ function Modules.TeleporterScanner:ToggleGUI()
 		scanButton.Text = "Begin Workspace Scan"; scanButton.Active = true
 	end
 
-	-- FIXED: Entirely new scanning logic for precision.
 	local function scanWorkspace()
 		self.State.IsScanning = true
 		scanButton.Text = "Scanning... (This may take a moment)"; scanButton.Active = false
@@ -8576,7 +8197,6 @@ function Modules.TeleporterScanner:ToggleGUI()
 				
 				local part, confidence, reason = nil, 0, ""
 
-				-- High-confidence check: Script source analysis
 				if descendant:IsA("LuaSourceContainer") then
 					local success, source = pcall(function() return descendant.Source end)
 					if success and source then
@@ -8594,10 +8214,9 @@ function Modules.TeleporterScanner:ToggleGUI()
 					end
 				end
 
-				-- Medium/Low-confidence checks on BaseParts
 				if descendant:IsA("BasePart") and not part then
 					local currentConfidence, currentReason = 0, ""
-					-- Check for data payloads
+
 					for _, child in ipairs(descendant:GetChildren()) do
 						if child:IsA("StringValue") or child:IsA("IntValue") or child:IsA("NumberValue") then
 							for _, name in ipairs(DATA_PAYLOAD_NAMES) do
@@ -8609,7 +8228,7 @@ function Modules.TeleporterScanner:ToggleGUI()
 							end
 						end
 					end
-					-- Check part name
+
 					for _, keyword in ipairs(NAME_KEYWORDS) do
 						if descendant.Name:lower():find(keyword, 1, true) then
 							currentConfidence = math.max(currentConfidence, CONFIDENCE_THRESHOLDS.NAME)
@@ -8626,8 +8245,7 @@ function Modules.TeleporterScanner:ToggleGUI()
 					findings[part] = { confidence = confidence, reason = reason }
 				end
 			end
-			
-			-- Process all findings after the scan is complete
+
 			local partsFound = 0
 			for part, data in pairs(findings) do
 				partsFound += 1
@@ -8644,7 +8262,7 @@ function Modules.TeleporterScanner:ToggleGUI()
 	scanButton.MouseButton1Click:Connect(function()
 		if self.State.IsScanning then return end
 		clearResults()
-		scanWorkspace() -- No longer needs to be spawned in a new thread here
+		scanWorkspace()
 	end)
 	clearButton.MouseButton1Click:Connect(clearResults)
 
@@ -8669,25 +8287,22 @@ Modules.AuthorityHijacker = {
         IsEnabled = false,
         UnlockedTables = {},
         OriginalNewIndex = nil,
-        SpoofMap = {} -- [Instance] = {[Property] = Value}
+        SpoofMap = {}
     }
 }
 
--- [Internal] Recursively unlocks every table within a target root
 function Modules.AuthorityHijacker:_deepUnlock(root, depth)
     if depth > 10 or self.State.UnlockedTables[root] then return end
     if type(root) ~= "table" then return end
     
     self.State.UnlockedTables[root] = true
-    
-    -- Unlock the table itself
+
     if setreadonly then
         pcall(setreadonly, root, false)
     elseif make_writeable then
         pcall(make_writeable, root)
     end
-    
-    -- Recurse through children
+
     for k, v in pairs(root) do
         if type(v) == "table" then
             self:_deepUnlock(v, depth + 1)
@@ -8695,9 +8310,8 @@ function Modules.AuthorityHijacker:_deepUnlock(root, depth)
     end
 end
 
--- [Internal] Hooks the engine's property-writing method
 function Modules.AuthorityHijacker:ApplyKernelHook()
--- Inside the newcclosure for __index
+
 if key == "WalkSpeed" or key == "JumpPower" then
     if self.State.IsEnabled then
         return self.State.SpoofMap[t] and self.State.SpoofMap[t][key] or originalIndex(t, key)
@@ -8713,12 +8327,12 @@ end
     
     setreadonly(mt, false)
     mt.__newindex = newcclosure(function(t, k, v)
-        -- If we are in 'Hijack Mode', we ignore the "Read-Only" error and store the value
+
         if Modules.AuthorityHijacker.State.IsEnabled then
-            -- Attempt to write normally first (in case it's actually writeable)
+
             local ok = pcall(old, t, k, v)
             if not ok then
-                -- If it failed (Read-Only), we store it in our SpoofMap
+
                 if not Modules.AuthorityHijacker.State.SpoofMap[t] then
                     Modules.AuthorityHijacker.State.SpoofMap[t] = {}
                 end
@@ -8729,9 +8343,7 @@ end
         end
         return old(t, k, v)
     end)
-    
-    
-    -- Also hook __index so when the game reads the property, it gets our "fake" value
+
     local oldIndex = mt.__index
     mt.__index = newcclosure(function(t, k)
         if Modules.AuthorityHijacker.State.IsEnabled and Modules.AuthorityHijacker.State.SpoofMap[t] then
@@ -8746,15 +8358,13 @@ end
 
 function Modules.AuthorityHijacker:UnlockEnvironment()
     DoNotif("Unlocking Global Environment...", 2)
-    -- Target high-value globals
+
     self:_deepUnlock(getgenv(), 0)
     self:_deepUnlock(getrenv(), 0)
     self:_deepUnlock(getreg(), 0)
     
     DoNotif("Global Read-Only states dismantled.", 3)
 end
-
---// --- Command Registration ---
 
 RegisterCommand({
     Name = "unlockengine",
@@ -8783,7 +8393,7 @@ end)
 Modules.InventoryVault = {
     State = {
         IsEnabled = false,
-        Vault = {}, -- Stores Tool instances
+        Vault = {},
         Connections = {},
         HookActive = false,
         OriginalNewIndex = nil
@@ -8791,7 +8401,6 @@ Modules.InventoryVault = {
     Dependencies = {"Players", "CoreGui", "RunService"}
 }
 
--- [Internal] Saves a snapshot of your current inventory
 function Modules.InventoryVault:Snapshot()
     local backpack = Players.LocalPlayer:FindFirstChildOfClass("Backpack")
     local char = Players.LocalPlayer.Character
@@ -8814,7 +8423,6 @@ function Modules.InventoryVault:Snapshot()
     DoNotif("Vault: Saved " .. count .. " tools to local memory.", 3)
 end
 
--- [Internal] Force-injects tools from the vault back into your backpack
 function Modules.InventoryVault:Restore()
     local backpack = Players.LocalPlayer:FindFirstChildOfClass("Backpack")
     if not backpack then return end
@@ -8831,7 +8439,6 @@ function Modules.InventoryVault:Restore()
     DoNotif("Vault: Restored " .. restored .. " tools.", 2)
 end
 
--- [Internal] The Elite Method: Hooking the Parent property
 function Modules.InventoryVault:ApplyShield()
     if self.State.HookActive then return end
     
@@ -8843,12 +8450,12 @@ function Modules.InventoryVault:ApplyShield()
     
     setreadonly(mt, false)
     mt.__newindex = newcclosure(function(t, k, v)
-        -- If a script tries to remove a tool by parenting it to nil or elsewhere
+
         if Modules.InventoryVault.State.IsEnabled and t:IsA("Tool") and k == "Parent" and v ~= Players.LocalPlayer:FindFirstChildOfClass("Backpack") and v ~= Players.LocalPlayer.Character then
-            -- We block the change if the caller is a game script
+
             if not checkcaller() then
                 warn("--> [Vault] Blocked attempt to remove tool: " .. t.Name)
-                return nil 
+                return nil
             end
         end
         return old(t, k, v)
@@ -8868,7 +8475,6 @@ function Modules.InventoryVault:Toggle()
         DoNotif("Inventory Shield: DISABLED", 2)
     end
 end
-
 
 function Modules.InventoryVault:Initialize()
     local module = self
@@ -8906,7 +8512,6 @@ Modules.PropertyForensics = {
     }
 }
 
--- [Internal] Robust Path Resolver
 function Modules.PropertyForensics:_resolvePath(path)
     local current = game
     local segments = string.split(path, ".")
@@ -8919,8 +8524,7 @@ function Modules.PropertyForensics:_resolvePath(path)
             elseif name:lower() == "game" then
                 continue
             end
-            
-            -- Handle GetService shorthand
+
             local success, service = pcall(game.GetService, game, name)
             if success and service then
                 current = service
@@ -8935,7 +8539,6 @@ function Modules.PropertyForensics:_resolvePath(path)
     return current
 end
 
--- [Action] Resizes the instance based on input
 function Modules.PropertyForensics:Resize(path, x, y, z)
     local obj = self:_resolvePath(path)
     
@@ -8943,7 +8546,6 @@ function Modules.PropertyForensics:Resize(path, x, y, z)
         return DoNotif("Resize Error: Path could not be resolved.", 3)
     end
 
-    -- Logic for Models (Standard in modern Roblox)
     if obj:IsA("Model") then
         local scale = tonumber(x)
         if scale then
@@ -8959,14 +8561,13 @@ function Modules.PropertyForensics:Resize(path, x, y, z)
         return
     end
 
-    -- Logic for BaseParts and UI
     if obj:IsA("BasePart") or obj:IsA("GuiObject") then
         local newSize
         if x and y and z then
-            -- Absolute Vector3 resize
+
             newSize = Vector3.new(tonumber(x), tonumber(y), tonumber(z))
         elseif x and not y then
-            -- Uniform scale multiplier
+
             local factor = tonumber(x)
             newSize = obj.Size * factor
         end
@@ -8994,8 +8595,6 @@ function Modules.PropertyForensics:Restore(path)
         DoNotif("Restored original size for: " .. obj.Name, 2)
     end
 end
-
---// --- Command Registration ---
 
 RegisterCommand({
     Name = "size",
@@ -9036,9 +8635,8 @@ RegisterCommand({
         if hrp then
 
             Modules.PropertyForensics:Resize(hrp:GetFullName(), size)
-            
 
-            hrp.CanCollide = false 
+            hrp.CanCollide = false
             hrp.Transparency = 0.7
         end
     else
@@ -9094,9 +8692,8 @@ Modules.AdminSpoofDemonstration = {
         OriginalIndex = nil,
         PlayerMetatable = nil
     },
-    Dependencies = {"Players"} -- Declares required services for the Initialize function.
+    Dependencies = {"Players"}
 }
-
 
 function Modules.AdminSpoofDemonstration:Enable(targetId)
     if self.State.IsSpoofing then
@@ -9107,35 +8704,29 @@ function Modules.AdminSpoofDemonstration:Enable(targetId)
     local localPlayer = self.Services.Players.LocalPlayer
     if not localPlayer then return end
 
-    -- Using pcall for robustness as getrawmetatable is a debug function and can fail.
     local success, playerMetatable = pcall(getrawmetatable, localPlayer)
     if not success or typeof(playerMetatable) ~= "table" then
         DoNotif("Error: Could not get the player's metatable. Environment may not support this.", 4)
         return
     end
 
-    -- Store the original metatable and __index for restoration upon disabling.
     self.State.PlayerMetatable = playerMetatable
     self.State.OriginalIndex = playerMetatable.__index
-    local originalIndexCache = self.State.OriginalIndex -- Cache as an upvalue for the hook's closure.
+    local originalIndexCache = self.State.OriginalIndex
 
     self.State.SpoofedId = tonumber(targetId) or -1
     self.State.IsSpoofing = true
 
-    -- Hook the __index metamethod. This is the core of the exploit.
     playerMetatable.__index = function(self, key)
-        -- If a script tries to get the "UserId" property, we intercept and return our fake ID.
+
         if key == "UserId" then
             return Modules.AdminSpoofDemonstration.State.SpoofedId
         end
 
-        -- CRITICAL FIX: The original __index is a table. We must index it to get the real property.
-        -- The previous code's attempt to call it (`OriginalIndex(self, key)`) caused the error.
-        -- This correctly forwards the property lookup to the original table.
         if typeof(originalIndexCache) == "table" then
             return originalIndexCache[key]
         elseif typeof(originalIndexCache) == "function" then
-            -- A defensive fallback in case __index is ever a function.
+
             return originalIndexCache(self, key)
         end
     end
@@ -9143,16 +8734,13 @@ function Modules.AdminSpoofDemonstration:Enable(targetId)
     DoNotif("Local UserId spoof enabled. Now appearing as: " .. self.State.SpoofedId, 3)
 end
 
---- Disables the UserId spoof and restores the original engine behavior.
 function Modules.AdminSpoofDemonstration:Disable()
     if not self.State.IsSpoofing then return end
 
-    -- Restore the original __index from our backup. This is crucial for cleanup.
     if self.State.PlayerMetatable and self.State.OriginalIndex then
         self.State.PlayerMetatable.__index = self.State.OriginalIndex
     end
 
-    -- Reset all state variables to default values to prevent memory leaks and ensure a clean state.
     self.State.IsSpoofing = false
     self.State.SpoofedId = -1
     self.State.OriginalIndex = nil
@@ -9160,11 +8748,9 @@ function Modules.AdminSpoofDemonstration:Disable()
     DoNotif("Local UserId spoof disabled. Identity restored.", 3)
 end
 
---- Initializes the module, loads services, and registers its command.
 function Modules.AdminSpoofDemonstration:Initialize()
     local module = self
 
-    -- Adhering to the framework's pattern of loading dependencies into a local Services table.
     module.Services = {}
     for _, serviceName in ipairs(module.Dependencies or {}) do
         module.Services[serviceName] = game:GetService(serviceName)
@@ -9317,7 +8903,6 @@ function Modules.OrbitController:Initialize()
         self:Disable(shouldNotify)
     end)
 end
-
 
 local function readTable(tbl: table): string
     local function serialize(value: any, indent: number, visited: {[table]: boolean}): string
@@ -9493,7 +9078,6 @@ function Modules.RemoteInterceptor:Intercept(remotePath: string)
     DoNotif("Successfully intercepted: " .. originalName, 3)
 end
 
-
 function Modules.RemoteInterceptor:Restore(remotePath: string)
     local data = self.State.InterceptedRemotes[remotePath]
     if not data then
@@ -9554,8 +9138,8 @@ Modules.ClientCanary = {
     State = {
         IsEnabled = false,
         HeartbeatConnection = nil,
-        ViolationData = {}, -- [Player] = { Level = number, LastCheck = number }
-        HighlightedPlayers = {} -- [Player] = true
+        ViolationData = {},
+        HighlightedPlayers = {}
     },
     Config = {
 
@@ -9566,28 +9150,26 @@ Modules.ClientCanary = {
     }
 }
 
---- [Internal] The main detection loop connected to RunService.Heartbeat.
 function Modules.ClientCanary:_onHeartbeat(deltaTime)
     local now = os.clock()
-    -- Iterate through all players and decay their violation levels over time.
+
     for player, data in pairs(self.State.ViolationData) do
         if now - data.LastCheck > self.Config.VIOLATION_DECAY_TIME then
             data.Level = math.max(0, data.Level - 1)
             data.LastCheck = now
         end
-        if not player.Parent then -- Garbage collect data for players who left
+        if not player.Parent then
             self.State.ViolationData[player] = nil
         end
     end
 
-    -- Iterate through all players to check for new violations.
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and self.State.HighlightedPlayers[player] == nil then
             local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
             local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
 
             if humanoid and rootPart and humanoid.Health > 0 then
-                -- We check horizontal velocity to ignore high speeds from falling.
+
                 local horizontalVelocity = Vector3.new(rootPart.AssemblyLinearVelocity.X, 0, rootPart.AssemblyLinearVelocity.Z)
                 
                 if horizontalVelocity.Magnitude > self.Config.MAX_REASONABLE_SPEED then
@@ -9595,18 +9177,16 @@ function Modules.ClientCanary:_onHeartbeat(deltaTime)
                     data.Level = data.Level + 1
                     data.LastCheck = now
                     self.State.ViolationData[player] = data
-                    
-                    -- If violation level exceeds the threshold, flag the player.
+
                     if data.Level >= self.Config.VIOLATION_THRESHOLD then
                         DoNotif(string.format("Exploiter Detected: %s (Reason: Sustained Speed)", player.Name), 4)
-                        
-                        -- Leverage the existing Highlight module to apply the visual.
+
                         pcall(function()
                             Modules.HighlightPlayer:ApplyHighlight(player.Character)
                         end)
                         
                         self.State.HighlightedPlayers[player] = true
-                        self.State.ViolationData[player] = nil -- Reset their data to prevent re-flagging.
+                        self.State.ViolationData[player] = nil
                     end
                 end
             end
@@ -9614,14 +9194,13 @@ function Modules.ClientCanary:_onHeartbeat(deltaTime)
     end
 end
 
---- Enables the Client Canary.
 function Modules.ClientCanary:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
     
     local lastCheck = 0
     self.State.HeartbeatConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        -- Throttle the main check for performance.
+
         if os.clock() - lastCheck > self.Config.CHECK_INTERVAL_SECONDS then
             self:_onHeartbeat(deltaTime)
             lastCheck = os.clock()
@@ -9631,7 +9210,6 @@ function Modules.ClientCanary:Enable()
     DoNotif("Client Canary: ENABLED. Automated exploiter detection is active.", 2)
 end
 
---- Disables the Client Canary and clears any highlights it created.
 function Modules.ClientCanary:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
@@ -9641,10 +9219,8 @@ function Modules.ClientCanary:Disable()
         self.State.HeartbeatConnection = nil
     end
 
-    -- Clear all highlights that this module was responsible for.
     for player, _ in pairs(self.State.HighlightedPlayers) do
-        -- We don't call ClearHighlight directly as it clears for all targets.
-        -- Instead, we check if our highlight is still the active one.
+
         if Modules.HighlightPlayer.State.TargetPlayer == player then
             Modules.HighlightPlayer:ClearHighlight()
         end
@@ -9656,7 +9232,6 @@ function Modules.ClientCanary:Disable()
     DoNotif("Client Canary: DISABLED.", 2)
 end
 
---- Toggles the Client Canary's state.
 function Modules.ClientCanary:Toggle()
     if self.State.IsEnabled then
         self:Disable()
@@ -9665,7 +9240,6 @@ function Modules.ClientCanary:Toggle()
     end
 end
 
---- Registers the command with your admin system.
 function Modules.ClientCanary:Initialize()
     local module = self
     RegisterCommand({
@@ -9677,29 +9251,26 @@ function Modules.ClientCanary:Initialize()
     end)
 end
 
-
 Modules.TweenClickTP = {
 	State = {
 		IsEnabled = false,
 		Connection = nil,
-		IsTweening = false -- Prevents starting a new tween while one is active
+		IsTweening = false
 	},
 	Config = {
-		-- The key to hold while clicking. LeftAlt is a good choice to avoid conflicts.
+
 		MODIFIER_KEY = Enum.KeyCode.LeftAlt,
-		-- The duration of the camera "dash" animation in seconds.
+
 		TWEEN_DURATION = 0.25,
-		-- The easing style for a smooth acceleration/deceleration effect.
+
 		TWEEN_STYLE = Enum.EasingStyle.Quint
 	}
 }
 
---- [Internal] Executes the camera tween and subsequent teleport.
 function Modules.TweenClickTP:_executeTween(destination)
 	if self.State.IsTweening then return end
 	self.State.IsTweening = true
 
-	-- Services (scoped locally for encapsulation)
 	local TweenService = game:GetService("TweenService")
 	local RunService = game:GetService("RunService")
 	
@@ -9713,7 +9284,6 @@ function Modules.TweenClickTP:_executeTween(destination)
 		return
 	end
 
-	-- 1. Create a temporary, invisible "anchor" part for the camera to follow.
 	local cameraAnchor = Instance.new("Part")
 	cameraAnchor.Size = Vector3.one
 	cameraAnchor.Transparency = 1
@@ -9722,13 +9292,11 @@ function Modules.TweenClickTP:_executeTween(destination)
 	cameraAnchor.CFrame = camera.CFrame
 	cameraAnchor.Parent = Workspace
 
-	-- 2. Define the animation for the anchor part.
 	local tweenInfo = TweenInfo.new(self.Config.TWEEN_DURATION, self.Config.TWEEN_STYLE)
-	-- The camera should arrive looking from its previous orientation towards the destination.
+
 	local targetCFrame = CFrame.lookAt(destination, destination + camera.CFrame.LookVector)
 	local tween = TweenService:Create(cameraAnchor, tweenInfo, { CFrame = targetCFrame })
 
-	-- 3. Force the camera to follow the anchor part's tween.
 	camera.CameraType = Enum.CameraType.Scriptable
 	local camConnection = RunService.RenderStepped:Connect(function()
 		camera.CFrame = cameraAnchor.CFrame
@@ -9738,14 +9306,13 @@ function Modules.TweenClickTP:_executeTween(destination)
 
 	tween.Completed:Connect(function()
 		camConnection:Disconnect()
-		hrp.CFrame = CFrame.new(destination) + Vector3.new(0, 3, 0) -- Vertical offset to prevent clipping
+		hrp.CFrame = CFrame.new(destination) + Vector3.new(0, 3, 0)
 		camera.CameraType = Enum.CameraType.Custom
 		cameraAnchor:Destroy()
 		self.State.IsTweening = false
 	end)
 end
 
---- Enables the input listener for the TweenClickTP.
 function Modules.TweenClickTP:Enable()
 	if self.State.IsEnabled then return end
 	self.State.IsEnabled = true
@@ -9753,7 +9320,6 @@ function Modules.TweenClickTP:Enable()
 	self.State.Connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed or self.State.IsTweening then return end
 
-		-- Check for the specific hotkey combination (e.g., LeftAlt + Left Click)
 		if UserInputService:IsKeyDown(self.Config.MODIFIER_KEY) and input.UserInputType == Enum.UserInputType.MouseButton1 then
 			local mousePos = UserInputService:GetMouseLocation()
 			local ray = Workspace.CurrentCamera:ViewportPointToRay(mousePos.X, mousePos.Y)
@@ -9773,7 +9339,6 @@ function Modules.TweenClickTP:Enable()
 	DoNotif("Tween ClickTP: [Enabled]. Hold LeftAlt and click to teleport.", 3)
 end
 
---- Disables the input listener and cleans up.
 function Modules.TweenClickTP:Disable()
 	if not self.State.IsEnabled then return end
 	self.State.IsEnabled = false
@@ -9786,7 +9351,6 @@ function Modules.TweenClickTP:Disable()
 	DoNotif("Tween ClickTP: [Disabled].", 2)
 end
 
---- Toggles the state of the module.
 function Modules.TweenClickTP:Toggle()
 	if self.State.IsEnabled then
 		self:Disable()
@@ -10065,7 +9629,7 @@ function Modules.FolderAimbot:Initialize(): ()
         local path = args[1]
         local fov = tonumber(args[2])
 
-        if not path then 
+        if not path then
             if module.State.IsEnabled then
                 module:Disable()
                 return DoNotif("Folder Aimbot: DISABLED", 2)
@@ -10094,8 +9658,6 @@ Modules.RespawnOnPlayer = {
     }
 }
 
---// --- Private Methods ---
-
 function Modules.RespawnOnPlayer:_onCharacterAdded(character)
     task.defer(function()
         if not self.State.IsEnabled or not self.State.TargetPlayer or not self.State.TargetPlayer.Parent then
@@ -10112,14 +9674,13 @@ function Modules.RespawnOnPlayer:_onCharacterAdded(character)
         
         if not targetCharacter then
             DoNotif("Waiting for " .. self.State.TargetPlayer.Name .. " to spawn...", 2)
-            for i = 1, 10 do -- Try for 5 seconds (10 * 0.5s)
+            for i = 1, 10 do
                 targetCharacter = self.State.TargetPlayer.Character
                 if targetCharacter then break end
                 task.wait(0.5)
             end
         end
 
-        -- Final check after the wait.
         if targetCharacter then
             targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
         end
@@ -10133,14 +9694,12 @@ function Modules.RespawnOnPlayer:_onCharacterAdded(character)
     end)
 end
 
---// --- Public Methods (No changes needed here, the logic is sound) ---
-
 function Modules.RespawnOnPlayer:Enable(targetPlayer)
     if not targetPlayer or targetPlayer == self.Services.Players.LocalPlayer then
         return DoNotif("Invalid or self-targeted player.", 3)
     end
 
-    self:Disable() 
+    self:Disable()
 
     self.State.IsEnabled = true
     self.State.TargetPlayer = targetPlayer
@@ -10167,13 +9726,12 @@ function Modules.RespawnOnPlayer:Disable()
     DoNotif("Respawn on Target: DISABLED.", 2)
 end
 
---// --- Command Registration ---
 RegisterCommand({
     Name = "respawnontarget",
     Aliases = {"spon", "respawnon"},
     Description = "Sets your respawn point to a target player's location."
 }, function(args)
-    -- [CRITICAL FIX] Join all arguments to allow for names with spaces.
+
     local argument = table.concat(args, " ")
     
     if not argument or argument == "" then
@@ -10189,7 +9747,7 @@ RegisterCommand({
     if targetPlayer then
         Modules.RespawnOnPlayer:Enable(targetPlayer)
     else
-        -- This notification will now correctly show the full name you tried to find.
+
         DoNotif("Player not found: '" .. argument .. "'", 3)
     end
 end)
@@ -10228,7 +9786,7 @@ function Modules.NetworkGhost:Toggle()
     local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
     
     if self.State.IsEnabled then
-        Modules.HookCentral:AddHook("GhostBypass", "Namecall", 
+        Modules.HookCentral:AddHook("GhostBypass", "Namecall",
             function(selfArg, method) return selfArg == hrp and (method == "CFrame" or method == "Position") end,
             function() return hrp.CFrame - self.State.Offset end
         )
@@ -10307,8 +9865,7 @@ end
 
 function Modules.SignalRespawn:Execute()
     if self.State.IsExecuting then return end
-    
-    -- Feature Check: This method requires specific exploit APIs
+
     if not replicatesignal then
         return DoNotif("SignalRespawn: Your executor lacks 'replicatesignal'.", 4)
     end
@@ -10327,12 +9884,10 @@ function Modules.SignalRespawn:Execute()
     self.State.IsExecuting = true
     DoNotif("Initiating signal-based respawn...", 1.5)
 
-    -- 1. Trigger the Backend Signal
     pcall(function()
         replicatesignal(lp.ConnectDiedSignalBackend)
     end)
 
-    -- 2. Store current state
     local savedCFrame = root.CFrame
     local savedTools = self:_getAllTools()
 
@@ -10342,13 +9897,11 @@ function Modules.SignalRespawn:Execute()
         hum:ChangeState(Enum.HumanoidStateType.Dead)
     end)
 
-    -- 5. Wait for the new character to initialize
     local newChar = lp.CharacterAdded:Wait()
     local newRoot = newChar:WaitForChild("HumanoidRootPart", 5)
 
-    -- 6. Restore Position and Camera
     if newRoot then
-        task.wait(0.1) -- Stability buffer
+        task.wait(0.1)
         newRoot.CFrame = savedCFrame
         self.Services.Workspace.CurrentCamera = cam
         DoNotif("Respawn complete. Position restored.", 2)
@@ -10357,7 +9910,6 @@ function Modules.SignalRespawn:Execute()
     self.State.IsExecuting = false
 end
 
---// Initialize the module and register the command
 function Modules.SignalRespawn:Initialize()
     local module = self
     for _, serviceName in ipairs(module.Dependencies) do
@@ -10381,17 +9933,15 @@ Modules.ExternalChatter = {
     Services = {}
 }
 
-
 function Modules.ExternalChatter:Say(args)
     local message = table.concat(args, " ")
-    if not message or message == "" then 
-        return DoNotif("External Chatter: No message provided.", 2) 
+    if not message or message == "" then
+        return DoNotif("External Chatter: No message provided.", 2)
     end
 
     local textChatService = self.Services.TextChatService
     local replicatedStorage = self.Services.ReplicatedStorage
 
-    -- Method 1: Modern TextChatService (2023+ games)
     if textChatService and textChatService.ChatVersion == Enum.ChatVersion.TextChatService then
         local generalChannel = textChatService.TextChannels:FindFirstChild("RBXGeneral")
         if generalChannel then
@@ -10417,11 +9967,9 @@ function Modules.ExternalChatter:Say(args)
     end
 end
 
---// Initialize the module and register the command
 function Modules.ExternalChatter:Initialize()
     local module = self
-    
-    -- Load services robustly
+
     for _, serviceName in ipairs(module.Dependencies) do
         module.Services[serviceName] = game:GetService(serviceName)
     end
@@ -10439,7 +9987,7 @@ Modules.StareController = {
     State = {
         IsEnabled = false,
         TargetPlayer = nil,
-        Mode = nil, -- "Direct" or "Nearest"
+        Mode = nil,
         Connection = nil,
         PrevAutoRotate = true
     },
@@ -10453,7 +10001,7 @@ function Modules.StareController:_facePosition(targetPos)
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
     if root then
-        -- We only care about the direction on the X and Z axes to prevent tilting.
+
         local targetLook = Vector3.new(targetPos.X, root.Position.Y, targetPos.Z)
         if (targetLook - root.Position).Magnitude > 0.01 then
             root.CFrame = CFrame.lookAt(root.Position, targetLook)
@@ -10480,8 +10028,6 @@ function Modules.StareController:_getClosestPlayer()
     return closest
 end
 
---// --- Core Logic ---
-
 function Modules.StareController:Disable()
     if self.State.Connection then
         self.State.Connection:Disconnect()
@@ -10500,7 +10046,7 @@ function Modules.StareController:Disable()
 end
 
 function Modules.StareController:Enable(target, mode)
-    self:Disable() -- Clean existing state
+    self:Disable()
 
     local lp = self.Services.Players.LocalPlayer
     local hum = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
@@ -10517,7 +10063,7 @@ function Modules.StareController:Enable(target, mode)
             if target and target.Parent and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                 self:_facePosition(target.Character.HumanoidRootPart.Position)
             else
-                -- Auto-disable if target leaves or character is destroyed
+
                 self:Disable()
                 DoNotif("Stare: Target lost. Disabling.", 2)
             end
@@ -10534,13 +10080,10 @@ function Modules.StareController:Enable(target, mode)
     end
 end
 
---// --- Initialize ---
-
 function Modules.StareController:Initialize()
     local module = self
     for _, s in ipairs(module.Dependencies) do module.Services[s] = game:GetService(s) end
 
-    -- Command: Lookat
     RegisterCommand({
         Name = "lookat",
         Aliases = {"stare", "face"},
@@ -10554,7 +10097,6 @@ function Modules.StareController:Initialize()
         end
     end)
 
-    -- Command: Unlookat
     RegisterCommand({
         Name = "unlookat",
         Aliases = {"unstare", "unface"},
@@ -10564,7 +10106,6 @@ function Modules.StareController:Initialize()
         DoNotif("Stare disabled.", 2)
     end)
 
-    -- Command: StareNearest
     RegisterCommand({
         Name = "starenear",
         Aliases = {"stareclosest", "snear"},
@@ -10573,7 +10114,6 @@ function Modules.StareController:Initialize()
         module:Enable(nil, "Nearest")
     end)
 
-    -- Command: UnstareNearest
     RegisterCommand({
         Name = "unstarenear",
         Aliases = {"unstareclosest"},
@@ -10590,17 +10130,15 @@ Modules.ProximityStalker = {
         IsFollowing = false,
         TargetPlayer = nil,
         LastDistances = {},
-        Connections = {} -- [Key] = Connection
+        Connections = {}
     },
     Config = {
-        ProximityRadius = 25, -- The 'trigger' distance to start following
-        StopDistance = 5      -- Distance to keep from the target
+        ProximityRadius = 25,
+        StopDistance = 5
     },
     Dependencies = {"RunService", "Players"},
     Services = {}
 }
-
---// --- Private Logic ---
 
 function Modules.ProximityStalker:_cleanup()
     for key, conn in pairs(self.State.Connections) do
@@ -10608,7 +10146,6 @@ function Modules.ProximityStalker:_cleanup()
     end
     table.clear(self.State.Connections)
 
-    -- Stop current movement
     local lp = self.Services.Players.LocalPlayer
     local hum = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
     if hum then
@@ -10627,20 +10164,19 @@ function Modules.ProximityStalker:_setupFollowLogic(target)
     
     if not myHum then return end
 
-    -- Follow Loop
     self.State.Connections.FollowLoop = self.Services.RunService.Heartbeat:Connect(function()
         local tChar = target.Character
         local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
         local myChar = lp.Character
         
         if myChar and tRoot and tChar.Parent then
-            -- Only move if further away than the StopDistance
+
             local dist = (tRoot.Position - myChar.PrimaryPart.Position).Magnitude
             if dist > self.Config.StopDistance then
                 myHum:MoveTo(tRoot.Position)
             end
         else
-            -- If target is lost (leaves or char destroyed), restart scanning
+
             if self.State.Connections.FollowLoop then
                 self.State.Connections.FollowLoop:Disconnect()
             end
@@ -10650,7 +10186,6 @@ function Modules.ProximityStalker:_setupFollowLogic(target)
         end
     end)
 
-    -- Death Listener
     local tHum = target.Character:FindFirstChildOfClass("Humanoid")
     if tHum then
         self.State.Connections.TargetDied = tHum.Died:Connect(function()
@@ -10661,10 +10196,8 @@ function Modules.ProximityStalker:_setupFollowLogic(target)
     end
 end
 
---// --- Core Execution ---
-
 function Modules.ProximityStalker:Start()
-    self:_cleanup() -- Ensure fresh start
+    self:_cleanup()
     self.State.IsEnabled = true
     
     local lp = self.Services.Players.LocalPlayer
@@ -10683,15 +10216,13 @@ function Modules.ProximityStalker:Start()
                 local currentDist = (myRoot.Position - tRoot.Position).Magnitude
                 local lastDist = self.State.LastDistances[plr]
 
-                -- Detection Logic: If they entered the radius and are moving towards us
                 if lastDist and lastDist > self.Config.ProximityRadius and currentDist <= self.Config.ProximityRadius then
                     self.State.IsFollowing = true
                     self.State.TargetPlayer = plr
                     
                     DoNotif("Stalker: Locked onto " .. plr.Name, 2)
                     self:_setupFollowLogic(plr)
-                    
-                    -- Dynamic re-hook if they respawn
+
                     self.State.Connections.TargetRespawn = plr.CharacterAdded:Connect(function(newChar)
                         task.wait(0.5)
                         if self.State.IsEnabled and self.State.TargetPlayer == plr then
@@ -10699,7 +10230,7 @@ function Modules.ProximityStalker:Start()
                         end
                     end)
                     
-                    break -- Target locked, stop scanning for this frame
+                    break
                 end
 
                 self.State.LastDistances[plr] = currentDist
@@ -10707,8 +10238,6 @@ function Modules.ProximityStalker:Start()
         end
     end)
 end
-
---// --- Initialize ---
 
 function Modules.ProximityStalker:Initialize()
     local module = self
@@ -10848,7 +10377,7 @@ function Modules.BlockRemote:Initialize(): ()
 end
 
 Modules.ForceRespawn = {
-    -- No state needed for this action-based module.
+
 }
 
 function Modules.ForceRespawn:Execute()
@@ -10910,15 +10439,15 @@ Modules.Overseer = {
         PathStack = {},
         Minimized = false,
         ViewingCode = false,
-        CurrentMode = "modules", -- "modules" or "explorer"
+        CurrentMode = "modules",
         ExplorerPath = {},
         ExplorerInstance = nil,
         IsLoadingDex = false,
         UI = nil,
         SidebarButtons = {},
-        ValueHooks = {}, -- {table, key} -> {value, enabled, type}
-        HookedConnections = {}, -- Store connections for cleanup
-        PropertyHooks = {}, -- {instance, property} -> {value, enabled}
+        ValueHooks = {},
+        HookedConnections = {},
+        PropertyHooks = {},
         RemoteSpyData = {},
         CallFrequency = {},
         CurrentTypeFilter = nil,
@@ -10926,7 +10455,7 @@ Modules.Overseer = {
         SpyCallLog = {},
         IsSpying = false,
         SelectedRemote = nil,
-        DisabledModules = {} -- Track disabled modules
+        DisabledModules = {}
     },
     Config = {
         ACCENT_COLOR = Color3.fromRGB(0, 255, 170),
@@ -10979,19 +10508,17 @@ function Modules.Overseer:_showErrorInGrid(errorText)
 end
 
 function Modules.Overseer:_cleanupModuleHooks(mod)
-    -- Remove patches for this module
+
     if self.State.ActivePatches[mod] then
         self.State.ActivePatches[mod] = nil
     end
-    
-    -- Remove value hooks related to this module
+
     for hookKey, hook in pairs(self.State.ValueHooks) do
         if hook.table == mod then
             self.State.ValueHooks[hookKey] = nil
         end
     end
-    
-    -- Remove property hooks related to this module
+
     for propKey, hook in pairs(self.State.PropertyHooks) do
         if hook.instance and hook.instance:IsDescendantOf(mod) then
             if self.State.HookedConnections[propKey] then
@@ -11004,7 +10531,7 @@ function Modules.Overseer:_cleanupModuleHooks(mod)
 end
 
 function Modules.Overseer:_validatePatches()
-    -- Check if all patches are compatible and valid
+
     for tbl, keys in pairs(self.State.ActivePatches) do
         if type(tbl) ~= "table" then
             return false
@@ -11019,7 +10546,7 @@ function Modules.Overseer:_validatePatches()
 end
 
 function Modules.Overseer:_validateHooks()
-    -- Check if all hooks are compatible and valid
+
     for hookKey, hook in pairs(self.State.ValueHooks) do
         if hook.enabled and hook.value == nil then
             return false
@@ -11121,8 +10648,7 @@ end
 function Modules.Overseer:_initRemoteSpy()
     if self.State.IsSpying then return end
     self.State.IsSpying = true
-    
-    -- Hook all RemoteEvents in game
+
     local function hookRemotes(parent)
         for _, child in ipairs(parent:GetDescendants()) do
             if child:IsA("RemoteEvent") then
@@ -11184,16 +10710,14 @@ function Modules.Overseer:_initRemoteSpy()
             end
         end
     end
-    
-    -- Hook existing remotes
+
     hookRemotes(ReplicatedStorage)
     hookRemotes(game)
-    
-    -- Watch for new remotes being added
+
     local hookConnection; hookConnection = game.DescendantAdded:Connect(function(child)
         if self.State.IsSpying then
             if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
-                task.wait(0.1) -- Small delay to ensure child is fully initialized
+                task.wait(0.1)
                 pcall(function()
                     if child:IsA("RemoteEvent") and child.FireServer and not child:GetAttribute("_OverseerHooked") then
                         local original = child.FireServer
@@ -11261,8 +10785,7 @@ function Modules.Overseer:_showRemoteSpy()
     for _, v in ipairs(ui.Grid:GetChildren()) do
         if not v:IsA("UIListLayout") then v:Destroy() end
     end
-    
-    -- Start Spy button
+
     local spyStatusLabel = Instance.new("TextLabel", ui.Grid)
     spyStatusLabel.Size = UDim2.new(1, -10, 0, 30)
     spyStatusLabel.BackgroundColor3 = self.State.IsSpying and Color3.fromRGB(20, 40, 20) or Color3.fromRGB(40, 20, 20)
@@ -11287,8 +10810,7 @@ function Modules.Overseer:_showRemoteSpy()
             self:_showRemoteSpy()
         end)
     end
-    
-    -- Call log
+
     if #self.State.SpyCallLog > 0 then
         local logLabel = Instance.new("TextLabel", ui.Grid)
         logLabel.Size = UDim2.new(1, 0, 0, 20)
@@ -11297,8 +10819,7 @@ function Modules.Overseer:_showRemoteSpy()
         logLabel.BackgroundTransparency = 1
         logLabel.Font = Enum.Font.Code
         logLabel.TextSize = 9
-        
-        -- Show last 30 calls in reverse order
+
         for i = math.min(30, #self.State.SpyCallLog), 1, -1 do
             local call = self.State.SpyCallLog[i]
             if call and call.Remote then
@@ -11422,19 +10943,17 @@ function Modules.Overseer:_hookProperty(instance, property, value)
         instance[property] = value
     end)
 
-    -- Disconnect existing connection if present
     if self.State.HookedConnections[propKey] then
         pcall(function() self.State.HookedConnections[propKey]:Disconnect() end)
     end
-    
-    -- Use Heartbeat to constantly reapply (single connection per property)
+
     self.State.HookedConnections[propKey] = RunService.Heartbeat:Connect(function()
         if self.State.PropertyHooks[propKey] and self.State.PropertyHooks[propKey].enabled then
             pcall(function()
                 if instance and instance.Parent and instance[property] ~= value then
                     instance[property] = value
                 elseif not instance or not instance.Parent then
-                    -- Instance was destroyed, cleanup
+
                     self:_unhookProperty(instance, property)
                 end
             end)
@@ -11497,20 +11016,19 @@ function Modules.Overseer:_getAllValuesOfType(typeFilter, searchDepth)
     searchDepth = searchDepth or 2
     local results = {}
     local scanned = {}
-    local maxResults = 100 -- Limit to prevent performance issues
+    local maxResults = 100
     
     local function scanTable(tbl, depth, path)
-        -- Check limits
+
         if scanned[tbl] or depth <= 0 or #results >= maxResults then return end
-        
-        -- Prevent circular references
+
         if type(tbl) ~= "table" then return end
         scanned[tbl] = true
         
         local success, pairs_result = pcall(function()
             local count = 0
             for k, v in pairs(tbl) do
-                if count > 50 then break end -- Limit pairs iterations per table
+                if count > 50 then break end
                 count = count + 1
                 
                 if type(v) == typeFilter then
@@ -11522,7 +11040,7 @@ function Modules.Overseer:_getAllValuesOfType(typeFilter, searchDepth)
                         table = tbl
                     })
                 elseif type(v) == "table" and depth > 0 and not scanned[v] then
-                    -- Check if table is safe to scan (avoid __metatable and protected tables)
+
                     local tableSafe, _ = pcall(function() return pairs(v) end)
                     if tableSafe then
                         scanTable(v, depth - 1, path .. "." .. tostring(k))
@@ -11534,12 +11052,11 @@ function Modules.Overseer:_getAllValuesOfType(typeFilter, searchDepth)
         end)
         
         if not success then
-            -- Skip tables that cause errors during iteration
+
             return
         end
     end
-    
-    -- Scan from common roots with protection
+
     pcall(function()
         if _G then scanTable(_G, searchDepth, "_G") end
     end)
@@ -11570,8 +11087,7 @@ function Modules.Overseer:_applyPatch(tbl, key, val, isFunc)
         end
         if setreadonly then setreadonly(tbl, true) end
     end)
-    
-    -- Also patch via metatable __index if accessible
+
     if getrawmetatable then
         pcall(function()
             local mt = getrawmetatable(tbl)
@@ -11866,8 +11382,7 @@ function Modules.Overseer:_showSource(target)
     ui.Grid.Visible = false
     ui.CodeFrame.Visible = true
     ui.CodeFrame.Name = "ViewMode"
-    
-    -- Get proper name for target (works for instances and functions)
+
     local targetName = "Closure"
     if type(target) == "table" and target.Name then
         targetName = target.Name
@@ -11946,9 +11461,9 @@ function Modules.Overseer:_createTableRow(k, v, src)
         self:_applyStyle(diveBtn, 2)
         
         diveBtn.MouseButton1Click:Connect(function()
-            -- Store current table in path stack for navigation
+
             table.insert(self.State.PathStack, src)
-            -- Dive into the child table with proper reference
+
             self:PopulateGrid(v, tostring(k))
         end)
     elseif type(v) == "function" then
@@ -11972,7 +11487,7 @@ function Modules.Overseer:_createTableRow(k, v, src)
         uvBtn.TextSize = 7
         self:_applyStyle(uvBtn, 2)
         
-        uvBtn.MouseButton1Click:Connect(function() 
+        uvBtn.MouseButton1Click:Connect(function()
             self:_showUpvaluesUI(v, tostring(k))
         end)
         
@@ -11986,9 +11501,9 @@ function Modules.Overseer:_createTableRow(k, v, src)
         viewBtn.TextSize = 7
         self:_applyStyle(viewBtn, 2)
         
-        viewBtn.MouseButton1Click:Connect(function() 
+        viewBtn.MouseButton1Click:Connect(function()
             self.State.EditTarget = src
-            self:_showSource(v) 
+            self:_showSource(v)
         end)
         
         local editBtn = Instance.new("TextButton", row)
@@ -12037,7 +11552,6 @@ function Modules.Overseer:_createTableRow(k, v, src)
             end
         end)
 
-        -- Hook button for numbers
         if valueType == "number" then
             local hookBtn = Instance.new("TextButton", row)
             hookBtn.Size = UDim2.new(0, 45, 0, 24)
@@ -12073,7 +11587,6 @@ function Modules.Overseer:PopulateGrid(targetTable, name)
         if not v:IsA("UIListLayout") then v:Destroy() end
     end
 
-    -- Add type filter buttons
     local filterFrame = Instance.new("Frame", ui.Grid)
     filterFrame.Size = UDim2.new(1, -10, 0, 40)
     filterFrame.BackgroundTransparency = 0.8
@@ -12140,8 +11653,7 @@ end
 function Modules.Overseer:_populateGridRows(targetTable)
     if not self.State.UI or not self.State.UI.Grid then return end
     local ui = self.State.UI
-    
-    -- Validate that targetTable is actually a table
+
     if type(targetTable) ~= "table" then
         local errorLabel = Instance.new("TextLabel", ui.Grid)
         errorLabel.Size = UDim2.new(1, 0, 0, 30)
@@ -12152,8 +11664,7 @@ function Modules.Overseer:_populateGridRows(targetTable)
         errorLabel.TextSize = 10
         return
     end
-    
-    -- Remove old rows (keep filter frame)
+
     local children = ui.Grid:GetChildren()
     for i = #children, 1, -1 do
         local v = children[i]
@@ -12171,14 +11682,14 @@ function Modules.Overseer:_populateGridRows(targetTable)
     end
 
     if isFiltered then
-        -- If this is a filtered result (array of {key, value, type} items)
+
         for _, item in ipairs(rowsToDisplay) do
             if item and item.key then
                 self:_createTableRow(item.key, item.value, targetTable)
             end
         end
     else
-        -- Display all items from the target table
+
         for k, v in pairs(rowsToDisplay) do
             self:_createTableRow(k, v, targetTable)
         end
@@ -12335,7 +11846,7 @@ function Modules.Overseer:AddModuleToList(mod)
             disB.Text = "✗"
             b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
             b.TextColor3 = Color3.fromRGB(100, 50, 50)
-            -- Cleanup hooks and patches when disabling
+
             self:_cleanupModuleHooks(mod)
         else
             disB.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
@@ -12346,13 +11857,12 @@ function Modules.Overseer:AddModuleToList(mod)
     end)
 
     b.MouseButton1Click:Connect(function()
-        -- Check if module is disabled
+
         if self.State.DisabledModules[mod] then
             self:_showErrorInGrid("-- ERROR: Module is disabled --")
             return
         end
-        
-        -- Check if module still exists
+
         if not mod or not mod.Parent then
             self:_showErrorInGrid("-- ERROR: Module has been destroyed --")
             return
@@ -12362,12 +11872,12 @@ function Modules.Overseer:AddModuleToList(mod)
         self.State.PathStack = {}
         
         if isScript then
-            -- For LocalScript and Script, show source directly
+
             self:_showSource(mod)
         else
-            -- For ModuleScript, require and populate grid
+
             local success, result = pcall(function()
-                -- Verify module still exists before requiring
+
                 if not mod or not mod.Parent then
                     error("Module has been destroyed")
                 end
@@ -12377,7 +11887,7 @@ function Modules.Overseer:AddModuleToList(mod)
             if success and type(result) == "table" then
                 self:PopulateGrid(result, mod.Name)
             else
-                -- If module doesn't return a table or is destroyed, show source instead
+
                 self:_showSource(mod)
             end
         end
@@ -12578,7 +12088,7 @@ function Modules.Overseer:_displayGlobalSearchResults(typeFilter)
     self:_applyStyle(headerLabel, 2)
 
     for i, result in ipairs(results) do
-        if i > 50 then 
+        if i > 50 then
             local moreLabel = Instance.new("TextLabel", ui.Grid)
             moreLabel.Size = UDim2.new(1, -10, 0, 20)
             moreLabel.Text = "... and " .. (#results - 50) .. " more"
@@ -12791,8 +12301,7 @@ function Modules.Overseer:_generateAdvancedPoisonVersion(originalCode, options)
     
     poisonedCode = poisonedCode .. "local ORIGINAL_SCRIPT = [[\n"
     poisonedCode = poisonedCode .. originalCode .. "\n]]\n\n"
-    
-    -- Add actual patch data
+
     if options.includePatches then
         poisonedCode = poisonedCode .. "local ACTIVE_PATCHES = {\n"
         for tbl, keys in pairs(self.State.ActivePatches) do
@@ -12810,8 +12319,7 @@ function Modules.Overseer:_generateAdvancedPoisonVersion(originalCode, options)
     else
         poisonedCode = poisonedCode .. "local ACTIVE_PATCHES = {}\n\n"
     end
-    
-    -- Add actual hook data
+
     if options.includeHooks then
         poisonedCode = poisonedCode .. "local HOOKED_VALUES = {\n"
         for hookKey, hook in pairs(self.State.ValueHooks) do
@@ -12917,8 +12425,7 @@ function Modules.Overseer:_showPoisonOptions()
         execBtn.MouseButton1Click:Connect(function()
             local codeBox = ui.CodeBox
             local originalCode = codeBox.Text
-            
-            -- Validate patches/hooks before poisoning
+
             if (option.value == "patches" or option.value == "advanced") and not self:_validatePatches() then
                 self:_showErrorInGrid("-- ERROR: Invalid patches detected --")
                 return
@@ -12955,7 +12462,6 @@ function Modules.Overseer:_showPoisonedCode(poisonedCode, optionName)
     ui.CodeBox.Text = poisonedCode
     ui.CodeBox.TextEditable = false
 
-    -- Update button visibility
     local children = ui.CodeFrame:GetChildren()
     for _, btn in ipairs(children) do
         if btn:IsA("TextButton") then
@@ -13144,7 +12650,6 @@ function Modules.Overseer:CreateUI()
     main.ClipsDescendants = true
     self:_applyStyle(main, 6)
 
-    -- Toolbar frame (above header)
     local toolbar = Instance.new("Frame", main)
     toolbar.Size = UDim2.new(1, 0, 0, 30)
     toolbar.Position = UDim2.fromOffset(0, 0)
@@ -13376,7 +12881,7 @@ function Modules.Overseer:CreateUI()
     local scannedModules = {}
 
     local function RescanModules()
-        -- Clear sidebar buttons
+
         for btn, _ in pairs(self.State.SidebarButtons) do
             if btn and btn.Parent then
                 btn:Destroy()
@@ -13384,23 +12889,20 @@ function Modules.Overseer:CreateUI()
         end
         self.State.SidebarButtons = {}
         scannedModules = {}
-        
-        -- Clear grid display
+
         for _, v in ipairs(grid:GetChildren()) do
             if not v:IsA("UIListLayout") then
                 v:Destroy()
             end
         end
-        
-        -- Reset UI state
+
         grid.Visible = true
         codeFrame.Visible = false
         title.Text = "Overseer - Unified Module & Instance Explorer"
         self.State.CurrentTable = nil
         self.State.PathStack = {}
         self.State.SelectedModule = nil
-        
-        -- Reset scroll position
+
         sidebar.CanvasPosition = Vector2.new(0, 0)
         grid.CanvasPosition = Vector2.new(0, 0)
         
@@ -13471,7 +12973,7 @@ function Modules.Overseer:CreateUI()
         if self.State.CurrentMode == "modules" then
             if #self.State.PathStack > 0 then
                 local prev = table.remove(self.State.PathStack)
-                -- Validate the table still exists
+
                 if type(prev) == "table" then
                     self:PopulateGrid(prev, "Parent")
                 else
@@ -13481,7 +12983,7 @@ function Modules.Overseer:CreateUI()
         else
             if #self.State.ExplorerPath > 0 then
                 local prev = table.remove(self.State.ExplorerPath)
-                -- Validate the instance still exists
+
                 if prev and prev:IsA("Instance") and prev.Parent then
                     self:PopulateExplorer(prev)
                 else
@@ -13597,8 +13099,7 @@ function Modules.Overseer:CreateUI()
             container.Visible = isVisible
             if isVisible then visibleCount = visibleCount + 1 end
         end
-        
-        -- Show "no results" message if needed
+
         if filter ~= "" and visibleCount == 0 then
             local noResultsMsg = sidebar:FindFirstChild("NoResults")
             if not noResultsMsg then
@@ -13643,8 +13144,7 @@ function Modules.Overseer:CreateUI()
     table.insert(self.State.HookedConnections, inputBegan)
     table.insert(self.State.HookedConnections, inputChanged)
     table.insert(self.State.HookedConnections, inputEnded)
-    
-    -- Cleanup connections when UI is destroyed
+
     table.insert(self.State.HookedConnections, screenGui.Destroying:Connect(function()
         for _, conn in ipairs(self.State.HookedConnections) do
             if conn and typeof(conn) == "RBXScriptConnection" then
@@ -13729,19 +13229,19 @@ Modules.ApexCounter = {
 function Modules.ApexCounter:ToggleLagShield(state)
     self.State.LagShieldActive = state
     if state then
-        -- Surgical strike on lag-generating folders
+
         local targetFolder = self.Services.Workspace:FindFirstChild("Interaction") and self.Services.Workspace.Interaction:FindFirstChild("PlayerPlaced")
         
         if targetFolder then
             self.State.Connections.LagMonitor = targetFolder.ChildAdded:Connect(function(child)
-                -- Instantly delete incoming landmines/acid blobs locally to save FPS
+
                 task.defer(function()
                     if child.Name:find("Landmine") or child.Name:find("Acid") then
                         child:Destroy()
                     end
                 end)
             end)
-            -- Clean existing lag
+
             for _, v in ipairs(targetFolder:GetChildren()) do
                 v:Destroy()
             end
@@ -13766,13 +13266,13 @@ function Modules.ApexCounter:ToggleGhost(state)
             char:SetAttribute("Team", "Ghost")
             local hum = char:FindFirstChildOfClass("Humanoid")
             if hum then
-                -- Metatable spoof for Health (Bypasses their Health > 0 check)
+
                 local mt = getrawmetatable(game)
                 local oldIndex = mt.__index
                 setreadonly(mt, false)
                 mt.__index = newcclosure(function(t, k)
                     if t == hum and k == "Health" and not checkcaller() then
-                        return 0 -- Skid script sees you as dead/invalid
+                        return 0
                     end
                     return oldIndex(t, k)
                 end)
@@ -13794,8 +13294,7 @@ function Modules.ApexCounter:RunBlender()
     local zombieRemote = self.Services.ReplicatedStorage:FindFirstChild("ZombieRelated") and self.Services.ReplicatedStorage.ZombieRelated:FindFirstChild("PlayerAttack")
     
     local isProcessing = false
-    
-    -- Superior Packet Multiplier Hook
+
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local method = getnamecallmethod()
@@ -13804,15 +13303,14 @@ function Modules.ApexCounter:RunBlender()
         if (self == meleeRemote or self == zombieRemote) and method == "InvokeServer" and not checkcaller() then
             if not isProcessing then
                 isProcessing = true
-                -- Fire 6x packets (Skid script only fires 1)
-                -- We use task.spawn to ensure maximum speed without yielding the main thread
+
                 for i = 1, 6 do
                     task.spawn(function()
                         self:InvokeServer(unpack(args))
                     end)
                 end
                 isProcessing = false
-                return nil -- Original call blocked and replaced with our high-freq burst
+                return nil
             end
         end
         return oldNamecall(self, ...)
@@ -13820,9 +13318,8 @@ function Modules.ApexCounter:RunBlender()
     DoNotif("Kill Blender: SUPREME (6x Multiplier)", 2)
 end
 
-
 function Modules.ApexCounter:NullifySkidRemotes()
-    -- This hook prevents the server from telling YOUR client to process their lag remotes
+
     local mt = getrawmetatable(game)
     local oldNamecall = mt.__namecall
     setreadonly(mt, false)
@@ -13832,7 +13329,7 @@ function Modules.ApexCounter:NullifySkidRemotes()
         if not checkcaller() then
             for _, blocked in ipairs(Modules.ApexCounter.State.BlacklistedRemotes) do
                 if self.Name == blocked and (method == "FireServer" or method == "InvokeServer") then
-                    return nil -- Mute the remote locally
+                    return nil
                 end
             end
         end
@@ -13863,8 +13360,7 @@ function Modules.ApexCounter:Initialize()
             DoNotif("APEX SUITE: DEACTIVATED", 3)
         end
     end)
-    
-    -- Auto-Equip Sniper (Counter to their Minigun Sniper)
+
     RegisterCommand({
         Name = "minigunsniper",
         Aliases = {"gun"},
@@ -13878,7 +13374,7 @@ function Modules.ApexCounter:Initialize()
         if gun then
             local scr = getsenv(gun:FindFirstChildOfClass("LocalScript"))
             if scr and scr.FireGun then
-                -- Override the gun's internal fire logic without clicking
+
                 self.Services.RunService.Heartbeat:Connect(function()
                     if localplayer:GetMouse().Button1Down then
                         pcall(scr.FireGun, lp:GetMouse().X, lp:GetMouse().Y)
@@ -13923,7 +13419,7 @@ function Modules.ModuleEditor:ShowTable(tbl, tableScroll, backBtn)
     local count = 0
     for key, value in pairs(tbl) do
         if typeof(value) == "function" then
-            continue -- Skip functions per baseline
+            continue
         end
 
         count += 1
@@ -14025,7 +13521,7 @@ function Modules.ModuleEditor:CreateUI()
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
-    mainFrame.Draggable = true -- Preserving legacy draggable for baseline compatibility
+    mainFrame.Draggable = true
 
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
 
@@ -14112,7 +13608,7 @@ function Modules.ModuleEditor:CreateUI()
         yOffset += 27
 
         serviceBtn.MouseButton1Click:Connect(function()
-            -- Clear previous module buttons
+
             for _, btn in ipairs(scroll:GetChildren()) do
                 if btn:IsA("TextButton") and not btn.Text:find("📁") then
                     btn:Destroy()
@@ -14165,120 +13661,6 @@ function Modules.ModuleEditor:Initialize()
     end)
 end
 
--- Disabled For Now, This is a local backup dex incase the main loadstring doesnt work. This one sucks compared to the loadstring.
-
---[[Modules.ForensicExplorer = {
-    State = {
-        IsLoading = false
-    },
-    Dependencies = {"CoreGui", "Players", "ReplicatedStorage", "Workspace", "LocalPlayer", "StarterGui", "Lighting", "ReplicatedFirst", "RunService"},
-    Services = {}
-}
-
-
-function Modules.ForensicExplorer:_generateObfuscatedName()
-    local charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    local length = math.random(10, 20)
-    local result = ""
-    for i = 1, length do
-        local rand = math.random(1, #charset)
-        result = result .. charset:sub(rand, rand)
-    end
-    return result
-end
-
-function Modules.ForensicExplorer:_applyEnvironment(func, scriptInstance)
-    local fenv = {}
-    local realFenv = {script = scriptInstance}
-    local fenvMt = {}
-
-    fenvMt.__index = function(_, key)
-        return realFenv[key] or getfenv()[key]
-    end
-
-    fenvMt.__newindex = function(_, key, value)
-        if realFenv[key] == nil then
-            getfenv()[key] = value
-        else
-            realFenv[key] = value
-        end
-    end
-
-    setmetatable(fenv, fenvMt)
-    setfenv(func, fenv)
-    return func
-end
-
-
-function Modules.ForensicExplorer:Load()
-    if self.State.IsLoading then return end
-    self.State.IsLoading = true
-
-    DoNotif("Fetching Dex assets from Roblox...", 2)
-
-    task.spawn(function()
-        local success, dexObjects = pcall(function()
-            return game:GetObjects("rbxassetid://9553291002")
-        end)
-
-        if not success or not dexObjects or #dexObjects == 0 then
-            self.State.IsLoading = false
-            return DoNotif("Failed to fetch Dex. Asset may be down.", 3)
-        end
-
-        local dexUI = dexObjects[1]
-        dexUI.Name = self:_generateObfuscatedName()
-
-        -- UI Protection: Use Zuka's CoreGui pattern
-        -- If your executor has a specific ProtectGUI function, it can be called here.
-        if get_hidden_gui or (syn and syn.protect_gui) then
-            local protect = get_hidden_gui or syn.protect_gui
-            protect(dexUI)
-        end
-        dexUI.Parent = self.Services.CoreGui
-
-        -- Recursive Script Loader
-        local function loadScripts(parent)
-            for _, child in ipairs(parent:GetChildren()) do
-                if child:IsA("LuaSourceContainer") then
-                    task.spawn(function()
-                        local func, err = loadstring(child.Source, "=" .. child:GetFullName())
-                        if func then
-                            self:_applyEnvironment(func, child)()
-                        else
-                            warn("--> [ForensicExplorer] Script Error in " .. child.Name .. ": " .. tostring(err))
-                        end
-                    end)
-                end
-                loadScripts(child)
-            end
-        end
-
-        loadScripts(dexUI)
-        DoNotif("Dex Explorer Loaded. UI Obfuscated.", 2)
-        self.State.IsLoading = false
-    end)
-end
-
---// Initialize the module and register the command
-function Modules.ForensicExplorer:Initialize()
-    local module = self
-    
-    for _, serviceName in ipairs(module.Dependencies) do
-        module.Services[serviceName] = game:GetService(serviceName)
-    end
-
-    RegisterCommand({
-        Name = "synapsedex",
-        Aliases = {"sdex", "dexv3", "explorer"},
-        Description = "Loads an advanced instance of the SynapseX Dex Explorer."
-    }, function()
-        module:Load()
-    end)
-end--]]
-
--- 
-
 Modules.CreepSequence = {
     State = {
         IsExecuting = false
@@ -14309,16 +13691,14 @@ function Modules.CreepSequence:Execute(targetName)
     self.State.IsExecuting = true
     DoNotif("Executing creep sequence on " .. target.Name, 1.5)
 
-
     root.CFrame = tRoot.CFrame * CFrame.new(0, -10, 4)
     task.wait()
 
-
     local noclipConn
     noclipConn = self.Services.RunService.Stepped:Connect(function()
-        if not char or not self.State.IsExecuting then 
+        if not char or not self.State.IsExecuting then
             noclipConn:Disconnect()
-            return 
+            return
         end
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -14327,10 +13707,8 @@ function Modules.CreepSequence:Execute(targetName)
         end
     end)
 
-    -- 3. Rising Sequence
     root.Anchored = true
     task.wait()
-
 
     local tweenInfo = TweenInfo.new(1000, Enum.EasingStyle.Linear)
 
@@ -14341,7 +13719,6 @@ function Modules.CreepSequence:Execute(targetName)
     risingTween:Play()
     task.wait(1.5)
     risingTween:Pause()
-
 
     root.Anchored = false
     self.State.IsExecuting = false
@@ -14381,7 +13758,7 @@ function Modules.NextGenDesync:Toggle()
     end
 
     if not self.State.IsEnabled then
-        -- Enabling Sequence
+
         local success, err = pcall(function()
             setfflag("NextGenReplicatorEnabledWrite4", "false")
             setfflag("NextGenReplicatorEnabledWrite4", "true")
@@ -14411,7 +13788,6 @@ function Modules.NextGenDesync:Toggle()
     end
 end
 
-
 function Modules.NextGenDesync:Initialize()
     local module = self
     
@@ -14432,7 +13808,7 @@ Modules.MirrorMimic = {
         UID = 0,
         AnimatePrevDisabled = nil,
         PrevAutoRotate = true,
-        -- Buffers and Tracking
+
         PoseQueue = {},
         PoseHead = 1,
         AnimEvents = {},
@@ -14444,7 +13820,6 @@ Modules.MirrorMimic = {
     Services = {}
 }
 
-
 function Modules.MirrorMimic:_cleanup()
     local lp = self.Services.Players.LocalPlayer
     local char = lp.Character
@@ -14454,7 +13829,6 @@ function Modules.MirrorMimic:_cleanup()
         conn:Disconnect()
     end
     table.clear(self.State.Connections)
-
 
     for _, slot in pairs(self.State.ActiveSlots) do
         if slot.mt then pcall(function() slot.mt:Stop(0) end) end
@@ -14471,13 +13845,11 @@ function Modules.MirrorMimic:_cleanup()
         hum.AutoRotate = self.State.PrevAutoRotate
     end
 
-    -- 3. Restore Animate Script
     local animate = char and char:FindFirstChild("Animate")
     if animate and self.State.AnimatePrevDisabled ~= nil then
         animate.Disabled = self.State.AnimatePrevDisabled
     end
 
-    -- 4. Reset Buffers
     self.State.PoseQueue = {}
     self.State.PoseHead = 1
     self.State.AnimEvents = {}
@@ -14500,8 +13872,6 @@ function Modules.MirrorMimic:_scheduleAnim(track, kind, extra)
     })
 end
 
---// --- Core Execution ---
-
 function Modules.MirrorMimic:Enable(targetName, delayVal)
     local target = Utilities.findPlayer(targetName)
     if not target or not target.Character then
@@ -14518,7 +13888,7 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
         return DoNotif("Mimic Error: Character rig types do not match.", 3)
     end
 
-    self:_cleanup() -- Clear previous session
+    self:_cleanup()
     
     self.State.IsEnabled = true
     self.State.TargetPlayer = target
@@ -14531,18 +13901,15 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
     local myAnimator = myHum:FindFirstChildOfClass("Animator") or Instance.new("Animator", myHum)
     local tAnimator = tHum:FindFirstChildOfClass("Animator")
 
-    -- Disable local animation script
     local animate = myChar:FindFirstChild("Animate")
     if animate then
         self.State.AnimatePrevDisabled = animate.Disabled
         animate.Disabled = true
     end
 
-    --// Listeners: Animations
     self.State.Connections.AnimPlayed = tHum.AnimationPlayed:Connect(function(tt)
         self:_scheduleAnim(tt, "start")
-        
-        -- Hook speed changes and stops on the target track
+
         self.State.Connections["TrackSpd_"..tostring(tt)] = tt:GetPropertyChangedSignal("Speed"):Connect(function()
             self:_scheduleAnim(tt, "speed")
         end)
@@ -14551,7 +13918,6 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
         end)
     end)
 
-    --// Listeners: Tools
     self.State.Connections.ToolEquip = tChar.ChildAdded:Connect(function(child)
         if child:IsA("Tool") then
             local match = lp.Backpack:FindFirstChild(child.Name)
@@ -14559,7 +13925,6 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
         end
     end)
 
-    --// The Mirror Loop
     local lastLook = Vector3.new(0,0,-1)
     self.State.Connections.MainLoop = self.Services.RunService.Heartbeat:Connect(function()
         if not (tChar.Parent and tRoot.Parent and myChar.Parent) then
@@ -14567,17 +13932,16 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
         end
 
         local now = os.clock()
-        
-        -- 1. Physics & Position Mirroring
+
         local lv = tRoot.CFrame.LookVector
         local flat = Vector3.new(lv.X, 0, lv.Z)
         if flat.Magnitude >= 1e-4 then lastLook = flat.Unit end
         
         table.insert(self.State.PoseQueue, {
-            t = now, 
-            pos = tRoot.Position, 
-            look = lastLook, 
-            vel = tRoot.AssemblyLinearVelocity, 
+            t = now,
+            pos = tRoot.Position,
+            look = lastLook,
+            vel = tRoot.AssemblyLinearVelocity,
             angY = tRoot.AssemblyAngularVelocity.Y
         })
 
@@ -14591,8 +13955,7 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
             myRoot.CFrame = CFrame.lookAt(snap.pos, snap.pos + snap.look)
             myRoot.AssemblyLinearVelocity = snap.vel
             myRoot.AssemblyAngularVelocity = Vector3.new(0, snap.angY, 0)
-            
-            -- Buffer cleanup
+
             if self.State.PoseHead > 64 then
                 local newBuf = {}
                 for i = self.State.PoseHead, #self.State.PoseQueue do table.insert(newBuf, self.State.PoseQueue[i]) end
@@ -14600,7 +13963,6 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
             end
         end
 
-        -- 2. Animation Event Processing
         while self.State.AnimHead <= #self.State.AnimEvents and self.State.AnimEvents[self.State.AnimHead].t <= now do
             local e = self.State.AnimEvents[self.State.AnimHead]
             self.State.AnimHead = self.State.AnimHead + 1
@@ -14618,9 +13980,9 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
                 end)
 
                 self.State.ActiveSlots[self.State.UID] = {
-                    mt = mt, 
-                    track = e.track, 
-                    baseTP = e.baseTP, 
+                    mt = mt,
+                    track = e.track,
+                    baseTP = e.baseTP,
                     segments = {{t = e.t, speed = e.speed}},
                     looped = e.looped,
                     alive = true
@@ -14642,7 +14004,6 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
             end
         end
 
-        -- 3. Precision Animation Sync (Manual Time Stepping)
         for _, s in pairs(self.State.ActiveSlots) do
             if s.alive and s.mt then
                 local len = s.mt.Length
@@ -14664,7 +14025,6 @@ function Modules.MirrorMimic:Enable(targetName, delayVal)
     DoNotif("Mirror Active: Mimicking " .. target.Name, 2)
 end
 
---// Initialize the module and register commands
 function Modules.MirrorMimic:Initialize()
     local module = self
     for _, serviceName in ipairs(module.Dependencies) do
@@ -14728,7 +14088,6 @@ function Modules.ServerHopper:Hop(mode)
         local serverList = data.data
         local candidates = {}
 
-        -- Filter: Remove current server and full servers
         for _, server in ipairs(serverList) do
             if server.id ~= jobId and server.playing < server.maxPlayers then
                 table.insert(candidates, server)
@@ -14740,7 +14099,6 @@ function Modules.ServerHopper:Hop(mode)
             return DoNotif("No valid servers found in this batch.", 3)
         end
 
-        -- Sort based on mode
         if mode == "High" then
             table.sort(candidates, function(a, b) return a.playing > b.playing end)
         else
@@ -14765,14 +14123,12 @@ function Modules.ServerHopper:Hop(mode)
     end)
 end
 
---// Initialize the module and register commands
 function Modules.ServerHopper:Initialize()
     local module = self
     for _, serviceName in ipairs(module.Dependencies) do
         module.Services[serviceName] = game:GetService(serviceName)
     end
 
-    -- Regular Server Hop (High population)
     RegisterCommand({
         Name = "serverhop",
         Aliases = {"shop", "hop"},
@@ -14781,7 +14137,6 @@ function Modules.ServerHopper:Initialize()
         module:Hop("High")
     end)
 
-    -- Small Server Hop (Low population)
     RegisterCommand({
         Name = "smallserverhop",
         Aliases = {"sshop", "smallhop", "minihop"},
@@ -14984,8 +14339,8 @@ function Modules.VoodooDoll:Possess(targetName)
         local tRoot = self.State.Target:FindFirstChild("HumanoidRootPart")
         
         if myRoot and tRoot then
-            -- The Netless Trick: Setting velocity to high numbers forces ownership in some engines
-            tRoot.Velocity = Vector3.new(0, 30, 0) 
+
+            tRoot.Velocity = Vector3.new(0, 30, 0)
             tRoot.CFrame = myRoot.CFrame * CFrame.new(self.Config.OFFSET)
         end
     end)
@@ -15047,7 +14402,7 @@ Modules.AdminWatcher = {
 
 function Modules.AdminWatcher:Scan()
     local found = {}
-    -- Scan the global environments
+
     for key, _ in pairs(_G) do
         for _, sig in ipairs(self.Config.SIGNATURES) do
             if tostring(key):find(sig) then table.insert(found, tostring(key)) end
@@ -15300,9 +14655,9 @@ function Modules.RemoteSpy:_populateInteractor(args: table)
 end
 
 function Modules.RemoteSpy:_createUI()
-    if self.State.UI then 
-        self.State.UI.Main.Visible = true 
-        return 
+    if self.State.UI then
+        self.State.UI.Main.Visible = true
+        return
     end
     
     local sg = Instance.new("ScreenGui", CoreGui); sg.Name = "ForensicSpy_V3"
@@ -15356,20 +14711,20 @@ function Modules.RemoteSpy:_createUI()
         local args = {}
         for _, box in ipairs(interactor:GetChildren()) do
             if box:IsA("TextBox") then
-                local success, result = pcall(function() 
+                local success, result = pcall(function()
                     local func = loadstring("return " .. box.Text)
                     return func()
                 end)
                 table.insert(args, success and result or box.Text)
             end
         end
-        if data.Remote:IsA("RemoteEvent") then 
-            data.Remote:FireServer(unpack(args)) 
-        else 
-            task.spawn(function() 
+        if data.Remote:IsA("RemoteEvent") then
+            data.Remote:FireServer(unpack(args))
+        else
+            task.spawn(function()
                 local res = data.Remote:InvokeServer(unpack(args))
                 print("[INVOKE RESULT]:", self:_serialize(res))
-            end) 
+            end)
         end
     end)
     
@@ -15438,7 +14793,6 @@ function Modules.RemoteSpy:Initialize()
     end)
 end
 
-
 Modules.HeuristicRemoteBruteforcer = {
     State = {
         IsEnabled = false,
@@ -15448,7 +14802,7 @@ Modules.HeuristicRemoteBruteforcer = {
         IsScanning = false
     },
     Config = {
-        FIRE_DELAY = 0.25, 
+        FIRE_DELAY = 0.25,
         MAX_CALLS_PER_REMOTE = 15,
 
         BlacklistedParents = {
@@ -15528,7 +14882,7 @@ function Modules.HeuristicRemoteBruteforcer:_scanAndQueue()
                     end
                 end
             end
-            if i % 500 == 0 then task.wait() end -- Yield to prevent freezing
+            if i % 500 == 0 then task.wait() end
         end
         DoNotif(string.format("Bruteforcer: Queued %d new remotes.", remotesFound), 3)
         self.State.IsScanning = false
@@ -15548,7 +14902,7 @@ function Modules.HeuristicRemoteBruteforcer:_processQueue()
     
     task.spawn(function()
         for i = 1, math.min(#payloads, self.Config.MAX_CALLS_PER_REMOTE) do
-            if not self.State.IsEnabled then break end 
+            if not self.State.IsEnabled then break end
             
             local payload = payloads[i]
             if remote:IsA("RemoteEvent") then
@@ -15606,7 +14960,6 @@ function Modules.HeuristicRemoteBruteforcer:Initialize(): ()
         DoNotif("Bruteforcer history cleared. You can now scan again.", 2)
     end)
 end
-
 
 Modules.Strengthen = {
 State = {
@@ -15746,7 +15099,7 @@ function Modules.AntiAnchor:Disable()
 end
 
 function Modules.AntiAnchor:Initialize()
-    -- ARCHITECT'S NOTE: The 'Initialize' function is where dependencies should be loaded.
+
     self.Services = {}
     for _, service in ipairs(self.Dependencies) do
         self.Services[service] = game:GetService(service)
@@ -15757,7 +15110,7 @@ function Modules.AntiAnchor:Initialize()
         Aliases = {"aanchor"},
         Description = "Toggles a robust defense against being anchored."
     }, function()
-        -- The previous logic was slightly flawed; calling self:Enable/Disable directly is cleaner.
+
         if self.State.Enabled then
             self:Disable()
         else
@@ -15827,22 +15180,21 @@ Modules.FakeLag = {
     State = {
         IsEnabled = false,
         LoopConnection = nil,
-        IsCharacterAnchored = false, -- The current anchor state in the loop
-        NextFlipTimestamp = 0,     -- The os.clock() time for the next state flip
-        StartTime = 0              -- The time the effect was enabled, for duration checks
+        IsCharacterAnchored = false,
+        NextFlipTimestamp = 0,
+        StartTime = 0
     },
     Config = {
-        Interval = 0.05, -- The base time (in seconds) between anchoring/unanchoring
-        Jitter = 0.02,   -- Random time added/subtracted from the interval
-        Duration = nil   -- How long the effect should last in seconds (nil = infinite)
+        Interval = 0.05,
+        Jitter = 0.02,
+        Duration = nil
     },
     Dependencies = {"RunService", "Players"},
     Services = {}
 }
 
-
 function Modules.FakeLag:_onHeartbeat()
-    -- Failsafe: if the module is disabled but the loop is still running, kill it.
+
     if not self.State.IsEnabled then
         self:Disable()
         return
@@ -15851,25 +15203,21 @@ function Modules.FakeLag:_onHeartbeat()
     local localPlayer = self.Services.Players.LocalPlayer
     local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-    -- If the character is gone, disable the module to clean up.
     if not hrp then
         self:Disable()
         return
     end
 
-    -- Check if the duration has expired.
     if self.Config.Duration and (os.clock() - self.State.StartTime) > self.Config.Duration then
         self:Disable()
         return
     end
 
-    -- The main toggle logic.
     local now = os.clock()
     if now >= self.State.NextFlipTimestamp then
         self.State.IsCharacterAnchored = not self.State.IsCharacterAnchored
         pcall(function() hrp.Anchored = self.State.IsCharacterAnchored end)
 
-        -- Calculate the next interval with random jitter.
         local interval = self.Config.Interval
         local jitter = self.Config.Jitter
         local nextDelay = interval + (jitter > 0 and (math.random() * 2 * jitter - jitter) or 0)
@@ -15877,7 +15225,6 @@ function Modules.FakeLag:_onHeartbeat()
         self.State.NextFlipTimestamp = now + math.max(0, nextDelay)
     end
 end
-
 
 function Modules.FakeLag:Disable()
     if not self.State.IsEnabled then return end
@@ -15888,8 +15235,7 @@ function Modules.FakeLag:Disable()
     end
 
     self.State.IsEnabled = false
-    
-    -- [CRITICAL] Ensure the player is unanchored upon disabling.
+
     task.spawn(function()
         local hrp = self.Services.Players.LocalPlayer.Character and self.Services.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
@@ -15901,10 +15247,9 @@ function Modules.FakeLag:Disable()
 end
 
 function Modules.FakeLag:Enable(interval, jitter, duration)
-    -- Always disable first to ensure a clean start and prevent duplicate loops.
+
     self:Disable()
 
-    -- Safely parse and update config values.
     local newInterval = tonumber(interval)
     local newJitter = tonumber(jitter)
     local newDuration = tonumber(duration)
@@ -15913,21 +15258,16 @@ function Modules.FakeLag:Enable(interval, jitter, duration)
     if newJitter then self.Config.Jitter = math.max(0, newJitter) end
     self.Config.Duration = (newDuration and newDuration > 0) and newDuration or nil
 
-    -- Initialize state for the new session.
     self.State.IsEnabled = true
     self.State.StartTime = os.clock()
     self.State.NextFlipTimestamp = os.clock()
     self.State.IsCharacterAnchored = false
 
-    -- Connect the core loop.
     self.State.LoopConnection = self.Services.RunService.Heartbeat:Connect(function() self:_onHeartbeat() end)
 
     DoNotif("Fake Lag enabled.", 2)
 end
 
----
--- Initializes the module and registers its commands.
---
 function Modules.FakeLag:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -15944,11 +15284,11 @@ function Modules.FakeLag:Initialize()
         if arg1 and (arg1:lower() == "off" or arg1:lower() == "stop") then
             module:Disable()
         else
-            -- If already enabled and no new args, treat it as a toggle to turn it off.
+
             if module.State.IsEnabled and #args == 0 then
                 module:Disable()
             else
-                -- Enable with optional arguments.
+
                 module:Enable(args[1], args[2], args[3])
             end
         end
@@ -16139,7 +15479,7 @@ function Modules.RevealInvisible:Disable()
 end
 
 function Modules.RevealInvisible:Enable()
-    self:Disable() -- Ensure any previous state is cleared before running.
+    self:Disable()
     
     local partsRevealed = 0
     for _, part in ipairs(self.Services.Workspace:GetDescendants()) do
@@ -16192,7 +15532,6 @@ Modules.GripEditor = {
     Services = {}
 }
 
-
 function Modules.GripEditor:_makeDraggable(guiObject, dragHandle)
     local isDragging = false
     local dragStart, startPosition
@@ -16202,8 +15541,7 @@ function Modules.GripEditor:_makeDraggable(guiObject, dragHandle)
             isDragging = true
             dragStart = input.Position
             startPosition = guiObject.Position
-            
-            -- Disconnect the drag on input release
+
             local inputEndedConn
             inputEndedConn = self.Services.UserInputService.InputEnded:Connect(function(endInput)
                 if endInput.UserInputType == input.UserInputType then
@@ -16224,7 +15562,6 @@ function Modules.GripEditor:_makeDraggable(guiObject, dragHandle)
         end
     end)
 end
-
 
 function Modules.GripEditor:_applyGrip()
     local localPlayer = self.Services.Players.LocalPlayer
@@ -16262,9 +15599,8 @@ function Modules.GripEditor:_applyGrip()
 
 end
 
-
 function Modules.GripEditor:CreateUI()
-    if self.State.UI.ScreenGui then return end -- UI already exists
+    if self.State.UI.ScreenGui then return end
 
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "GripEditorUI_Module"
@@ -16295,7 +15631,6 @@ function Modules.GripEditor:CreateUI()
     title.TextSize = 16
     title.Parent = titleBar
 
-    -- Create input boxes for Position and Rotation
     local labels = {"X", "Y", "Z", "RX", "RY", "RZ"}
     self.State.UI.TextBoxes = {}
     for i, label in ipairs(labels) do
@@ -16324,8 +15659,7 @@ function Modules.GripEditor:CreateUI()
         Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
         self.State.UI.TextBoxes[label] = box
     end
-    
-    -- Create control buttons
+
     local previewBtn = Instance.new("TextButton", frame)
     previewBtn.Size = UDim2.fromOffset(280, 28)
     previewBtn.Position = UDim2.fromOffset(20, 150)
@@ -16353,12 +15687,10 @@ function Modules.GripEditor:CreateUI()
     closeBtn.TextColor3 = Color3.new(1, 1, 1)
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
 
-    -- Connect button events
     previewBtn.MouseButton1Click:Connect(function() self:_applyGrip() end)
     applyBtn.MouseButton1Click:Connect(function() self:_applyGrip(); self:DestroyUI() end)
     closeBtn.MouseButton1Click:Connect(function() self:DestroyUI() end)
 
-    -- Make it draggable
     self:_makeDraggable(frame, titleBar)
     DoNotif("Grip Editor opened.", 2)
 end
@@ -16370,10 +15702,9 @@ function Modules.GripEditor:DestroyUI()
     if self.State.GripConnection then
         self.State.GripConnection:Disconnect()
     end
-    self.State = { UI = {} } -- Reset the state table
+    self.State = { UI = {} }
     DoNotif("Grip Editor closed.", 2)
 end
-
 
 function Modules.GripEditor:Initialize()
     local module = self
@@ -16386,7 +15717,7 @@ function Modules.GripEditor:Initialize()
         Aliases = {"setgrip", "gripeditor"},
         Description = "Toggles a UI to manually edit your tool's grip CFrame."
     }, function()
-        -- This command now acts as a toggle.
+
         if module.State.UI.ScreenGui then
             module:DestroyUI()
         else
@@ -16397,8 +15728,8 @@ end
 
 Modules.AnimationBuilder = {
     State = {
-        UI = nil, 
-        OriginalAnimations = nil 
+        UI = nil,
+        OriginalAnimations = nil
     },
     Dependencies = {"Players", "CoreGui", "TweenService", "UserInputService"},
     Services = {}
@@ -16434,7 +15765,6 @@ function Modules.AnimationBuilder:_makeDraggable(guiObject, dragHandle)
         end
     end)
 end
-
 
 function Modules.AnimationBuilder:DestroyUI()
     if not self.State.UI then return end
@@ -16527,7 +15857,6 @@ function Modules.AnimationBuilder:CreateUI()
     listLayout.Padding = UDim.new(0, 8)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    -- [CRITICAL FIX] The incorrect UIPadding line has been replaced with the correct properties.
     local padding = Instance.new("UIPadding", scroll)
     padding.PaddingLeft = UDim.new(0, 15)
     padding.PaddingRight = UDim.new(0, 15)
@@ -16597,12 +15926,12 @@ function Modules.AnimationBuilder:CreateUI()
                 local anim = valueObj:FindFirstChildOfClass("Animation")
                 if anim then
                     if mode == "save" then
-                        local text = animId.Text 
+                        local text = animId.Text
                         if tonumber(text) then
                             anim.AnimationId = "rbxassetid://" .. text
                         end
                     else
-                        anim.AnimationId = animId 
+                        anim.AnimationId = animId
                         local num = animId:match("%d+")
                         if num and ui.inputs[stateName] then
                             ui.inputs[stateName].Text = num
@@ -16659,11 +15988,9 @@ Modules.CharacterMorph = {
     Services = {}
 }
 
-
 function Modules.CharacterMorph:_resolveDescription(target: string)
     local targetId = tonumber(target)
-    
-    -- If the target is not a valid number, assume it's a username and get the ID.
+
     if not targetId then
         local success, idFromName = pcall(function()
             return self.Services.Players:GetUserIdFromNameAsync(target)
@@ -16674,8 +16001,7 @@ function Modules.CharacterMorph:_resolveDescription(target: string)
         end
         targetId = idFromName
     end
-    
-    -- Now, fetch the HumanoidDescription using the resolved UserId.
+
     DoNotif("Loading avatar for UserId: " .. targetId, 1.5)
     local success, description = pcall(function()
         return self.Services.Players:GetHumanoidDescriptionFromUserId(targetId)
@@ -16688,37 +16014,31 @@ function Modules.CharacterMorph:_resolveDescription(target: string)
     return description
 end
 
---- [Internal] Applies a HumanoidDescription to the local player's character via respawn.
 function Modules.CharacterMorph:_applyAndRespawn(description: HumanoidDescription)
     local localPlayer = self.Services.Players.LocalPlayer
     if not description then return end
 
-    -- Disconnect any previous post-respawn event to prevent conflicts.
     if self.State.CharacterAddedConnection then
         self.State.CharacterAddedConnection:Disconnect()
         self.State.CharacterAddedConnection = nil
     end
 
-
     self.State.CharacterAddedConnection = localPlayer.CharacterAdded:Once(function(character)
         local humanoid = character:WaitForChild("Humanoid", 5)
         if humanoid then
-            -- Wrap in a pcall as ApplyDescription can sometimes fail with invalid assets.
+
             pcall(humanoid.ApplyDescription, humanoid, description)
         end
     end)
-    
-    -- Trigger the respawn.
+
     localPlayer:LoadCharacter()
 end
-
 
 function Modules.CharacterMorph:Morph(target: string)
     if not target then
         return DoNotif("Usage: ;avatar <username/userid>", 3)
     end
 
-    -- Cache the player's original description if we haven't already.
     if not self.State.OriginalDescription then
         local success, originalDesc = pcall(function()
             return self.Services.Players:GetHumanoidDescriptionFromUserId(self.Services.Players.LocalPlayer.UserId)
@@ -16730,7 +16050,6 @@ function Modules.CharacterMorph:Morph(target: string)
         end
     end
 
-    -- Run the asynchronous parts in a new thread to not lag the game.
     task.spawn(function()
         local newDescription = self:_resolveDescription(target)
         if newDescription then
@@ -16741,7 +16060,6 @@ function Modules.CharacterMorph:Morph(target: string)
     end)
 end
 
---- Reverts the player's character to their original appearance.
 function Modules.CharacterMorph:Revert()
     if not self.State.IsMorphed then
         return DoNotif("You are not currently morphed.", 2)
@@ -16756,7 +16074,6 @@ function Modules.CharacterMorph:Revert()
     DoNotif("Reverting to original character...", 2)
 end
 
---- Initializes the module and registers its commands.
 function Modules.CharacterMorph:Initialize()
     local module = self
     for _, service in ipairs(self.Dependencies) do
@@ -16785,7 +16102,7 @@ Modules.AvatarEditor = {
         IsEnabled = false,
         UI = nil,
         Connections = {},
-        OriginalAssets = {} -- Cache to revert local previews
+        OriginalAssets = {}
     },
 
     Config = {
@@ -16795,17 +16112,13 @@ Modules.AvatarEditor = {
     Services = {}
 }
 
---// --- Private: Core Logic ---
-
---- [Internal] Applies asset changes locally for preview purposes. NOT visible to others.
 function Modules.AvatarEditor:_applyLocally()
     local character = self.Services.LocalPlayer.Character
     if not character then return end
     
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
-    
-    -- Clear previous accessories before applying new ones
+
     for _, accessory in ipairs(humanoid:GetAccessories()) do
         accessory:Destroy()
     end
@@ -16826,7 +16139,7 @@ function Modules.AvatarEditor:_applyLocally()
                         local face = head:FindFirstChildOfClass("Decal")
                         if face then face.Texture = "rbxassetid://" .. assetId end
                     end
-                else -- Assume it's an accessory
+                else
                     self.Services.InsertService:LoadAsset(assetId).Parent = character
                 end
             end)
@@ -16844,8 +16157,7 @@ function Modules.AvatarEditor:_applyToServer()
     for assetType, textBox in pairs(self.State.UI.Inputs) do
         local assetId = textBox.Text
         if #assetId > 0 then
-            -- Fire the remote with the asset type and ID. The exact format
-            -- may need to be adjusted based on how the target game's remote works.
+
             local success, err = pcall(function()
                 remote:FireServer(assetType, tonumber(assetId) or assetId)
             end)
@@ -16865,8 +16177,6 @@ function Modules.AvatarEditor:_applyToServer()
     end
 end
 
-
---- [Internal] Finds the remote event based on the configured path.
 function Modules.AvatarEditor:_findRemote()
     local current = game
     for component in string.gmatch(self.Config.REMOTE_PATH, "[^%.]+") do
@@ -16875,8 +16185,6 @@ function Modules.AvatarEditor:_findRemote()
     end
     return (current and current:IsA("RemoteEvent")) and current or nil
 end
-
---// --- Private: UI Creation & Management ---
 
 function Modules.AvatarEditor:_createUI()
     if self.State.UI then return end
@@ -16919,8 +16227,7 @@ function Modules.AvatarEditor:_createUI()
     
     local layout = Instance.new("UIListLayout", scroll)
     layout.Padding = UDim.new(0, 8)
-    
-    -- Function to create a labeled text box for an asset type
+
     local function createInput(assetType)
         local row = Instance.new("TextLabel", scroll)
         row.Size = UDim2.new(1, 0, 0, 25)
@@ -16942,8 +16249,7 @@ function Modules.AvatarEditor:_createUI()
         Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 4)
         ui.Inputs[assetType] = textBox
     end
-    
-    -- Create inputs for common asset types
+
     createInput("Shirt")
     createInput("Pants")
     createInput("Face")
@@ -16974,8 +16280,6 @@ function Modules.AvatarEditor:_createUI()
 
     ui.ScreenGui.Parent = CoreGui
 end
-
---// --- Public: Control Methods ---
 
 function Modules.AvatarEditor:Toggle()
     if self.State.IsEnabled then
@@ -17422,7 +16726,7 @@ RegisterCommand({
 }, function(args)
     if not LocalPlayer then return end
     
-    local self = Modules.FixCamera -- Reference the module table
+    local self = Modules.FixCamera
     self.State.Enabled = not self.State.Enabled
     
     if self.State.Enabled then
@@ -17768,7 +17072,6 @@ function Modules.FpsMeter:Toggle()
     end
 end
 
-
 RegisterCommand({
     Name = "fpsmeter",
     Aliases = {"showfps", "fps"},
@@ -17797,7 +17100,7 @@ Modules.HitboxESP = {
         RunService = game:GetService("RunService"),
         TweenService = game:GetService("TweenService"),
         UserInputService = game:GetService("UserInputService"),
-        CoreGui = game:GetService("CoreGui") -- Using CoreGui for exploit-standard UI hosting
+        CoreGui = game:GetService("CoreGui")
     }
 }
 
@@ -17984,7 +17287,6 @@ function Modules.HitboxESP:Initialize()
     local Players = self.Services.Players
     local TS = self.Services.TweenService
 
-    -- Command Registry Integration
     RegisterCommand({
         Name = "rootp",
         Aliases = {"hichanger"},
@@ -18130,7 +17432,6 @@ function Modules.HitboxESP:CreateUI()
     footerLabelMinimized.TextColor3 = Color3.fromRGB(120, 120, 130); footerLabelMinimized.TextSize = 10; footerLabelMinimized.Visible = false
     ui.FooterLabelMinimized = footerLabelMinimized
 
-    -- Confirm and Settings logic follows original hierarchy...
     local confirmFrame = Instance.new("Frame", mainFrame)
     confirmFrame.Size = UDim2.new(1, 0, 1, 0); confirmFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
     confirmFrame.BackgroundTransparency = 1; confirmFrame.Visible = false; confirmFrame.ZIndex = 10
@@ -18191,7 +17492,6 @@ function Modules.HitboxESP:CreateUI()
     lightButton.Text = "Light"; lightButton.TextColor3 = Color3.fromRGB(30, 30, 40); lightButton.ZIndex = 11
     Instance.new("UICorner", lightButton); ui.LightButton = lightButton
 
-    -- Button Actions
     applyButton.MouseButton1Click:Connect(function()
         module:AnimateButton(applyButton)
         local val = tonumber(textBox.Text)
@@ -18277,7 +17577,6 @@ function Modules.HitboxESP:CreateUI()
     darkButton.MouseButton1Click:Connect(function() module:AnimateButton(darkButton); module:ApplyTheme("dark") end)
     lightButton.MouseButton1Click:Connect(function() module:AnimateButton(lightButton); module:ApplyTheme("light") end)
 
-    -- Dragging Logic
     local dragStart, startPos
     titleBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -18300,11 +17599,10 @@ function Modules.HitboxESP:CreateUI()
     DoNotif("Hitbox & ESP Panel: INITIALIZED", 2)
 end
 
---// Registration Logic (Inject this into your command list)
-RegisterCommand({ 
-    Name = "hitgui", 
-    Aliases = { "hbesp", "hitboxpanel" }, 
-    Description = "Toggles the advanced Hitbox Changer and ESP interface." 
+RegisterCommand({
+    Name = "hitgui",
+    Aliases = { "hbesp", "hitboxpanel" },
+    Description = "Toggles the advanced Hitbox Changer and ESP interface."
 }, function()
     if not Modules.HitboxESP.State.UI then
         Modules.HitboxESP:CreateUI()
@@ -18419,7 +17717,7 @@ RegisterCommand({
     local targetTime = tonumber(args[1])
     
     if not targetTime or targetTime < 0 or targetTime >= 24 then
-        targetTime = 0 
+        targetTime = 0
     end
     
     Lighting.ClockTime = targetTime
@@ -18432,13 +17730,13 @@ RegisterCommand({
     Aliases = {"setday", "daytime"},
     Description = "Sets the time to day on your client."
 }, function(args)
-    -- Get the Lighting service robustly.
+
     local Lighting = game:GetService("Lighting")
     
     local targetTime = tonumber(args[1])
     
     if not targetTime or targetTime < 0 or targetTime >= 24 then
-        targetTime = 14 
+        targetTime = 14
     end
     
     Lighting.ClockTime = targetTime
@@ -18688,18 +17986,17 @@ RegisterCommand({
     Modules.ToolSpy:Scan()
 end)
 
-
 Modules.EngineInterceptor = {
     State = {
         IsEnabled = false,
         IsLogging = true,
         ActiveHooks = {},
-        CapturedLogs = {}, -- [Index] = {Name, Output, RawArgs}
+        CapturedLogs = {},
         UI = nil,
         SelectedLog = nil
     },
     Config = {
-        -- Functions to monitor
+
         TargetFunctions = {
             "debug.getconstants", "getconstants", "debug.getupvalues", "getupvalues",
             "getsenv", "getreg", "getgc", "getconnections", "firesignal",
@@ -18737,14 +18034,12 @@ function Modules.EngineInterceptor:_logCall(name, args)
     end
 
     local entry = {Name = name, Output = outputStr, Time = timestamp}
-    table.insert(self.State.CapturedLogs, 1, entry) -- Newest first
+    table.insert(self.State.CapturedLogs, 1, entry)
 
     if self.State.UI then
         self:_updateList()
     end
 end
-
---// --- UI Management ---
 
 function Modules.EngineInterceptor:_createUI()
     if self.State.UI then self.State.UI.Main.Visible = true return end
@@ -18816,7 +18111,6 @@ function Modules.EngineInterceptor:_createUI()
     clear.Text = "Clear All"; clear.Font = Enum.Font.GothamBold
     Instance.new("UICorner", clear)
 
-    --// Interactions
     close.MouseButton1Click:Connect(function() main.Visible = false end)
     
     clear.MouseButton1Click:Connect(function()
@@ -18852,8 +18146,6 @@ function Modules.EngineInterceptor:_updateList()
     end
 end
 
---// --- Hooking Engine ---
-
 function Modules.EngineInterceptor:ApplyHooks()
     if not hookfunction then return DoNotif("Executor does not support hookfunction.", 3) end
 
@@ -18881,8 +18173,6 @@ function Modules.EngineInterceptor:ApplyHooks()
     self.State.IsEnabled = true
     DoNotif("Engine Interceptor: Active. Monitoring Exploit APIs.", 3)
 end
-
---// --- Initialize ---
 
 function Modules.EngineInterceptor:Initialize()
     local module = self
@@ -19366,14 +18656,13 @@ Modules.CallumAI = {
         ExplorationBuffer = {}
     },
     Config = {
-        API_KEY = "", 
+        API_KEY = "",
         MODEL = "",
         ACCENT_COLOR = Color3.fromRGB(0, 255, 200),
         SCAN_KEYWORDS = {"network", "remote", "data", "store", "inventory", "purchase", "handler", "event", "admin", "combat", "security", "anti", "function", "state", "check", "weapon", "skill", "mana", "stamina", "health", "damage"},
         MAX_CONTEXT_LINES = 150
     }
 }
-
 
 function Modules.CallumAI:_getPanelContext(): string
     local manifest: string = "Exploit Panel Capability Manifest:\n"
@@ -19405,7 +18694,6 @@ function Modules.CallumAI:_decompileScript(scriptInstance: Instance): string
     return "Decompilation failed or not supported by current executor."
 end
 
--- Private utility: Resolves string paths to game instances
 function Modules.CallumAI:_getInstanceFromPath(path: string): Instance?
     local current: Instance = game
     for component: string in string.gmatch(path, "[^%.]+") do
@@ -19420,17 +18708,16 @@ function Modules.CallumAI:_getInstanceFromPath(path: string): Instance?
     return current
 end
 
--- Private utility: Generates a visual tree of the game hierarchy
 function Modules.CallumAI:_getHierarchyMap(parent: Instance, depth: number): string
     local map: string = ""
     local indent: string = string.rep("  ", depth)
     local children: {Instance} = parent:GetChildren()
     
     for i: number, child: Instance in ipairs(children) do
-        -- Performance safety: avoid flooding context with too many objects
-        if i > 25 then 
+
+        if i > 25 then
             map ..= indent .. "... (" .. (#children - 25) .. " more items)\n"
-            break 
+            break
         end
         map ..= string.format("%s%s [%s]\n", indent, child.Name, child.ClassName)
         if depth < 2 and (child:IsA("Folder") or child:IsA("Model")) then
@@ -19440,7 +18727,6 @@ function Modules.CallumAI:_getHierarchyMap(parent: Instance, depth: number): str
     return map
 end
 
--- Private utility: Scans high-value containers for forensic analysis
 function Modules.CallumAI:_scanGameContainers(): string
     local report: string = "--- FORENSIC HIERARCHY ANALYSIS ---\n"
     local targets: {Instance} = {ReplicatedStorage, Workspace, ReplicatedFirst}
@@ -19479,7 +18765,7 @@ function Modules.CallumAI:FetchResponse(prompt: string, options: {Scan: boolean,
         7. If you cannot fulfill a request, return '-- ERROR: [Reason]'.
     ]]
     
-    local userPayload: string = string.format("[CONTEXT]\n%s\n%s\n\n[REQUEST]\n%s", 
+    local userPayload: string = string.format("[CONTEXT]\n%s\n%s\n\n[REQUEST]\n%s",
         gameContext, scriptContext, prompt)
     
     local success, result = pcall(function()
@@ -19493,20 +18779,19 @@ function Modules.CallumAI:FetchResponse(prompt: string, options: {Scan: boolean,
                 ["X-Title"] = "Callum AI"
             },
             Body = HttpService:JSONEncode({
-                model = "deepseek/deepseek-chat", -- Highly recommended for no-comment logic
+                model = "deepseek/deepseek-chat",
                 messages = {
                     {role = "system", content = systemInstruction},
                     {role = "user", content = userPayload}
                 },
-                temperature = 0.2 -- Lower temperature = more stable, less "creative" (better for code)
+                temperature = 0.2
             })
         })
         
         if response and response.StatusCode == 200 then
             local data = HttpService:JSONDecode(response.Body)
             local content = data.choices[1].message.content
-            
-            -- If we only want the code, strip everything else immediately
+
             if options.Silent then
                 return self:_extractCode(content) or content
             end
@@ -19528,22 +18813,21 @@ function Modules.CallumAI:Initialize()
     }, function(args: {string})
         local sub = args[1] and args[1]:lower() or ""
         local isRun = (sub == "run" or sub == "execute")
-        
-        -- If it's a 'run' command, we set 'Silent' to true to force code-only output
+
         module.State.IsProcessing = true
         
         task.spawn(function()
             local reply = module:FetchResponse(table.concat(args, " "), {
                 Scan = true,
                 Decompile = (sub == "dec" and args[2] or nil),
-                Silent = isRun -- This triggers the code-only filter
+                Silent = isRun
             })
             
             module.State.IsProcessing = false
             
             if isRun then
                 local cleanCode = module:_extractCode(reply) or reply
-                -- Clean up any residual markdown symbols just in case
+
                 cleanCode = cleanCode:gsub("```lua", ""):gsub("```", "")
                 
                 local func, err = loadstring(cleanCode)
@@ -19555,7 +18839,7 @@ function Modules.CallumAI:Initialize()
                     print("Attempted Code:\n" .. cleanCode)
                 end
             else
-                -- Standard output for 'scan' or 'dec'
+
                 if Modules.CommandBar then
                     Modules.CommandBar:AddOutput(reply, module.Config.ACCENT_COLOR)
                 else
@@ -19779,7 +19063,7 @@ function Modules.SourceBhop:Initialize(): ()
     }, function()
         module:_createUI()
     end)
-end--
+end
 
 Modules.VoidFling = {
     State = {
@@ -19804,9 +19088,9 @@ function Modules.VoidFling:Execute(target: Player): ()
             Workspace.FallenPartsDestroyHeight = 0/0
             local connection: RBXScriptConnection
             connection = RunService.Stepped:Connect(function()
-                if not self.State.IsFlinging then 
+                if not self.State.IsFlinging then
                     connection:Disconnect()
-                    return 
+                    return
                 end
                 hrp.CanCollide = false
                 hrp.Velocity = Vector3.new(0, 1e7, 0)
@@ -19912,11 +19196,11 @@ end)
 Modules.NetworkNormalizer = {
     State = {
         IsNormalized = false,
-        OriginalNames = {} 
+        OriginalNames = {}
     },
     Config = {
         TARGET_CONTAINERS = {ReplicatedStorage},
-        PREFIX = "" 
+        PREFIX = ""
     }
 }
 
@@ -20019,7 +19303,7 @@ function Modules.UpvalueSurgeon:ScanGC(targetName: string)
     local matches = {}
     local getUpvalue = (debug and debug.getupvalue) or getupvalue
     local getInfo = (debug and debug.getinfo) or getinfo
-    local isL = (islclosure or function(f) return true end) 
+    local isL = (islclosure or function(f) return true end)
 
     if not (getgc and getUpvalue and getInfo) then
         return matches
@@ -20141,8 +19425,8 @@ function Modules.FolderBringer:Execute(args)
     local lp = self.Services.Players.LocalPlayer
     local char = lp.Character
     
-    if not char then 
-        return DoNotif("Character not found.", 3) 
+    if not char then
+        return DoNotif("Character not found.", 3)
     end
 
     for i = #args, 1, -1 do
@@ -20166,7 +19450,6 @@ function Modules.FolderBringer:Execute(args)
     local pivot = char:GetPivot()
     local bringCount = 0
 
-    -- Securely pivot the parts
     for _, desc in ipairs(folder:GetDescendants()) do
         if desc:IsA("BasePart") then
             local shouldBring = true
@@ -20192,8 +19475,7 @@ end
 
 function Modules.FolderBringer:Initialize()
     local module = self
-    
-    -- Load required services using the Zuka pattern
+
     for _, serviceName in ipairs(module.Dependencies) do
         module.Services[serviceName] = game:GetService(serviceName)
     end
@@ -20220,7 +19502,6 @@ function Modules.QuickExecutor:RunCode(args)
         return DoNotif("Quick Executor: No code provided.", 2)
     end
 
-    -- Attempt to compile the string
     local func, compileError = loadstring(code)
 
     if not func then
@@ -20228,7 +19509,6 @@ function Modules.QuickExecutor:RunCode(args)
         return DoNotif("Syntax Error: Check F9 for details.", 3)
     end
 
-    -- Use pcall during the spawn to catch runtime errors without halting the module
     local success, runError = pcall(function()
         task.spawn(func)
     end)
@@ -20255,18 +19535,17 @@ end
 
 Modules.CommandHistory = {
     State = {
-        LastCommand = nil,  -- Stores the raw command string
-        PrevCommand = nil   -- Stores the one before that (for when you spam ;re)
+        LastCommand = nil,
+        PrevCommand = nil
     }
 }
 
 function Modules.CommandHistory:Record(message)
-    -- Ignore the prefix and get the command name
+
     local cmdName = message:sub(#Prefix + 1):match("%S+")
     if not cmdName then return end
     cmdName = cmdName:lower()
 
-    -- We don't record the history commands themselves
     local blacklist = {["lastcommand"] = true, ["lastcmd"] = true, ["re"] = true}
     
     if not blacklist[cmdName] then
@@ -20282,7 +19561,6 @@ function Modules.CommandHistory:ExecuteLast()
         return DoNotif("No previous command recorded.", 2)
     end
 
-    -- Visual feedback in the command bar if available
     if Modules.CommandBar and Modules.CommandBar.AddOutput then
         Modules.CommandBar:AddOutput("Replaying: " .. toRun, Modules.CommandBar.Theme.Accent)
     end
@@ -20292,7 +19570,6 @@ end
 
 function Modules.CommandHistory:Initialize()
     local module = self
-
 
     local oldProcess = processCommand
     getgenv().processCommand = function(message)
@@ -20316,7 +19593,7 @@ Modules.CommandLooper = {
         CurrentCommand = nil
     },
     Config = {
-        Interval = 1 -- Seconds between executions
+        Interval = 1
     }
 }
 
@@ -20327,12 +19604,10 @@ function Modules.CommandLooper:Start(commandName, args)
         return DoNotif(string.format("Loop Error: Command ';%s' not found.", commandName), 3)
     end
 
-    -- Safety: Prevent the user from looping the loop command
     if commandName:lower() == "cmdloop" or commandName:lower() == "commandloop" then
         return DoNotif("Architect Error: Infinite recursion prevented.", 3)
     end
 
-    -- Stop any existing loop first
     self:Stop()
 
     self.State.IsRunning = true
@@ -20342,7 +19617,7 @@ function Modules.CommandLooper:Start(commandName, args)
 
     self.State.LoopThread = task.spawn(function()
         while self.State.IsRunning do
-            -- Wrap in pcall so an error in the looped command doesn't kill the whole panel
+
             local success, err = pcall(cmdFunc, args)
             if not success then
                 warn("--> [CommandLooper] Error in loop:", err)
@@ -20401,10 +19676,6 @@ Modules.ChatFilterReseter = {
     Services = {}
 }
 
---[[
-    Internal execution logic.
-    Sends /e hi to the chat 3 times to clear the local filter buffer.
---]]
 function Modules.ChatFilterReseter:Reset()
     local lp = self.Services.Players.LocalPlayer
     if not lp then return end
@@ -20415,19 +19686,16 @@ function Modules.ChatFilterReseter:Reset()
         pcall(function()
             lp:Chat("/e hi")
         end)
-        
-        -- A micro-wait ensures the server registers three distinct events
+
         task.wait(0.1)
     end
 
     DoNotif("Filter Reset: Complete.", 2)
 end
 
---// Initialize the module and register the command
 function Modules.ChatFilterReseter:Initialize()
     local module = self
 
-    -- Load required services
     for _, serviceName in ipairs(module.Dependencies) do
         module.Services[serviceName] = game:GetService(serviceName)
     end
@@ -20449,10 +19717,6 @@ Modules.ToolMasher = {
     Services = {}
 }
 
---[[
-    Internal execution logic.
-    Moves all tools to the character, fires Activate(), and resets them.
---]]
 function Modules.ToolMasher:Mash()
     if self.State.IsExecuting then return end
     
@@ -20467,7 +19731,6 @@ function Modules.ToolMasher:Mash()
     self.State.IsExecuting = true
     local toolBuffer = {}
 
-    -- 1. Collect and Equip all tools from backpack
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") then
             table.insert(toolBuffer, tool)
@@ -20475,7 +19738,6 @@ function Modules.ToolMasher:Mash()
         end
     end
 
-    -- 2. Include tools already equipped
     for _, tool in ipairs(char:GetChildren()) do
         if tool:IsA("Tool") and not table.find(toolBuffer, tool) then
             table.insert(toolBuffer, tool)
@@ -20487,10 +19749,8 @@ function Modules.ToolMasher:Mash()
         return DoNotif("No tools found to mash.", 2)
     end
 
-    -- A micro-wait allows the engine to register the tools as 'Equipped'
     task.wait(0.1)
 
-    -- 3. Activate all tools
     local successCount = 0
     for _, tool in ipairs(toolBuffer) do
         pcall(function()
@@ -20499,7 +19759,6 @@ function Modules.ToolMasher:Mash()
         end)
     end
 
-    -- 4. Clean up: Move tools back to backpack to prevent clutter
     task.wait(0.1)
     for _, tool in ipairs(toolBuffer) do
         pcall(function()
@@ -20511,11 +19770,9 @@ function Modules.ToolMasher:Mash()
     self.State.IsExecuting = false
 end
 
---// Initialize the module and register the command
 function Modules.ToolMasher:Initialize()
     local module = self
-    
-    -- Load services
+
     for _, serviceName in ipairs(module.Dependencies) do
         module.Services[serviceName] = game:GetService(serviceName)
     end
@@ -20537,13 +19794,9 @@ Modules.InvisDeleter = {
     Services = {}
 }
 
---[[
-    Internal execution logic.
-    Filters: BasePart, Transparency >= 1, CanCollide == true.
---]]
 function Modules.InvisDeleter:Purge()
-    if self.State.IsScanning then 
-        return DoNotif("Purge already in progress...", 2) 
+    if self.State.IsScanning then
+        return DoNotif("Purge already in progress...", 2)
     end
 
     local workspace = self.Services.Workspace
@@ -20552,19 +19805,17 @@ function Modules.InvisDeleter:Purge()
     self.State.IsScanning = true
     DoNotif("Scanning for invisible walls...", 2)
 
-    -- Run in a separate thread to prevent UI hang
     task.spawn(function()
         local descendants = workspace:GetDescendants()
         
         for i, part in ipairs(descendants) do
-            -- Performance check: Yield every 500 objects to prevent frame drops
+
             if i % 500 == 0 then task.wait() end
 
             if part:IsA("BasePart") then
 
                 if part.Transparency >= 1 and part.CanCollide then
-                    
-                    -- Safety: Never delete parts belonging to your own character
+
                     local char = game:GetService("Players").LocalPlayer.Character
                     if not (char and part:IsDescendantOf(char)) then
                         pcall(function()
@@ -20581,11 +19832,9 @@ function Modules.InvisDeleter:Purge()
     end)
 end
 
---// Initialize the module and register the command
 function Modules.InvisDeleter:Initialize()
     local module = self
-    
-    -- Load Workspace service
+
     for _, serviceName in ipairs(module.Dependencies) do
         module.Services[serviceName] = game:GetService(serviceName)
     end
@@ -20602,24 +19851,20 @@ end
 Modules.KickShield = {
     State = {
         IsEnabled = false,
-        Mode = "FakeSuccess", -- Options: "FakeSuccess" or "Error"
+        Mode = "FakeSuccess",
         OriginalNamecall = nil
     },
     Dependencies = {"Players"},
     Services = {}
 }
 
---[[
-    Internal Hooking Logic.
-    Uses a metatable hook to intercept the :Kick() method.
---]]
 function Modules.KickShield:ApplyHook()
     local success, mt = pcall(getrawmetatable, game)
     if not success or not mt then
         return DoNotif("KickShield: Metatable access denied.", 3)
     end
 
-    if self.State.OriginalNamecall then return end -- Already hooked
+    if self.State.OriginalNamecall then return end
 
     self.State.OriginalNamecall = mt.__namecall
     local original = self.State.OriginalNamecall
@@ -20635,11 +19880,11 @@ function Modules.KickShield:ApplyHook()
             warn("--> [KickShield] Intercepted Kick Attempt. Mode: " .. currentMode)
             
             if currentMode == "Error" then
-                -- This kills the calling script entirely by throwing a Lua error.
+
                 error("Critical Engine Failure: Memory Address 0x000F is Read-Only.")
                 return nil
             else
-                -- FakeSuccess: The script thinks it kicked you, but nothing happens.
+
                 return nil
             end
         end
@@ -20652,9 +19897,6 @@ function Modules.KickShield:ApplyHook()
     DoNotif("KickShield: Active [Mode: " .. self.State.Mode .. "]", 2)
 end
 
---[[
-    Internal execution logic for command processing.
---]]
 function Modules.KickShield:Toggle(modeArg)
     local m = tostring(modeArg):lower()
 
@@ -20671,11 +19913,9 @@ function Modules.KickShield:Toggle(modeArg)
     end
 end
 
---// Initialize the module and register the command
 function Modules.KickShield:Initialize()
     local module = self
-    
-    -- Load Players service
+
     for _, serviceName in ipairs(module.Dependencies) do
         module.Services[serviceName] = game:GetService(serviceName)
     end
@@ -20856,8 +20096,6 @@ RegisterCommand({
     end
 end)
 
---// =============== SETTINGS MANAGER =============== //--
---// =============== PLUGIN MANAGER =============== //--
 Modules.PluginManager = {
     State = {
         UI = nil,
@@ -20873,7 +20111,7 @@ Modules.PluginManager = {
         FG = Color3.fromRGB(25, 25, 25),
         BORDER = Color3.fromRGB(50, 50, 50),
         PLUGIN_URLS = {
-            -- Add plugin URLs here
+
         }
     },
     Dependencies = {"HttpService", "CoreGui", "UserInputService"},
@@ -20899,8 +20137,7 @@ end
 function Modules.PluginManager:SavePlugin(pluginCode, pluginName, folderPath)
     local workspace = self:InitWorkspace()
     folderPath = folderPath or "root"
-    
-    -- Create plugin data
+
     local pluginId = pluginName:gsub(" ", "_") .. "_" .. os.time()
     workspace.pluginData[pluginId] = {
         name = pluginName,
@@ -20908,8 +20145,7 @@ function Modules.PluginManager:SavePlugin(pluginCode, pluginName, folderPath)
         created = os.time(),
         folder = folderPath
     }
-    
-    -- Add to folder
+
     if not workspace.folders[folderPath] then
         workspace.folders[folderPath] = {
             name = folderPath,
@@ -20954,8 +20190,7 @@ function Modules.PluginManager:DeletePlugin(pluginId)
     if workspace.pluginData[pluginId] then
         local pluginData = workspace.pluginData[pluginId]
         local folderPath = pluginData.folder
-        
-        -- Remove from folder
+
         if workspace.folders[folderPath] then
             for i, id in ipairs(workspace.folders[folderPath].plugins) do
                 if id == pluginId then
@@ -20976,8 +20211,7 @@ function Modules.PluginManager:DeleteFolder(folderPath)
     if folderPath == "root" then
         return DoNotif("Cannot delete root folder.", 3)
     end
-    
-    -- Delete all plugins in folder
+
     if workspace.folders[folderPath] then
         for _, pluginId in ipairs(workspace.folders[folderPath].plugins) do
             workspace.pluginData[pluginId] = nil
@@ -21021,8 +20255,7 @@ function Modules.PluginManager:LoadPlugin(pluginSource, pluginName)
             else
                 description = "Plugin: " .. pluginName
             end
-            
-            -- Register with your system
+
             RegisterCommand({
                 Name = primaryAlias,
                 Aliases = aliases,
@@ -21034,7 +20267,7 @@ function Modules.PluginManager:LoadPlugin(pluginSource, pluginName)
         end
         
         local env = {
-            -- Sandbox environment
+
             print = print,
             warn = warn,
             game = game,
@@ -21058,7 +20291,7 @@ function Modules.PluginManager:LoadPlugin(pluginSource, pluginName)
             rawset = rawset,
             rawequal = rawequal,
             rawlen = rawlen,
-            -- String aliases (like Nameless Admin)
+
             Lower = string.lower,
             Upper = string.upper,
             Sub = string.sub,
@@ -21066,18 +20299,18 @@ function Modules.PluginManager:LoadPlugin(pluginSource, pluginName)
             Find = string.find,
             Match = string.match,
             Format = string.format,
-            -- Table aliases
+
             Unpack = table.unpack,
             Insert = table.insert,
             Remove = table.remove,
             Concat = table.concat,
-            -- Task aliases
+
             Spawn = task.spawn,
             Delay = task.delay,
             Wait = task.wait,
-            -- Nameless Admin compatibility
+
             cmd = cmdAPI,
-            -- Custom API
+
             registerCommand = function(cmd, callback)
                 RegisterCommand(cmd, callback)
                 self.State.PluginFunctions[pluginName] = self.State.PluginFunctions[pluginName] or {}
@@ -21207,7 +20440,6 @@ function Modules.PluginManager:CreateUI()
         self.State.IsOpen = false
     end)
 
-    -- Tab buttons
     local tabFrame = Instance.new("Frame", main)
     tabFrame.Size = UDim2.new(1, 0, 0, 40)
     tabFrame.Position = UDim2.fromOffset(0, 35)
@@ -21233,7 +20465,7 @@ function Modules.PluginManager:CreateUI()
         end
 
         if tabName == "Loaded" then
-            -- Plugin List Tab
+
             local pluginScroll = Instance.new("ScrollingFrame", contentArea)
             pluginScroll.Size = UDim2.new(1, 0, 1, 0)
             pluginScroll.BackgroundTransparency = 1
@@ -21324,14 +20556,13 @@ function Modules.PluginManager:CreateUI()
             refreshPluginList()
 
         elseif tabName == "Load" then
-            -- Load from URL/Paste Tab
+
             local container = Instance.new("Frame", contentArea)
             container.Size = UDim2.new(1, -20, 1, -20)
             container.Position = UDim2.fromOffset(10, 10)
             container.BackgroundTransparency = 1
             container.AutomaticSize = "Y"
 
-            -- URL Input Section
             local urlSection = Instance.new("Frame", container)
             urlSection.Size = UDim2.new(1, 0, 0, 60)
             urlSection.Position = UDim2.fromOffset(0, 0)
@@ -21378,7 +20609,6 @@ function Modules.PluginManager:CreateUI()
                 end
             end)
 
-            -- Paste Code Section
             local pasteLabel = Instance.new("TextLabel", container)
             pasteLabel.Size = UDim2.new(1, 0, 0, 25)
             pasteLabel.Position = UDim2.fromOffset(0, 65)
@@ -21403,7 +20633,6 @@ function Modules.PluginManager:CreateUI()
             codeBox.TextWrapped = true
             codeBox.MultiLine = true
 
-            -- Plugin Name Input
             local nameLabel = Instance.new("TextLabel", container)
             nameLabel.Size = UDim2.fromOffset(100, 25)
             nameLabel.Position = UDim2.fromOffset(0, 305)
@@ -21447,7 +20676,6 @@ function Modules.PluginManager:CreateUI()
                 end
             end)
 
-            -- Save to Workspace Button
             local saveWorkspaceBtn = Instance.new("TextButton", container)
             saveWorkspaceBtn.Size = UDim2.fromOffset(100, 25)
             saveWorkspaceBtn.Position = UDim2.new(0, 0, 0, 340)
@@ -21469,7 +20697,7 @@ function Modules.PluginManager:CreateUI()
                 end
             end)
         elseif tabName == "Workspace" then
-            -- Plugin Workspace Tab
+
             self:InitWorkspace()
             local workspace = getgenv().ZukaPluginWorkspace
             
@@ -21484,12 +20712,10 @@ function Modules.PluginManager:CreateUI()
             wsLayout.Padding = UDim.new(0, 8)
             wsLayout.FillDirection = Enum.FillDirection.Vertical
 
-            -- Render folder structure
             local function renderFolder(folderPath, depth)
                 local folder = workspace.folders[folderPath]
                 if not folder then return end
 
-                -- Folder header
                 local folderFrame = Instance.new("Frame", workspaceScroll)
                 folderFrame.Size = UDim2.new(1, -10, 0, 30)
                 folderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -21506,7 +20732,6 @@ function Modules.PluginManager:CreateUI()
                 folderLabel.BackgroundTransparency = 1
                 folderLabel.TextXAlignment = "Left"
 
-                -- Render plugins in this folder
                 for _, pluginId in ipairs(folder.plugins) do
                     local pluginData = workspace.pluginData[pluginId]
                     if pluginData then
@@ -21557,7 +20782,6 @@ function Modules.PluginManager:CreateUI()
                     end
                 end
 
-                -- Render subfolders
                 for _, subfolder in ipairs(folder.subfolders or {}) do
                     local subfolderPath = folderPath .. "/" .. subfolder
                     renderFolder(subfolderPath, depth + 1)
@@ -21566,7 +20790,6 @@ function Modules.PluginManager:CreateUI()
 
             renderFolder("root", 0)
 
-            -- New Folder Input
             local newFolderLabel = Instance.new("TextLabel", workspaceScroll)
             newFolderLabel.Size = UDim2.new(1, -10, 0, 20)
             newFolderLabel.BackgroundTransparency = 1
@@ -21611,7 +20834,6 @@ function Modules.PluginManager:CreateUI()
         end
     end
 
-    -- Create tab buttons
     local tabNames = {"Loaded", "Load", "Workspace"}
     for _, tabName in ipairs(tabNames) do
         local tabBtn = Instance.new("TextButton", tabFrame)
@@ -21635,7 +20857,6 @@ function Modules.PluginManager:CreateUI()
         end)
     end
 
-    -- Default to "Loaded" tab
     switchTab("Loaded")
     tabFrame:FindFirstChildOfClass("TextButton").BackgroundColor3 = self.Config.ACCENT
     tabFrame:FindFirstChildOfClass("TextButton").TextColor3 = Color3.new(0, 0, 0)
@@ -21717,7 +20938,7 @@ Modules.SettingsManager = {
             QuickSearch = {type = "keybind", value = Enum.KeyCode.F, label = "Quick Script Search"},
         },
         Modules = {
-            -- This will be populated dynamically with module toggles
+
         }
     },
     Dependencies = {"CoreGui", "UserInputService", "HttpService"},
@@ -21726,8 +20947,7 @@ Modules.SettingsManager = {
 
 function Modules.SettingsManager:SaveSettings()
     if not self.Settings then return end
-    
-    -- Convert Color3 values to hex strings for JSON compatibility
+
     local settingsToSave = {}
     for category, settings in pairs(self.Settings) do
         settingsToSave[category] = {}
@@ -21736,9 +20956,9 @@ function Modules.SettingsManager:SaveSettings()
                 local color = data.value
                 settingsToSave[category][key] = {
                     type = "color",
-                    value = string.format("%02X%02X%02X", 
-                        math.floor(color.R * 255), 
-                        math.floor(color.G * 255), 
+                    value = string.format("%02X%02X%02X",
+                        math.floor(color.R * 255),
+                        math.floor(color.G * 255),
                         math.floor(color.B * 255))
                 }
             else
@@ -21990,7 +21210,6 @@ function Modules.SettingsManager:CreateUI()
         self.State.IsOpen = false
     end)
 
-    -- Tabs
     local tabs = Instance.new("Frame", main)
     tabs.Size = UDim2.new(0.25, 0, 1, -35)
     tabs.Position = UDim2.fromOffset(0, 35)
@@ -22009,7 +21228,6 @@ function Modules.SettingsManager:CreateUI()
     tabLayout.Padding = UDim.new(0, 5)
     tabLayout.HorizontalAlignment = "Center"
 
-    -- Content area
     local contentArea = Instance.new("ScrollingFrame", main)
     contentArea.Size = UDim2.new(0.75, 0, 1, -35)
     contentArea.Position = UDim2.new(0.25, 0, 0, 35)
@@ -22039,12 +21257,11 @@ function Modules.SettingsManager:CreateUI()
             tabBtn.TextSize = 11
 
             tabBtn.MouseButton1Click:Connect(function()
-                -- Clear content
+
                 for _, child in ipairs(contentArea:GetChildren()) do
                     if child:IsA("Frame") then child:Destroy() end
                 end
 
-                -- Add category title
                 local catTitle = Instance.new("TextLabel", contentArea)
                 catTitle.Size = UDim2.new(1, -20, 0, 30)
                 catTitle.BackgroundColor3 = self.Config.FG
@@ -22055,14 +21272,12 @@ function Modules.SettingsManager:CreateUI()
                 catTitle.TextSize = 14
                 catTitle.TextXAlignment = "Left"
 
-                -- Populate settings
                 local yOffset = 0
                 for key, data in pairs(self.Settings[categoryName]) do
                     self:_createSettingControl(contentArea, categoryName, key, data, yOffset)
                     yOffset = yOffset + 50
                 end
 
-                -- Change tab color
                 for _, btn in ipairs(tabScroll:GetChildren()) do
                     if btn:IsA("TextButton") then
                         btn.BackgroundColor3 = btn == tabBtn and self.Config.ACCENT or Color3.fromRGB(30, 30, 30)
@@ -22073,7 +21288,6 @@ function Modules.SettingsManager:CreateUI()
         end
     end
 
-    -- Bottom buttons
     local bottomFrame = Instance.new("Frame", main)
     bottomFrame.Size = UDim2.new(1, 0, 0, 35)
     bottomFrame.Position = UDim2.new(0, 0, 1, -35)
@@ -22120,7 +21334,7 @@ function Modules.SettingsManager:CreateUI()
     resetBtn.TextSize = 11
 
     resetBtn.MouseButton1Click:Connect(function()
-        -- Reset to defaults
+
         DoNotif("Settings reset to defaults. Restart required.", 3)
     end)
 
@@ -22129,8 +21343,8 @@ function Modules.SettingsManager:CreateUI()
 end
 
 function Modules.SettingsManager:Initialize()
-    for _, s in ipairs(self.Dependencies) do 
-        self.Services[s] = game:GetService(s) 
+    for _, s in ipairs(self.Dependencies) do
+        self.Services[s] = game:GetService(s)
     end
 
     self:LoadSettings()
@@ -22143,7 +21357,6 @@ function Modules.SettingsManager:Initialize()
         self:CreateUI()
     end)
 
-    -- Register keybind
     self.State.Connections.Keybind = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == self:GetSetting("Keybinds", "OpenSettings") then
@@ -22654,7 +21867,6 @@ RegisterCommand({
     Modules.ToolAttributeLister:Scan()
 end)
 
-
 Modules.NeuralOverride = {
     State = {
         IsScanning = false
@@ -22806,7 +22018,7 @@ function Modules.IdentityPhantom:Toggle(targetUser: string?): ()
     if self.State.IsEnabled then
         self.State.OriginalIndex = mt.__index
         local originalIndex = self.State.OriginalIndex
-        local fakeId: number = 1 
+        local fakeId: number = 1
         local fakeName: string = targetUser or "Roblox"
 
         pcall(function()
@@ -23004,13 +22216,12 @@ end)
 Modules.GlobalAnimEditor = {
     State = {
         ActiveSourceFolder = nil,
-        AnimationCache = {}, -- [Name] = AnimationInstance
+        AnimationCache = {},
         SwappedIds = {},
         OriginalNamecall = nil
     }
 }
 
--- [Internal Helper] Resolves a string path to a physical Instance
 function Modules.GlobalAnimEditor:_resolvePath(path)
     local current = game
     for component in string.gmatch(path, "[^%.]+") do
@@ -23032,7 +22243,6 @@ function Modules.GlobalAnimEditor:_resolvePath(path)
     return current
 end
 
--- [Action] Scans the target folder and caches Animation objects
 function Modules.GlobalAnimEditor:SetFolder(path)
     local target = self:_resolvePath(path)
     
@@ -23047,7 +22257,7 @@ function Modules.GlobalAnimEditor:SetFolder(path)
     for _, obj in ipairs(target:GetDescendants()) do
         if obj:IsA("Animation") then
             count = count + 1
-            -- Cache by name for easy lookups
+
             self.State.AnimationCache[obj.Name:lower()] = obj
             print(string.format("  [Forensic] Found Shared Anim: %s | ID: %s", obj.Name, obj.AnimationId))
         end
@@ -23056,36 +22266,30 @@ function Modules.GlobalAnimEditor:SetFolder(path)
     DoNotif(string.format("Target Locked: %s (%d animations). Check F9.", target.Name, count), 4)
 end
 
--- [Action] Swaps an animation's ID and maintains it via hook
 function Modules.GlobalAnimEditor:Swap(animName, newId)
     local targetName = animName:lower()
     local animObj = self.State.AnimationCache[targetName]
-    
-    -- Fallback: If not in cache, try a live child search
+
     if not animObj and self.State.ActiveSourceFolder then
         animObj = self.State.ActiveSourceFolder:FindFirstChild(animName, true)
     end
 
     if animObj and animObj:IsA("Animation") then
         local rawId = "rbxassetid://" .. newId:match("%d+")
-        
-        -- Map the original ID to the new ID for the namecall hook
+
         self.State.SwappedIds[animObj.AnimationId] = rawId
-        
-        -- Change the physical object in ReplicatedStorage
+
         animObj.AnimationId = rawId
-        
-        -- Activate the protection hook
+
         self:ApplyHook()
         
         DoNotif("Global Swap: '" .. animObj.Name .. "' is now " .. rawId, 3)
-        
-        -- Force-stop your current character's tracks to trigger a reload
+
         local char = Players.LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum then
             for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
-                -- We stop tracks matching the name or the new ID to force a fresh LoadAnimation call
+
                 if track.Name == animObj.Name or track.Animation.AnimationId == rawId then
 
                 track.Priority = Enum.AnimationPriority.Action4
@@ -23099,7 +22303,6 @@ function Modules.GlobalAnimEditor:Swap(animName, newId)
     end
 end
 
--- [Action] Hooks the engine to ensure swapped IDs stay swapped
 function Modules.GlobalAnimEditor:ApplyHook()
     if self.State.OriginalNamecall then return end
     
@@ -23113,11 +22316,10 @@ function Modules.GlobalAnimEditor:ApplyHook()
     mt.__namecall = newcclosure(function(selfArg, ...)
         local method = getnamecallmethod()
         local args = {...}
-        
-        -- Intercept any LoadAnimation attempt
+
         if (method == "LoadAnimation" or method == "loadAnimation") and args[1] and args[1]:IsA("Animation") then
             local anim = args[1]
-            -- If the ID being loaded matches our "Swapped" list, redirect it
+
             if Modules.GlobalAnimEditor.State.SwappedIds[anim.AnimationId] then
                 anim.AnimationId = Modules.GlobalAnimEditor.State.SwappedIds[anim.AnimationId]
             end
@@ -23162,26 +22364,25 @@ function Modules.AnimSynth:GenerateCustomPose(poseType)
     keyframe.Time = 0
     keyframe.Parent = sequence
     
-    local hash = "rbxassetid://0" -- Fallback
+    local hash = "rbxassetid://0"
 
     local root = Instance.new("Pose")
     root.Name = "HumanoidRootPart"
     root.Weight = 1
     
     local torso = Instance.new("Pose")
-    torso.Name = "Torso" -- Works for R6; use "UpperTorso" for R15
+    torso.Name = "Torso"
     torso.CFrame = CFrame.Angles(math.rad(45), 0, 0)
     torso.Parent = root
     
     if poseType == "ghost" then
-        torso.CFrame = CFrame.new(0, 5, 0) -- Character appears to float above real position
+        torso.CFrame = CFrame.new(0, 5, 0)
     elseif poseType == "broken" then
-        torso.CFrame = CFrame.Angles(0, math.rad(180), 0) -- Torso backwards
+        torso.CFrame = CFrame.Angles(0, math.rad(180), 0)
     end
     
     root.Parent = keyframe
-    
-    -- THE MAGIC: Register the sequence to get a usable ID
+
     pcall(function()
         local provider = game:GetService("KeyframeSequenceProvider")
         hash = provider:RegisterActiveKeyframeSequence(sequence)
@@ -23204,8 +22405,8 @@ end)
 Modules.ToolAnimForensics = {
     State = {
         IsEnabled = false,
-        ToolAnims = {}, -- [Name] = AnimationInstance
-        SwappedIds = {}, -- [OriginalId] = NewId
+        ToolAnims = {},
+        SwappedIds = {},
         OriginalNamecall = nil
     }
 }
@@ -23213,8 +22414,8 @@ function Modules.ToolAnimForensics:Scan()
     local char = Players.LocalPlayer.Character
     local tool = char and char:FindFirstChildOfClass("Tool")
     
-    if not tool then 
-        return DoNotif("Tool Anim: No tool equipped to scan.", 3) 
+    if not tool then
+        return DoNotif("Tool Anim: No tool equipped to scan.", 3)
     end
 
     table.clear(self.State.ToolAnims)
@@ -23232,7 +22433,6 @@ function Modules.ToolAnimForensics:Scan()
     DoNotif(string.format("Scan Complete: Found %d animations in %s. Check F9.", count, tool.Name), 4)
 end
 
--- [Internal] Applies the hook to ensure IDs are swapped even if reloaded
 function Modules.ToolAnimForensics:Hook()
     if self.State.OriginalNamecall then return end
     
@@ -23259,13 +22459,12 @@ function Modules.ToolAnimForensics:Hook()
     setreadonly(mt, true)
 end
 
--- [Internal] Logic to swap a specific animation by name
 function Modules.ToolAnimForensics:Set(name, newId)
     local targetName = name:lower()
     local animObj = self.State.ToolAnims[targetName]
     
     if not animObj then
-        -- If not in cache, try to find it live
+
         local tool = Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
         animObj = tool and tool:FindFirstChild(name, true)
     end
@@ -23274,13 +22473,11 @@ function Modules.ToolAnimForensics:Set(name, newId)
         local rawId = "rbxassetid://" .. newId:match("%d+")
         self.State.SwappedIds[animObj.AnimationId] = rawId
         animObj.AnimationId = rawId
-        
-        -- Force the hook to be active
+
         self:Hook()
         
         DoNotif("Swapped '" .. name .. "' with " .. rawId, 3)
-        
-        -- Stop currently playing tracks to force a reload
+
         local humanoid = Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
@@ -23316,15 +22513,15 @@ end)
 Modules.Guardian = {
     State = {
         IsEnabled = false,
-        PlayerData = {}, -- [Player] = {LastPos, AirTime, Hits, LastUpdate}
+        PlayerData = {},
         Connections = {},
         UI = nil
     },
     Config = {
-        MAX_AIR_TIME = 4.5,      -- Seconds before flight detection
-        TP_THRESHOLD = 85,       -- Max studs per frame (accounts for lag)
-        HIT_THRESHOLD = 3,       -- Consecutive detections needed to flag
-        GRACE_PERIOD = 5,        -- Seconds to ignore after spawning
+        MAX_AIR_TIME = 4.5,
+        TP_THRESHOLD = 85,
+        HIT_THRESHOLD = 3,
+        GRACE_PERIOD = 5,
         TOOL_COOLDOWN = 0.5,
         ACCENT_COLOR = Color3.fromRGB(255, 50, 50)
     },
@@ -23332,16 +22529,14 @@ Modules.Guardian = {
     Services = {}
 }
 
--- [Internal] Cleans up tracking for a specific player
 function Modules.Guardian:_cleanupPlayer(player)
     self.State.PlayerData[player] = nil
 end
 
--- [Internal] Advanced validation to prevent false positives
 function Modules.Guardian:_isValidTarget(player, character, root, humanoid)
     if not character or not root or not humanoid then return false end
     if humanoid.Health <= 0 then return false end
-    if humanoid.Sit or root:FindFirstChildOfClass("Weld") then return false end -- Ignore if seated/welded
+    if humanoid.Sit or root:FindFirstChildOfClass("Weld") then return false end
     
     local data = self.State.PlayerData[player]
     if not data or (tick() - data.SpawnTime < self.Config.GRACE_PERIOD) then return false end
@@ -23363,12 +22558,11 @@ function Modules.Guardian:Monitor()
         local currentPos = root.Position
         local now = tick()
         local dt = now - data.LastUpdate
-        
-        -- 1. Velocity-Aware Teleport Check
+
         if data.LastPosition then
             local distance = (currentPos - data.LastPosition).Magnitude
-            -- Adjust threshold based on character speed
-            local maxReasonable = (humanoid.WalkSpeed * dt) + 20 
+
+            local maxReasonable = (humanoid.WalkSpeed * dt) + 20
             
             if distance > self.Config.TP_THRESHOLD and distance > maxReasonable then
                 data.Hits += 1
@@ -23377,20 +22571,19 @@ function Modules.Guardian:Monitor()
                     self:_flagPlayer(player)
                 end
             else
-                data.Hits = math.max(0, data.Hits - 0.1) -- Slow decay
+                data.Hits = math.max(0, data.Hits - 0.1)
             end
         end
 
-        -- 2. Enhanced Flight/Hover Check
         if humanoid.FloorMaterial == Enum.Material.Air then
-            -- Check if they are actually moving vertically (falling)
+
             local verticalVel = math.abs(root.AssemblyLinearVelocity.Y)
-            if verticalVel < 2 then -- They are hovering or moving horizontally in air
+            if verticalVel < 2 then
                 data.AirTime += dt
                 if data.AirTime > self.Config.MAX_AIR_TIME then
                     DoNotif("[DETECTION] " .. player.Name .. ": Sustained Hover/Flight", 4)
                     self:_flagPlayer(player)
-                    data.AirTime = 0 -- Reset to prevent spam
+                    data.AirTime = 0
                 end
             end
         else
@@ -23403,11 +22596,11 @@ function Modules.Guardian:Monitor()
 end
 
 function Modules.Guardian:_flagPlayer(player)
-    -- Visual marker using the existing Highlight logic
+
     if Modules.HighlightPlayer then
         Modules.HighlightPlayer:ApplyHighlight(player.Character)
     end
-    -- Log to the panel's terminal
+
     if Modules.CommandBar then
         Modules.CommandBar:AddOutput("CRITICAL: Flagged " .. player.Name .. " for physics manipulation.", self.Config.ACCENT_COLOR)
     end
@@ -23436,8 +22629,8 @@ function Modules.Guardian:Enable()
     for _, p in ipairs(self.Services.Players:GetPlayers()) do initPlayer(p) end
     
     self.State.Connections.Added = self.Services.Players.PlayerAdded:Connect(initPlayer)
-    self.State.Connections.Removing = self.Services.Players.PlayerRemoving:Connect(function(p) 
-        self:_cleanupPlayer(p) 
+    self.State.Connections.Removing = self.Services.Players.PlayerRemoving:Connect(function(p)
+        self:_cleanupPlayer(p)
     end)
     
     self.State.Connections.Loop = self.Services.RunService.Heartbeat:Connect(function()
@@ -23477,7 +22670,7 @@ Modules.Aggressor = {
     Config = {
         Frequency = 0.35,
         OffsetDistance = 1.5,
-        VerticalAdjustment = 1 -- Extra height to prevent floor clipping
+        VerticalAdjustment = 1
     },
     Dependencies = {"Players", "RunService"},
     Services = {}
@@ -23489,8 +22682,7 @@ function Modules.Aggressor:Stop()
         task.cancel(self.State.LoopThread)
         self.State.LoopThread = nil
     end
-    
-    -- Restore Humanoid properties
+
     local char = game:GetService("Players").LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if hum then
@@ -23514,8 +22706,7 @@ function Modules.Aggressor:Start(targetPlayer)
     self.State.IsEnabled = true
     self.State.TargetPlayer = targetPlayer
     self.State.Index = 0
-    
-    -- Disable seating to prevent the target's seat (if any) from hijacking you
+
     hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
     hum.Sit = false
 
@@ -23524,44 +22715,39 @@ function Modules.Aggressor:Start(targetPlayer)
             local tChar = targetPlayer.Character
             local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
             local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-            
-            -- Validation: Ensure target and self are still alive and valid
+
             if not (tChar and tHum and tRoot and char.Parent and hum.Health > 0) then
                 self:Stop()
                 break
             end
 
             self.State.Index += self.Config.Frequency
-            
-            -- Sync Jump logic (if target is airborne, we jump to match)
+
             if tHum.FloorMaterial == Enum.Material.Air and hum.FloorMaterial ~= Enum.Material.Air and not tHum.Sit then
                 hum:ChangeState(Enum.HumanoidStateType.Jumping)
             end
 
-            -- Calculate oscillating position
             local sinValue = math.sin(self.State.Index) * self.Config.OffsetDistance
             local offset
             
             if tHum.Sit then
-                -- Move in front if they are sitting
+
                 offset = CFrame.new(0, 0, -self.Config.OffsetDistance + sinValue)
             else
-                -- Move behind if they are standing
+
                 offset = CFrame.new(0, 0, self.Config.OffsetDistance + sinValue)
             end
 
-            -- Move and Rotate
             local targetGoal = tRoot.CFrame * offset
             root.CFrame = CFrame.new(targetGoal.Position, Vector3.new(tRoot.Position.X, root.Position.Y, tRoot.Position.Z))
             
-            task.wait() -- Match engine step
+            task.wait()
         end
     end)
     
     DoNotif("Aggressor sequence started on " .. targetPlayer.Name, 2)
 end
 
---// --- Command Registration ---
 RegisterCommand({
     Name = "bang",
     Aliases = {},
@@ -23601,7 +22787,6 @@ Modules.Hugger = {
     Dependencies = {"Players", "RunService", "CoreGui", "UserInputService"},
     Services = {}
 }
-
 
 function Modules.Hugger:_clearCurrent()
     for _, track in pairs(self.State.Tracks) do
@@ -23655,7 +22840,6 @@ function Modules.Hugger:_createCage(root)
     end)
 end
 
-
 function Modules.Hugger:Apply(targetChar)
     local lp = self.Services.Players.LocalPlayer
     local myChar = lp.Character
@@ -23685,8 +22869,8 @@ function Modules.Hugger:Apply(targetChar)
 
     self.State.Connections.Loop = self.Services.RunService.Heartbeat:Connect(function()
         if not self.State.IsEnabled or not tRoot.Parent or myHum.Health <= 0 then
-            self:Toggle() -- Auto-shutoff
-            return 
+            self:Toggle()
+            return
         end
 
         local look = tRoot.CFrame.LookVector
@@ -23695,7 +22879,6 @@ function Modules.Hugger:Apply(targetChar)
         myRoot.CFrame = CFrame.lookAt(tRoot.Position + offset, tRoot.Position)
     end)
 end
-
 
 function Modules.Hugger:CreateUI()
     if self.State.UI then self.State.UI.Enabled = true return end
@@ -23750,7 +22933,6 @@ function Modules.Hugger:CreateUI()
     
     DoNotif("Hugger UI Loaded. Enable and Click a player.", 3)
 end
-
 
 function Modules.Hugger:Initialize()
     for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
@@ -23845,8 +23027,8 @@ end
 
 function Modules.TeamChanger:Initialize()
     local module = self
-    for _, s in ipairs(self.Dependencies) do 
-        module.Services[s] = game:GetService(s) 
+    for _, s in ipairs(self.Dependencies) do
+        module.Services[s] = game:GetService(s)
     end
 
     RegisterCommand({
@@ -23862,7 +23044,7 @@ Modules.BadgeViewer = {
     State = {
         IsEnabled = false,
         UI = nil,
-        OwnershipCache = {}, -- [UserId] = {[BadgeId] = {v = bool, t = timestamp}}
+        OwnershipCache = {},
         CurrentData = {},
         ActiveConnections = {}
     },
@@ -23874,7 +23056,6 @@ Modules.BadgeViewer = {
     Dependencies = {"BadgeService", "HttpService", "TweenService", "Players", "RunService", "CoreGui"},
     Services = {}
 }
-
 
 local function getHttpRequest()
     return (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
@@ -23892,7 +23073,6 @@ function Modules.BadgeViewer:_cachePut(userId, badgeId, value)
     self.State.OwnershipCache[userId] = self.State.OwnershipCache[userId] or {}
     self.State.OwnershipCache[userId][badgeId] = { v = value, t = os.time() }
 end
-
 
 function Modules.BadgeViewer:FetchBadges()
     local requestFunc = getHttpRequest()
@@ -23942,7 +23122,6 @@ function Modules.BadgeViewer:CheckOwnership(userId, badgeId)
     end
     return false, nil
 end
-
 
 function Modules.BadgeViewer:Open(targetPlayer)
     if self.State.UI then self.State.UI:Destroy() end
@@ -24051,7 +23230,6 @@ function Modules.BadgeViewer:Open(targetPlayer)
     end)
 end
 
-
 function Modules.BadgeViewer:Initialize()
     for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
     
@@ -24101,7 +23279,7 @@ function Modules.BadgeSpoofer:Toggle()
 
                 if isBadgeService then
                     local args = {...}
-                    local badgeId = args[1] -- First arg after selfArg is the ID
+                    local badgeId = args[1]
                     
                     if Modules.BadgeSpoofer.State.SpoofAll or Modules.BadgeSpoofer.State.SpecificBadges[badgeId] then
                         return true
@@ -24178,7 +23356,6 @@ Modules.ScriptSearcher = {
     Services = {}
 }
 
-
 function Modules.ScriptSearcher:PerformSearch(query)
     if self.State.IsSearching then return end
     if query == "" then return DoNotif("Enter a search query.", 2) end
@@ -24187,8 +23364,7 @@ function Modules.ScriptSearcher:PerformSearch(query)
     self.State.LastQuery = query
     self.State.CurrentPage = 1
     self.State.LastResults = {}
-    
-    -- Add to history
+
     if not table.find(self.State.SearchHistory, query) then
         table.insert(self.State.SearchHistory, 1, query)
         if #self.State.SearchHistory > self.Config.MAX_HISTORY then
@@ -24208,10 +23384,10 @@ function Modules.ScriptSearcher:PerformSearch(query)
 
     task.spawn(function()
         local requestFunc = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
-        if not requestFunc then 
+        if not requestFunc then
             status.Text = "ERR: NO HTTP CAPABILITY"
             self.State.IsSearching = false
-            return 
+            return
         end
 
         local apiUrl = self.Config.APIs[self.State.CurrentSource] or self.Config.APIs.scriptblox
@@ -24255,7 +23431,6 @@ function Modules.ScriptSearcher:_displayPage(page)
         self:_createResultCard(self.State.LastResults[i])
     end
 
-    -- Page indicator
     local pageInfo = Instance.new("TextLabel", scroll)
     pageInfo.Size = UDim2.new(1, 0, 0, 20); pageInfo.BackgroundTransparency = 1
     pageInfo.Text = "Page " .. page .. " of " .. math.ceil(#self.State.LastResults / self.State.ResultsPerPage)
@@ -24338,7 +23513,6 @@ function Modules.ScriptSearcher:ShowHistory()
     end
 end
 
-
 function Modules.ScriptSearcher:_createResultCard(data)
     local scroll = self.State.UI.ResultScroll
     
@@ -24359,7 +23533,6 @@ function Modules.ScriptSearcher:_createResultCard(data)
     gameLabel.TextColor3 = Color3.fromRGB(150, 150, 150); gameLabel.Font = Enum.Font.Code
     gameLabel.TextSize = 11; gameLabel.TextXAlignment = "Left"; gameLabel.BackgroundTransparency = 1
 
-    -- Control Buttons
     local function mkBtn(text, xPos, color, callback)
         local b = Instance.new("TextButton", card)
         b.Size = UDim2.fromOffset(80, 22); b.Position = UDim2.new(1, xPos, 0, 20)
@@ -24409,7 +23582,6 @@ function Modules.ScriptSearcher:CreateUI()
     close.Text = "X"; close.TextColor3 = Color3.new(1,0,0); close.BackgroundTransparency = 1
     close.MouseButton1Click:Connect(function() sg:Destroy(); self.State.UI = {} end)
 
-    -- Search Controls Row 1
     local searchBar = Instance.new("TextBox", main)
     searchBar.Size = UDim2.new(1, -230, 0, 30); searchBar.Position = UDim2.fromOffset(10, 40)
     searchBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20); searchBar.BorderSizePixel = 1; searchBar.BorderColor3 = Color3.fromRGB(80, 80, 80)
@@ -24434,7 +23606,6 @@ function Modules.ScriptSearcher:CreateUI()
     historyBtn.Text = "HISTORY"; historyBtn.TextColor3 = Color3.fromRGB(200, 150, 255); historyBtn.Font = Enum.Font.Code; historyBtn.TextSize = 9
     historyBtn.MouseButton1Click:Connect(function() self:ShowHistory() end)
 
-    -- Filter Controls Row 2
     local sortLabel = Instance.new("TextLabel", main)
     sortLabel.Size = UDim2.fromOffset(40, 25); sortLabel.Position = UDim2.fromOffset(10, 75)
     sortLabel.Text = "Sort:"; sortLabel.TextColor3 = self.Config.ACCENT; sortLabel.BackgroundTransparency = 1
@@ -24492,7 +23663,6 @@ function Modules.ScriptSearcher:CreateUI()
         end
     end)
 
-    -- Pagination Controls
     local prevPageBtn = Instance.new("TextButton", main)
     prevPageBtn.Size = UDim2.fromOffset(60, 25); prevPageBtn.Position = UDim2.new(1, -180, 0, 75)
     prevPageBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); prevPageBtn.BorderSizePixel = 1; prevPageBtn.BorderColor3 = self.Config.ACCENT
@@ -24505,7 +23675,6 @@ function Modules.ScriptSearcher:CreateUI()
     nextPageBtn.Text = "NEXT ►"; nextPageBtn.TextColor3 = self.Config.ACCENT; nextPageBtn.Font = Enum.Font.Code; nextPageBtn.TextSize = 9
     nextPageBtn.MouseButton1Click:Connect(function() self:NextPage() end)
 
-    -- Results Area
     local scroll = Instance.new("ScrollingFrame", main)
     scroll.Size = UDim2.new(1, -20, 1, -120); scroll.Position = UDim2.fromOffset(10, 110)
     scroll.BackgroundColor3 = Color3.fromRGB(15, 15, 15); scroll.BorderSizePixel = 1; scroll.BorderColor3 = Color3.fromRGB(50, 50, 50)
@@ -24514,7 +23683,6 @@ function Modules.ScriptSearcher:CreateUI()
     local layout = Instance.new("UIListLayout", scroll)
     layout.Padding = UDim.new(0, 5); layout.HorizontalAlignment = "Center"
 
-    -- Panel Dragging
     local dragging, dragStart, startPos
     header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -24567,7 +23735,6 @@ Modules.Toolbox = {
     Services = {}
 }
 
-
 function Modules.Toolbox:InsertAsset(assetId)
     DoNotif("Processing Asset ID: " .. assetId, 1.5)
     
@@ -24582,7 +23749,7 @@ function Modules.Toolbox:InsertAsset(assetId)
             
             local lp = self.Services.Players.LocalPlayer
             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                -- Spawn 10 studs in front of player
+
                 local spawnPos = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10)
                 if asset:IsA("Model") then
                     asset:PivotTo(spawnPos)
@@ -24592,7 +23759,7 @@ function Modules.Toolbox:InsertAsset(assetId)
             end
             DoNotif("Asset Spawned Successfully.", 2)
         else
-            -- If the game/executor blocks insertion, copy ID for manual use
+
             setclipboard(tostring(assetId))
             DoNotif("Insertion blocked. ID copied to clipboard.", 4)
         end
@@ -24617,10 +23784,10 @@ function Modules.Toolbox:Search(query)
 
     task.spawn(function()
         local requestFunc = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
-        if not requestFunc then 
+        if not requestFunc then
             status.Text = "ERR: NO HTTP CAPABILITY"
             self.State.IsSearching = false
-            return 
+            return
         end
 
         local category = self.Config.CATEGORIES[self.State.CurrentCategory]
@@ -24631,8 +23798,7 @@ function Modules.Toolbox:Search(query)
         if success and res.StatusCode == 200 then
             status:Destroy()
             local decoded = self.Services.HttpService:JSONDecode(res.Body)
-            
-            -- Toolbox Service returns 'data' which contains 'item' objects
+
             if decoded and decoded.data then
                 for _, entry in ipairs(decoded.data) do
                     local item = entry.item
@@ -24650,8 +23816,6 @@ function Modules.Toolbox:Search(query)
         self.State.IsSearching = false
     end)
 end
-
-
 
 function Modules.Toolbox:_createItemCard(id, nameText)
     local grid = self.State.UI.ResultGrid
@@ -24737,7 +23901,6 @@ function Modules.Toolbox:CreateUI()
     local layout = Instance.new("UIGridLayout", scroll)
     layout.CellPadding = UDim2.new(0, 8, 0, 8); layout.CellSize = UDim2.fromOffset(100, 135); layout.HorizontalAlignment = "Center"
 
-    -- Manual Dragging
     local dragging, dragStart, startPos
     header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -24787,13 +23950,11 @@ Modules.Manipulator = {
         ACCENT = Color3.fromRGB(0, 255, 255),
         LOCKED_COLOR = Color3.fromRGB(255, 50, 50),
         UNLOCKED_COLOR = Color3.fromRGB(0, 255, 150),
-        LERP_SPEED = 0.25 -- Smoothness of the drag
+        LERP_SPEED = 0.25
     },
     Dependencies = {"Players", "RunService", "UserInputService", "Workspace", "CoreGui"},
     Services = {}
 }
-
-
 
 function Modules.Manipulator:_stopDragging()
     local data = self.State
@@ -24810,8 +23971,6 @@ function Modules.Manipulator:_stopDragging()
     if data.Highlight then data.Highlight.Adornee = nil end
 end
 
-
-
 function Modules.Manipulator:Toggle()
     local lp = self.Services.Players.LocalPlayer
     local mouse = lp:GetMouse()
@@ -24827,11 +23986,9 @@ function Modules.Manipulator:Toggle()
         h.Parent = self.Services.CoreGui
         self.State.Highlight = h
 
-
         local tool = Instance.new("Tool")
         tool.Name = "[LOCAL MANIPULATOR]"
         tool.RequiresHandle = false
-        
 
         local handle = Instance.new("Part", tool)
         handle.Name = "Handle"; handle.Transparency = 1; handle.CanCollide = false
@@ -24839,14 +23996,12 @@ function Modules.Manipulator:Toggle()
         tool.Parent = lp.Backpack
         self.State.ActiveTool = tool
 
-
         self.State.Connections.Main = self.Services.RunService.RenderStepped:Connect(function()
             if not tool.Parent or (tool.Parent ~= lp.Character and tool.Parent ~= lp.Backpack) then
                 h.Adornee = nil
                 return
             end
 
-            -- Update Hover Target
             local target = mouse.Target
             if target and target:IsA("BasePart") and not target:IsDescendantOf(lp.Character) then
                 self.State.HoverTarget = target
@@ -24869,11 +24024,9 @@ function Modules.Manipulator:Toggle()
             end
         end)
 
-        -- 4. Interaction Events
         tool.Equipped:Connect(function()
             DoNotif("Manipulator: LMB to Drag (Local) | 'E' to Toggle Anchor", 3)
-            
-            -- Tool Activated (Click)
+
             self.State.Connections.Click = tool.Activated:Connect(function()
                 local target = self.State.HoverTarget
                 if target then
@@ -24882,18 +24035,15 @@ function Modules.Manipulator:Toggle()
                     self.State.DraggingPart = target
                     self.State.OriginalAnchored = target.Anchored
                     self.State.GrabOffset = target.CFrame:ToObjectSpace(mouse.Hit)
-                    
 
                     target.Anchored = true
                     target.CanCollide = false
                 end
             end)
 
-
             self.State.Connections.Release = tool.Deactivated:Connect(function()
                 self:_stopDragging()
             end)
-
 
             self.State.Connections.Key = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
                 if gpe then return end
@@ -24911,7 +24061,7 @@ function Modules.Manipulator:Toggle()
 
         DoNotif("Local Manipulator Ready.", 2)
     else
-        -- Cleanup
+
         if self.State.ActiveTool then self.State.ActiveTool:Destroy() end
         if self.State.Highlight then self.State.Highlight:Destroy() end
         for _, conn in pairs(self.State.Connections) do pcall(function() conn:Disconnect() end) end
@@ -24932,8 +24082,6 @@ function Modules.Manipulator:Initialize()
         self:Toggle()
     end)
 end
-
---======== Deobfuscator Start ==========--
 
 if not getgenv().Modules then getgenv().Modules = {} end
 Modules.InternalExecutor = {
@@ -24995,7 +24143,7 @@ function Modules.InternalExecutor:_vRequire(modulePath)
     
     local env = getfenv(func)
     env.require = function(path) return self:_vRequire(path) end
-    env.arg = {} 
+    env.arg = {}
     env.print = function(...) print("[LIFTER]:", ...) end
     setfenv(func, env)
     
@@ -25024,7 +24172,6 @@ function Modules.InternalExecutor:_initializeLifter()
         Unparser = Unparser
     }
 end
-
 
 function Modules.InternalExecutor:_process(str, keywordList)
     local K = {}
@@ -25247,9 +24394,6 @@ function Modules.InternalExecutor:Initialize()
     end)
 end
 
-
---======== Deobfuscator End ==========--
-
 Modules.Disarmer = {
     State = {
         IsEnabled = false,
@@ -25257,15 +24401,14 @@ Modules.Disarmer = {
     },
     Config = {
         ARM_PARTS = {
-            "Left Arm", "Right Arm", -- R6
-            "LeftUpperArm", "LeftLowerArm", "LeftHand", -- R15
-            "RightUpperArm", "RightLowerArm", "RightHand" -- R15
+            "Left Arm", "Right Arm",
+            "LeftUpperArm", "LeftLowerArm", "LeftHand",
+            "RightUpperArm", "RightLowerArm", "RightHand"
         }
     },
     Dependencies = {"Players", "Workspace", "RunService"},
     Services = {}
 }
-
 
 function Modules.Disarmer:_strip(model)
     if not model or not self.State.IsEnabled then return end
@@ -25286,13 +24429,11 @@ function Modules.Disarmer:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
 
-
     for _, obj in ipairs(self.Services.Workspace:GetDescendants()) do
         if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
             self:_strip(obj)
         end
     end
-
 
     self.State.Connections.DescendantAdded = self.Services.Workspace.DescendantAdded:Connect(function(obj)
         if obj:IsA("Model") then
@@ -25311,7 +24452,6 @@ end
 function Modules.Disarmer:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
-
 
     for _, conn in pairs(self.State.Connections) do
         conn:Disconnect()
@@ -25354,19 +24494,16 @@ Modules.Harvester = {
     Services = {}
 }
 
-
 function Modules.Harvester:_isLikelyGiver(part)
     if not part:FindFirstChildWhichIsA("TouchInterest") then return false end
     
     local name = part.Name:lower()
     local parentName = part.Parent and part.Parent.Name:lower() or ""
     local combine = name .. " " .. parentName
-    
 
     for _, danger in ipairs(self.Config.DANGER_KEYWORDS) do
         if combine:find(danger) then return false end
     end
-    
 
     for _, keyword in ipairs(self.Config.GIVER_KEYWORDS) do
         if combine:find(keyword) then return true end
@@ -25374,7 +24511,6 @@ function Modules.Harvester:_isLikelyGiver(part)
     
     return false
 end
-
 
 function Modules.Harvester:_trigger(part)
     local lp = self.Services.Players.LocalPlayer
@@ -25385,9 +24521,9 @@ function Modules.Harvester:_trigger(part)
     
     if firetouchinterest then
         pcall(function()
-            firetouchinterest(root, part, 0) -- Touch Start
+            firetouchinterest(root, part, 0)
             task.wait()
-            firetouchinterest(root, part, 1) -- Touch End
+            firetouchinterest(root, part, 1)
         end)
     else
 
@@ -25467,7 +24603,6 @@ function Modules.Harvester:Initialize()
     end)
 end
 
--- Loadstrings.
 local function loadstringCmd(url, notif)
     pcall(function()
         loadstring(game:HttpGet(url))()
@@ -25557,8 +24692,6 @@ for moduleName, module in pairs(Modules) do
 end
 end
 
-
-
 local function CreateMobileCommandButton()
 
     local UserInputService = game:GetService("UserInputService")
@@ -25594,7 +24727,7 @@ local function CreateMobileCommandButton()
     local isDragging = false
     local dragStartPos = nil
     local startGuiPosition = nil
-    local DRAG_THRESHOLD = 8 
+    local DRAG_THRESHOLD = 8
 
     cmdButton.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
