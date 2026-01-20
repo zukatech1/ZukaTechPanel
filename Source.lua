@@ -30,7 +30,7 @@ local LocalPlayer = getLocalPlayer()
 local CoreGui = game:GetService("CoreGui")
 repeat task.wait(0.1) until CoreGui:FindFirstChild("RobloxGui")
 
-task.wait(0.5)
+task.wait(1.5)
 local getgenv = getgenv
 local getrawmetatable = getrawmetatable
 local setreadonly = setreadonly
@@ -10429,6 +10429,120 @@ RegisterCommand({
     
     DoNotif(string.format("Memory Usage: %.2f KB", current), 2)
 end)
+
+Modules.AntiAim = {
+    State = {
+        IsEnabled = false,
+        Connection = nil,
+        CharacterConnection = nil
+    },
+    Config = {
+        VelocityStrength = 7000,
+        SnapBack = true
+    }
+}
+
+function Modules.AntiAim:_onHeartbeat()
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    
+    if not root or not self.State.IsEnabled then return end
+
+    local oldCFrame = root.CFrame
+    local oldVelocity = root.AssemblyLinearVelocity
+
+    local desyncVector = Vector3.new(
+        math.random(-1, 1),
+        math.random(-1, 1),
+        math.random(-1, 1)
+    ).Unit * self.Config.VelocityStrength
+
+    root.AssemblyLinearVelocity = desyncVector
+
+    RunService.RenderStepped:Wait()
+
+    if root and root.Parent and self.State.IsEnabled then
+        if self.Config.SnapBack then
+            root.CFrame = oldCFrame
+        end
+        root.AssemblyLinearVelocity = oldVelocity
+    end
+end
+
+function Modules.AntiAim:Enable()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+
+    self:Disable(true)
+    self.State.IsEnabled = true
+
+    self.State.Connection = RunService.Heartbeat:Connect(function()
+        self:_onHeartbeat()
+    end)
+
+    self.State.CharacterConnection = LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        if self.State.IsEnabled then
+
+            warn("--> [AntiAim]: Character reset detected, re-validating root.")
+        end
+    end)
+
+    DoNotif("Anti-Aim: [ENABLED] | DurRud would be proud!", 2)
+end
+
+function Modules.AntiAim:Disable(silent)
+    self.State.IsEnabled = false
+    
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+    
+    if self.State.CharacterConnection then
+        self.State.CharacterConnection:Disconnect()
+        self.State.CharacterConnection = nil
+    end
+
+    if not silent then
+        DoNotif("Anti-Aim: [DISABLED]", 2)
+    end
+end
+
+function Modules.AntiAim:Toggle()
+    if self.State.IsEnabled then
+        self:Disable()
+    else
+        self:Enable()
+    end
+end
+
+function Modules.AntiAim:Initialize()
+    local module = self
+    
+    RegisterCommand({
+        Name = "antiaim",
+        Aliases = {},
+        Description = "Toggles velocity-based Anti-Aim. Usage: ;aa [strength]"
+    }, function(args)
+        local strength = tonumber(args[1])
+        if strength then
+            module.Config.VelocityStrength = strength
+            DoNotif("Anti-Aim Strength set to: " .. strength, 2)
+        end
+        
+        module:Toggle()
+    end)
+    
+    RegisterCommand({
+        Name = "aasnap",
+        Aliases = {"snapback"},
+        Description = "Toggles CFrame snapback for Anti-Aim."
+    }, function()
+        module.Config.SnapBack = not module.Config.SnapBack
+        DoNotif("Anti-Aim Snapback: " .. (module.Config.SnapBack and "ON" or "OFF"), 2)
+    end)
+end
 
 Modules.Overseer = {
     State = {
@@ -24613,8 +24727,8 @@ RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads t
 RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!") end)
 RegisterCommand({Name = "Dex", Aliases = {}, Description = "Loads Dex"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatechdevelopment-ux/luaprojectse3/refs/heads/main/CustomDex.lua", "we lit") end)
 RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/plainsight.lua", "Anti Gay Shield Activated.") end)
-RegisterCommand({Name = "plag", Aliases = {}, Description = "Makes the pumpkin launcher lag players"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameLaggerPlauncher.lua", "Loading Modification") end)
-RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "Makes the pumpkin launcher into a rapid fire beast."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RAPIDFIREPumpkinlauncher.lua", "Loading Modification") end)
+RegisterCommand({Name = "plag", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameLaggerPlauncher.lua", "Loading Modification") end)
+RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RAPIDFIREPumpkinlauncher.lua", "Loading Modification") end)
 RegisterCommand({Name = "zukahub", Aliases = {"zuka"}, Description = "Loads the Zuka Hub"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZukaHub.lua", "Loading Zuka's Hub...") end)
 RegisterCommand({Name = "noacid", Aliases = {"unfuck"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AntiAcidRainLag.lua", "Loading...") end)
 RegisterCommand({Name = "stats", Aliases = {}, Description = "Edit and lock your properties."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/statlock.lua", "Loading Stats..") end)
@@ -24630,14 +24744,14 @@ RegisterCommand({Name = "simplespy", Aliases = {"bestspy"}, Description = "Best 
 RegisterCommand({Name = "csgo", Aliases = {"phoon"}, Description = "Bhop movement fallback"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/phoon.lua", "Loading") end)
 RegisterCommand({Name = "lineofsight", Aliases = {}, Description = "Logger for players looking at you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/LineOfSightLogger.lua", "Loading...") end)
 RegisterCommand({Name = "nova", Aliases = {"delua"}, Description = "Novas Deobfuscator, Bytecode Grabber"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/NovasDeobfuscator.lua", "Deobfuscator Loaded") end)
-RegisterCommand({Name = "nocooldown", Aliases = {"ncd"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/NocooldownsZombieUpd3.txt", "Loading Cooldownremover...") end)
-RegisterCommand({Name = "extendroot", Aliases = {}, Description = "Bypasses Raycasting"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/HitboxExtender.lua", "Loading Extender.") end)
+RegisterCommand({Name = "zcooldowns", Aliases = {"ncd"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/NocooldownsZombieUpd3.txt", "Loading Cooldownremover...") end)
+RegisterCommand({Name = "zshovel", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AnChanger.lua", "Loading Shovel.") end)
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
-RegisterCommand({Name = "Overseer", Aliases = {"PoisonerV2"}, Description = "Loads the Module Poisoner."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Overseerv27.txt", "Loading GUI..") end)
+RegisterCommand({Name = "zmelee", Aliases = {}, Description = "For https://www.roblox.com/games/6850833423/Zombie-Infection-Game."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/MeleeDamagex2.lua", "Loading GUI..") end)
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
 RegisterCommand({Name = "rem", Aliases = {}, Description = "In game exploit creation kit.."}, function() loadstringCmd("https://e-vil.com/anbu/rem.lua", "Loading Rem.") end)
 RegisterCommand({Name = "Copyconsole", Aliases = {"copy"}, Description = "Allows you to copy errors from the console.."}, function() loadstringCmd("https://raw.githubusercontent.com/scriptlisenbe-stack/luaprojectse3/refs/heads/main/consolecopy.lua", "Copy Console Activated.") end)
-RegisterCommand({Name = "tptohp", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/zgamemedkit.lua", "Loading HP Teleport") end)
+RegisterCommand({Name = "zhp", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/zgamemedkit.lua", "Loading HP Teleport") end)
 RegisterCommand({Name = "reachfix", Aliases = {"fix"}, Description = "Makes your equipped tool invisible when using reach"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/InvisibleEquippedTool.lua", "Fixed") end)
 RegisterCommand({Name = "worldofstands", Aliases = {"wos"}, Description = "For https://www.roblox.com/games/6728870912/World-of-Stands - Removes dash cooldown"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/WOS.lua", "Loading, Wait a sec.") end)
 RegisterCommand({Name = "zfucker", Aliases = {}, Description = "zfucker for the zl series."}, function() loadstringCmd("https://raw.githubusercontent.com/osukfcdays/zlfucker/refs/heads/main/main.luau", "Loading, Wait a sec.") end)
