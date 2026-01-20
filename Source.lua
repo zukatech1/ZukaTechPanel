@@ -229,6 +229,7 @@ function Utilities.calculateLevenshteinDistance(s1: string, s2: string): number
 
     return matrix[len1][len2]
 end
+
         local Prefix = ";"
         local Commands = {}
         local CommandInfo = {}
@@ -291,39 +292,42 @@ end
     function DoNotif(text, duration)
         NotificationManager.Send(text, duration)
     end
-    function RegisterCommand(info, func)
-        if not info or not info.Name or not func then
-            warn("Command registration failed: Missing info, name, or function.")
-            return
-        end
-        local name = info.Name:lower()
-        if Commands[name] then
-            warn("Command registration skipped: Command '" .. name .. "' already exists.")
-            return
-        end
-        Commands[name] = func
-        if info.Aliases then
-            for _, alias in ipairs(info.Aliases) do
-                local aliasLower = alias:lower()
-                if Commands[aliasLower] then
-                    warn("Alias '" .. aliasLower .. "' for command '" .. name .. "' conflicts with an existing command and was not registered.")
-                else
+function RegisterCommand(info, func)
+    if not info or not info.Name or not func then
+        warn("Command registration failed: Missing info, name, or function.")
+        return
+    end
+    local name = info.Name:lower()
+    if Commands[name] then
+        warn("Command registration skipped: Command '" .. name .. "' already exists.")
+        return
+    end
+    Commands[name] = func
+    if info.Aliases then
+        for _, alias in ipairs(info.Aliases) do
+            local aliasLower = alias:lower()
+            if Commands[aliasLower] then
+                warn("Alias '" .. aliasLower .. "' for command '" .. name .. "' conflicts with an existing command and was not registered.")
+            else
                 Commands[aliasLower] = func
             end
         end
     end
-    table.insert(CommandInfo, info)
+    table.insert(CommandInfo, info)  -- This should be INSIDE the function
+end
+
+if cmd and cmd.add then
+    print("cmd.add is available")
+else
+    warn("cmd.add is NOT available")
 end
 
 function RegisterCommandDual(info, func)
-RegisterCommand(info, func)
+    RegisterCommand(info, func)
     
-    if _G.cmd and _G.cmd.add then
-        _G.cmd.add(info.Name, func, info.Description or "")
-        if info.Aliases then
-            for _, alias in ipairs(info.Aliases) do
-                _G.cmd.add(alias, func, info.Description or "")
-            end
+    if cmd and cmd.add and info.Aliases then
+        for _, alias in ipairs(info.Aliases) do
+            cmd.add(alias, func, info.Description or "")
         end
     end
 end
@@ -10712,7 +10716,8 @@ Modules.Overseer = {
         FilteredResults = {},
         SpyCallLog = {},
         IsSpying = false,
-        SelectedRemote = nil
+        SelectedRemote = nil,
+        DisabledModules = {} -- Track disabled modules
     },
     Config = {
         ACCENT_COLOR = Color3.fromRGB(0, 255, 170),
@@ -10742,6 +10747,81 @@ end
 
 function Modules.Overseer:_setClipboard(txt)
     if setclipboard then setclipboard(txt) end
+end
+
+function Modules.Overseer:_showErrorInGrid(errorText)
+    local ui = self.State.UI
+    if not ui or not ui.Grid then return end
+    
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+    
+    local errorLabel = Instance.new("TextLabel", ui.Grid)
+    errorLabel.Size = UDim2.new(1, 0, 0, 40)
+    errorLabel.Text = errorText
+    errorLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    errorLabel.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    errorLabel.BackgroundTransparency = 0.3
+    errorLabel.Font = Enum.Font.Code
+    errorLabel.TextSize = 10
+    errorLabel.TextWrapped = true
+    self:_applyStyle(errorLabel, 2)
+end
+
+function Modules.Overseer:_cleanupModuleHooks(mod)
+    -- Remove patches for this module
+    if self.State.ActivePatches[mod] then
+        self.State.ActivePatches[mod] = nil
+    end
+    
+    -- Remove value hooks related to this module
+    for hookKey, hook in pairs(self.State.ValueHooks) do
+        if hook.table == mod then
+            self.State.ValueHooks[hookKey] = nil
+        end
+    end
+    
+    -- Remove property hooks related to this module
+    for propKey, hook in pairs(self.State.PropertyHooks) do
+        if hook.instance and hook.instance:IsDescendantOf(mod) then
+            if self.State.HookedConnections[propKey] then
+                pcall(function() self.State.HookedConnections[propKey]:Disconnect() end)
+                self.State.HookedConnections[propKey] = nil
+            end
+            self.State.PropertyHooks[propKey] = nil
+        end
+    end
+end
+
+function Modules.Overseer:_validatePatches()
+    -- Check if all patches are compatible and valid
+    for tbl, keys in pairs(self.State.ActivePatches) do
+        if type(tbl) ~= "table" then
+            return false
+        end
+        for key, data in pairs(keys) do
+            if data.Value == nil then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+function Modules.Overseer:_validateHooks()
+    -- Check if all hooks are compatible and valid
+    for hookKey, hook in pairs(self.State.ValueHooks) do
+        if hook.enabled and hook.value == nil then
+            return false
+        end
+    end
+    for propKey, hook in pairs(self.State.PropertyHooks) do
+        if hook.enabled and hook.value == nil then
+            return false
+        end
+    end
+    return true
 end
 
 function Modules.Overseer:_generateObfuscatedName()
@@ -11133,18 +11213,24 @@ function Modules.Overseer:_hookProperty(instance, property, value)
         instance[property] = value
     end)
 
-    -- Use Heartbeat to constantly reapply
-    if not self.State.HookedConnections[propKey] then
-        self.State.HookedConnections[propKey] = RunService.Heartbeat:Connect(function()
-            if self.State.PropertyHooks[propKey] and self.State.PropertyHooks[propKey].enabled then
-                pcall(function()
-                    if instance and instance.Parent and instance[property] ~= value then
-                        instance[property] = value
-                    end
-                end)
-            end
-        end)
+    -- Disconnect existing connection if present
+    if self.State.HookedConnections[propKey] then
+        pcall(function() self.State.HookedConnections[propKey]:Disconnect() end)
     end
+    
+    -- Use Heartbeat to constantly reapply (single connection per property)
+    self.State.HookedConnections[propKey] = RunService.Heartbeat:Connect(function()
+        if self.State.PropertyHooks[propKey] and self.State.PropertyHooks[propKey].enabled then
+            pcall(function()
+                if instance and instance.Parent and instance[property] ~= value then
+                    instance[property] = value
+                elseif not instance or not instance.Parent then
+                    -- Instance was destroyed, cleanup
+                    self:_unhookProperty(instance, property)
+                end
+            end)
+        end
+    end)
 end
 
 function Modules.Overseer:_unhookProperty(instance, property)
@@ -11202,28 +11288,52 @@ function Modules.Overseer:_getAllValuesOfType(typeFilter, searchDepth)
     searchDepth = searchDepth or 2
     local results = {}
     local scanned = {}
+    local maxResults = 100 -- Limit to prevent performance issues
     
     local function scanTable(tbl, depth, path)
-        if scanned[tbl] or depth <= 0 then return end
+        -- Check limits
+        if scanned[tbl] or depth <= 0 or #results >= maxResults then return end
+        
+        -- Prevent circular references
+        if type(tbl) ~= "table" then return end
         scanned[tbl] = true
         
-        for k, v in pairs(tbl) do
-            if type(v) == typeFilter then
-                table.insert(results, {
-                    path = path .. "." .. tostring(k),
-                    key = k,
-                    value = v,
-                    type = typeFilter,
-                    table = tbl
-                })
-            elseif type(v) == "table" and depth > 0 then
-                scanTable(v, depth - 1, path .. "." .. tostring(k))
+        local success, pairs_result = pcall(function()
+            local count = 0
+            for k, v in pairs(tbl) do
+                if count > 50 then break end -- Limit pairs iterations per table
+                count = count + 1
+                
+                if type(v) == typeFilter then
+                    table.insert(results, {
+                        path = path .. "." .. tostring(k),
+                        key = k,
+                        value = v,
+                        type = typeFilter,
+                        table = tbl
+                    })
+                elseif type(v) == "table" and depth > 0 and not scanned[v] then
+                    -- Check if table is safe to scan (avoid __metatable and protected tables)
+                    local tableSafe, _ = pcall(function() return pairs(v) end)
+                    if tableSafe then
+                        scanTable(v, depth - 1, path .. "." .. tostring(k))
+                    end
+                end
+                
+                if #results >= maxResults then break end
             end
+        end)
+        
+        if not success then
+            -- Skip tables that cause errors during iteration
+            return
         end
     end
     
-    -- Scan from common roots
-    if _G then scanTable(_G, searchDepth, "_G") end
+    -- Scan from common roots with protection
+    pcall(function()
+        if _G then scanTable(_G, searchDepth, "_G") end
+    end)
     
     return results
 end
@@ -11584,7 +11694,7 @@ function Modules.Overseer:_showEditUI(target, targetName)
     ui.Title.Text = "EDIT: " .. targetName
     ui.CodeBox.Text = "-- Loading source..."
     ui.CodeBox.TextEditable = true
-    ui.CodeBox.ClearTextOnFocus = true
+    ui.CodeBox.ClearTextOnFocus = false
     
     task.spawn(function()
         local success, src
@@ -11963,20 +12073,31 @@ function Modules.Overseer:AddModuleToList(mod)
 
     local isScript = mod:IsA("LocalScript") or mod:IsA("Script")
     local displayName = " [" .. mod.ClassName .. "] " .. mod.Name
+    local isDisabled = self.State.DisabledModules[mod]
     
     local b = Instance.new("TextButton", container)
-    b.Size = UDim2.new(0.65, 0, 1, 0)
+    b.Size = UDim2.new(0.55, 0, 1, 0)
     b.Text = displayName
-    b.BackgroundColor3 = isScript and Color3.fromRGB(25, 20, 20) or Color3.fromRGB(20, 20, 25)
-    b.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+    b.BackgroundColor3 = isDisabled and Color3.fromRGB(40, 20, 20) or (isScript and Color3.fromRGB(25, 20, 20) or Color3.fromRGB(20, 20, 25))
+    b.TextColor3 = isDisabled and Color3.fromRGB(100, 50, 50) or Color3.new(0.8, 0.8, 0.8)
     b.Font = Enum.Font.Code
     b.TextXAlignment = Enum.TextXAlignment.Left
     b.ClipsDescendants = true
     self:_applyStyle(b, 2)
 
+    local disB = Instance.new("TextButton", container)
+    disB.Size = UDim2.new(0.12, 0, 1, 0)
+    disB.Position = UDim2.fromScale(0.55, 0)
+    disB.BackgroundColor3 = isDisabled and Color3.fromRGB(80, 40, 40) or Color3.fromRGB(40, 80, 40)
+    disB.Text = isDisabled and "✗" or "✓"
+    disB.TextColor3 = Color3.new(1, 1, 1)
+    disB.Font = Enum.Font.Code
+    disB.TextSize = 10
+    self:_applyStyle(disB, 2)
+
     local srcB = Instance.new("TextButton", container)
-    srcB.Size = UDim2.new(0.175, 0, 1, 0)
-    srcB.Position = UDim2.fromScale(0.65, 0)
+    srcB.Size = UDim2.new(0.12, 0, 1, 0)
+    srcB.Position = UDim2.fromScale(0.67, 0)
     srcB.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     srcB.Text = "V"
     srcB.TextColor3 = Color3.fromRGB(100, 200, 255)
@@ -11985,8 +12106,8 @@ function Modules.Overseer:AddModuleToList(mod)
     self:_applyStyle(srcB, 2)
 
     local editB = Instance.new("TextButton", container)
-    editB.Size = UDim2.new(0.175, 0, 1, 0)
-    editB.Position = UDim2.fromScale(0.825, 0)
+    editB.Size = UDim2.new(0.16, 0, 1, 0)
+    editB.Position = UDim2.fromScale(0.79, 0)
     editB.BackgroundColor3 = Color3.fromRGB(50, 40, 30)
     editB.Text = "E"
     editB.TextColor3 = Color3.fromRGB(255, 180, 100)
@@ -11996,16 +12117,35 @@ function Modules.Overseer:AddModuleToList(mod)
 
     self.State.SidebarButtons[container] = mod.Name
 
+    disB.MouseButton1Click:Connect(function()
+        local isCurrentlyDisabled = self.State.DisabledModules[mod]
+        self.State.DisabledModules[mod] = not isCurrentlyDisabled
+        
+        if self.State.DisabledModules[mod] then
+            disB.BackgroundColor3 = Color3.fromRGB(80, 40, 40)
+            disB.Text = "✗"
+            b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            b.TextColor3 = Color3.fromRGB(100, 50, 50)
+            -- Cleanup hooks and patches when disabling
+            self:_cleanupModuleHooks(mod)
+        else
+            disB.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+            disB.Text = "✓"
+            b.BackgroundColor3 = isScript and Color3.fromRGB(25, 20, 20) or Color3.fromRGB(20, 20, 25)
+            b.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+        end
+    end)
+
     b.MouseButton1Click:Connect(function()
+        -- Check if module is disabled
+        if self.State.DisabledModules[mod] then
+            self:_showErrorInGrid("-- ERROR: Module is disabled --")
+            return
+        end
+        
         -- Check if module still exists
         if not mod or not mod.Parent then
-            local errorLabel = Instance.new("TextLabel", self.State.UI.Grid)
-            errorLabel.Size = UDim2.new(1, 0, 0, 30)
-            errorLabel.Text = "-- ERROR: Module has been destroyed --"
-            errorLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-            errorLabel.BackgroundTransparency = 1
-            errorLabel.Font = Enum.Font.Code
-            errorLabel.TextSize = 10
+            self:_showErrorInGrid("-- ERROR: Module has been destroyed --")
             return
         end
         
@@ -12035,6 +12175,10 @@ function Modules.Overseer:AddModuleToList(mod)
     end)
 
     srcB.MouseButton1Click:Connect(function()
+        if self.State.DisabledModules[mod] then
+            self.State.UI.CodeBox.Text = "-- ERROR: Module is disabled --"
+            return
+        end
         if not mod or not mod.Parent then
             self.State.UI.CodeBox.Text = "-- ERROR: Module has been destroyed --"
             return
@@ -12044,6 +12188,10 @@ function Modules.Overseer:AddModuleToList(mod)
     end)
 
     editB.MouseButton1Click:Connect(function()
+        if self.State.DisabledModules[mod] then
+            self.State.UI.CodeBox.Text = "-- ERROR: Module is disabled --"
+            return
+        end
         if not mod or not mod.Parent then
             self.State.UI.CodeBox.Text = "-- ERROR: Module has been destroyed --"
             return
@@ -12402,19 +12550,22 @@ function Modules.Overseer:LoadDex()
 end
 
 function Modules.Overseer:_generatePoisonedVersion(originalCode)
-    local poisonedCode = "\nlocal ORIGINAL_SCRIPT = [[\n" .. originalCode .. "\n]]\n\n" ..
-    "-- Execute original script\n" ..
-    "local success, result = pcall(function()\n" ..
-    "    local func, err = loadstring(ORIGINAL_SCRIPT, 'PoisonedScript')\n" ..
-    "    if func then\n" ..
-    "        return func()\n" ..
-    "    else\n" ..
-    "        error('Failed to compile: ' .. tostring(err))\n" ..
-    "    end\n" ..
-    "end)\n\n" ..
-    "if not success then\n" ..
-    "    warn('Poisoned Script Error: ' .. tostring(result))\n" ..
-    "end\n"
+    local poisonedCode = "local ORIGINAL_SCRIPT = [[\n" .. originalCode .. "\n]]\n\n"
+    
+    poisonedCode = poisonedCode .. "-- Poison execution environment\n"
+    poisonedCode = poisonedCode .. "local function applyPoison()\n"
+    poisonedCode = poisonedCode .. "    local success, result = pcall(function()\n"
+    poisonedCode = poisonedCode .. "        local func, err = loadstring(ORIGINAL_SCRIPT, 'PoisonedScript')\n"
+    poisonedCode = poisonedCode .. "        if func then\n"
+    poisonedCode = poisonedCode .. "            return func()\n"
+    poisonedCode = poisonedCode .. "        else\n"
+    poisonedCode = poisonedCode .. "            error('Compilation failed: ' .. tostring(err))\n"
+    poisonedCode = poisonedCode .. "        end\n"
+    poisonedCode = poisonedCode .. "    end)\n"
+    poisonedCode = poisonedCode .. "    return success, result\n"
+    poisonedCode = poisonedCode .. "end\n\n"
+    poisonedCode = poisonedCode .. "local success, result = applyPoison()\n"
+    poisonedCode = poisonedCode .. "if not success then warn('Poisoned execution error: ' .. tostring(result)) end\n"
 
     return poisonedCode
 end
@@ -12422,53 +12573,81 @@ end
 function Modules.Overseer:_generateAdvancedPoisonVersion(originalCode, options)
     options = options or {}
     local poisonedCode = "-- ============================================================================\n"
-    poisonedCode = poisonedCode .. "-- ADVANCED POISONED VERSION\n"
-    poisonedCode = poisonedCode .. "-- With custom patches and hooks\n"
+    poisonedCode = poisonedCode .. "-- POISONED SCRIPT - OVERSEER INJECTION\n"
+    poisonedCode = poisonedCode .. "-- Patches: " .. (options.includePatches and "ACTIVE" or "NONE") .. " | Hooks: " .. (options.includeHooks and "ACTIVE" or "NONE") .. "\n"
     poisonedCode = poisonedCode .. "-- ============================================================================\n\n"
-    poisonedCode = poisonedCode .. "local PATCHES_ENABLED = " .. (options.patchesEnabled and "true" or "false") .. "\n\n"
+    
+    poisonedCode = poisonedCode .. "local PATCHES_ENABLED = " .. (options.patchesEnabled and "true" or "false") .. "\n"
+    poisonedCode = poisonedCode .. "local HOOKS_ENABLED = " .. (options.includeHooks and "true" or "false") .. "\n\n"
+    
     poisonedCode = poisonedCode .. "local ORIGINAL_SCRIPT = [[\n"
     poisonedCode = poisonedCode .. originalCode .. "\n]]\n\n"
-    poisonedCode = poisonedCode .. "-- Active patches from Overseer\n"
-    poisonedCode = poisonedCode .. "local ACTIVE_PATCHES = {\n"
-
+    
+    -- Add actual patch data
     if options.includePatches then
+        poisonedCode = poisonedCode .. "local ACTIVE_PATCHES = {\n"
         for tbl, keys in pairs(self.State.ActivePatches) do
             for key, data in pairs(keys) do
-                poisonedCode = poisonedCode .. "    -- [" .. tostring(key) .. "] = " .. tostring(data.Value) .. "\n"
+                local valStr = tostring(data.Value)
+                if type(data.Value) == "string" then
+                    valStr = "\"" .. data.Value:gsub("\"", "\\\"") .. "\""
+                elseif type(data.Value) == "boolean" then
+                    valStr = data.Value and "true" or "false"
+                end
+                poisonedCode = poisonedCode .. "    [" .. tostring(key) .. "] = {value = " .. valStr .. ", locked = " .. (data.Locked and "true" or "false") .. "},\n"
             end
         end
+        poisonedCode = poisonedCode .. "}\n\n"
+    else
+        poisonedCode = poisonedCode .. "local ACTIVE_PATCHES = {}\n\n"
     end
-
-    poisonedCode = poisonedCode .. "}\n\n"
-    poisonedCode = poisonedCode .. "local HOOKED_VALUES = {\n"
-
+    
+    -- Add actual hook data
     if options.includeHooks then
+        poisonedCode = poisonedCode .. "local HOOKED_VALUES = {\n"
         for hookKey, hook in pairs(self.State.ValueHooks) do
             if hook.enabled then
-                poisonedCode = poisonedCode .. "    -- " .. hookKey .. " = " .. tostring(hook.value) .. "\n"
+                poisonedCode = poisonedCode .. "    [" .. hookKey .. "] = {value = " .. tostring(hook.value) .. ", enabled = true},\n"
             end
         end
+        poisonedCode = poisonedCode .. "}\n\n"
+    else
+        poisonedCode = poisonedCode .. "local HOOKED_VALUES = {}\n\n"
     end
-
-    poisonedCode = poisonedCode .. "}\n\n"
-    poisonedCode = poisonedCode .. "-- Apply patches before execution\n"
-    poisonedCode = poisonedCode .. "if PATCHES_ENABLED then\n"
-    poisonedCode = poisonedCode .. "    -- Your patches would be applied here\n"
-    poisonedCode = poisonedCode .. "    -- This is a stub - implement custom patch logic as needed\n"
+    
+    poisonedCode = poisonedCode .. "-- Apply patches and hooks before execution\n"
+    poisonedCode = poisonedCode .. "local function applyPoisonLogic()\n"
+    poisonedCode = poisonedCode .. "    if PATCHES_ENABLED then\n"
+    poisonedCode = poisonedCode .. "        for key, patchData in pairs(ACTIVE_PATCHES) do\n"
+    poisonedCode = poisonedCode .. "            if patchData.locked then\n"
+    poisonedCode = poisonedCode .. "                _G[key] = patchData.value\n"
+    poisonedCode = poisonedCode .. "            end\n"
+    poisonedCode = poisonedCode .. "        end\n"
+    poisonedCode = poisonedCode .. "    end\n"
+    poisonedCode = poisonedCode .. "    if HOOKS_ENABLED then\n"
+    poisonedCode = poisonedCode .. "        for hookKey, hookData in pairs(HOOKED_VALUES) do\n"
+    poisonedCode = poisonedCode .. "            if hookData.enabled then\n"
+    poisonedCode = poisonedCode .. "                _G[hookKey] = hookData.value\n"
+    poisonedCode = poisonedCode .. "            end\n"
+    poisonedCode = poisonedCode .. "        end\n"
+    poisonedCode = poisonedCode .. "    end\n"
     poisonedCode = poisonedCode .. "end\n\n"
-    poisonedCode = poisonedCode .. "-- Execute original script\n"
+    
+    poisonedCode = poisonedCode .. "-- Execute with poison applied\n"
     poisonedCode = poisonedCode .. "local success, result = pcall(function()\n"
-    poisonedCode = poisonedCode .. "    local func, err = loadstring(ORIGINAL_SCRIPT, 'PoisonedScript')\n"
+    poisonedCode = poisonedCode .. "    applyPoisonLogic()\n"
+    poisonedCode = poisonedCode .. "    local func, err = loadstring(ORIGINAL_SCRIPT, 'PoisonedExecution')\n"
     poisonedCode = poisonedCode .. "    if func then\n"
     poisonedCode = poisonedCode .. "        return func()\n"
     poisonedCode = poisonedCode .. "    else\n"
-    poisonedCode = poisonedCode .. "        error('Failed to compile: ' .. tostring(err))\n"
+    poisonedCode = poisonedCode .. "        error('Compilation: ' .. tostring(err))\n"
     poisonedCode = poisonedCode .. "    end\n"
     poisonedCode = poisonedCode .. "end)\n\n"
+    
     poisonedCode = poisonedCode .. "if success then\n"
-    poisonedCode = poisonedCode .. "    print('✓ Poisoned script executed successfully')\n"
+    poisonedCode = poisonedCode .. "    print('[POISON] Script executed with ' .. (PATCHES_ENABLED and 'patches' or 'no patches') .. ' & ' .. (HOOKS_ENABLED and 'hooks' or 'no hooks'))\n"
     poisonedCode = poisonedCode .. "else\n"
-    poisonedCode = poisonedCode .. "    warn('✗ Poisoned Script Error: ' .. tostring(result))\n"
+    poisonedCode = poisonedCode .. "    warn('[POISON] Execution failed: ' .. tostring(result))\n"
     poisonedCode = poisonedCode .. "end\n"
 
     return poisonedCode
@@ -12529,6 +12708,17 @@ function Modules.Overseer:_showPoisonOptions()
         execBtn.MouseButton1Click:Connect(function()
             local codeBox = ui.CodeBox
             local originalCode = codeBox.Text
+            
+            -- Validate patches/hooks before poisoning
+            if (option.value == "patches" or option.value == "advanced") and not self:_validatePatches() then
+                self:_showErrorInGrid("-- ERROR: Invalid patches detected --")
+                return
+            end
+            
+            if (option.value == "hooks" or option.value == "advanced") and not self:_validateHooks() then
+                self:_showErrorInGrid("-- ERROR: Invalid hooks detected --")
+                return
+            end
             
             local poisonedCode = ""
             if option.value == "simple" then
@@ -12977,11 +13167,33 @@ function Modules.Overseer:CreateUI()
     local scannedModules = {}
 
     local function RescanModules()
+        -- Clear sidebar buttons
         for btn, _ in pairs(self.State.SidebarButtons) do
-            btn:Destroy()
+            if btn and btn.Parent then
+                btn:Destroy()
+            end
         end
         self.State.SidebarButtons = {}
         scannedModules = {}
+        
+        -- Clear grid display
+        for _, v in ipairs(grid:GetChildren()) do
+            if not v:IsA("UIListLayout") then
+                v:Destroy()
+            end
+        end
+        
+        -- Reset UI state
+        grid.Visible = true
+        codeFrame.Visible = false
+        title.Text = "Overseer - Unified Module & Instance Explorer"
+        self.State.CurrentTable = nil
+        self.State.PathStack = {}
+        self.State.SelectedModule = nil
+        
+        -- Reset scroll position
+        sidebar.CanvasPosition = Vector2.new(0, 0)
+        grid.CanvasPosition = Vector2.new(0, 0)
         
         local function scan(root)
             for _, m in ipairs(root:GetDescendants()) do
@@ -12992,9 +13204,10 @@ function Modules.Overseer:CreateUI()
             end
         end
         
-        scan(ReplicatedStorage)
-        scan(Players.LocalPlayer)
-        scan(Workspace)
+        if ReplicatedFirst then scan(ReplicatedFirst) end
+        if ReplicatedStorage then scan(ReplicatedStorage) end
+        if Players.LocalPlayer then scan(Players.LocalPlayer) end
+        if Workspace then scan(Workspace) end
         
         if getloadedmodules then
             for _, m in ipairs(getloadedmodules()) do
@@ -13049,12 +13262,22 @@ function Modules.Overseer:CreateUI()
         if self.State.CurrentMode == "modules" then
             if #self.State.PathStack > 0 then
                 local prev = table.remove(self.State.PathStack)
-                self:PopulateGrid(prev, "Parent")
+                -- Validate the table still exists
+                if type(prev) == "table" then
+                    self:PopulateGrid(prev, "Parent")
+                else
+                    self:_showErrorInGrid("-- ERROR: Parent reference is invalid --")
+                end
             end
         else
             if #self.State.ExplorerPath > 0 then
                 local prev = table.remove(self.State.ExplorerPath)
-                self:PopulateExplorer(prev)
+                -- Validate the instance still exists
+                if prev and prev:IsA("Instance") and prev.Parent then
+                    self:PopulateExplorer(prev)
+                else
+                    self:_showErrorInGrid("-- ERROR: Instance was destroyed --")
+                end
             end
         end
     end)
@@ -13069,14 +13292,19 @@ function Modules.Overseer:CreateUI()
 
     closeCode.MouseButton1Click:Connect(function()
         self.State.ViewingCode = false
+        self.State.UI.EditMode = false
         codeFrame.Visible = false
         grid.Visible = true
+        codeBox.Text = ""
         codeBox.TextEditable = false
+        codeBox.ClearTextOnFocus = false
         copyBtn.Visible = true
         editBtn.Visible = true
         applyBtn.Visible = false
         discardBtn.Visible = false
-        self.State.UI.EditMode = false
+        poisonBtn.Visible = false
+        self.State.EditTarget = nil
+        self.State.UI.OriginalCode = ""
         title.Text = "PATH: " .. (self.State.SelectedModule and self.State.SelectedModule.Name or "Main")
     end)
 
@@ -13153,8 +13381,31 @@ function Modules.Overseer:CreateUI()
 
     searchInput:GetPropertyChangedSignal("Text"):Connect(function()
         local filter = searchInput.Text:lower()
+        local visibleCount = 0
+        
         for container, name in pairs(self.State.SidebarButtons) do
-            container.Visible = name:lower():find(filter) ~= nil
+            local isVisible = filter == "" or name:lower():find(filter, 1, true) ~= nil
+            container.Visible = isVisible
+            if isVisible then visibleCount = visibleCount + 1 end
+        end
+        
+        -- Show "no results" message if needed
+        if filter ~= "" and visibleCount == 0 then
+            local noResultsMsg = sidebar:FindFirstChild("NoResults")
+            if not noResultsMsg then
+                noResultsMsg = Instance.new("TextLabel", sidebar)
+                noResultsMsg.Name = "NoResults"
+                noResultsMsg.Size = UDim2.new(1, 0, 0, 30)
+                noResultsMsg.Text = "No matching modules found"
+                noResultsMsg.TextColor3 = Color3.fromRGB(150, 100, 100)
+                noResultsMsg.BackgroundTransparency = 1
+                noResultsMsg.Font = Enum.Font.Code
+                noResultsMsg.TextSize = 9
+            end
+            noResultsMsg.Visible = true
+        else
+            local noResultsMsg = sidebar:FindFirstChild("NoResults")
+            if noResultsMsg then noResultsMsg.Visible = false end
         end
     end)
 
@@ -13183,6 +13434,17 @@ function Modules.Overseer:CreateUI()
     table.insert(self.State.HookedConnections, inputBegan)
     table.insert(self.State.HookedConnections, inputChanged)
     table.insert(self.State.HookedConnections, inputEnded)
+    
+    -- Cleanup connections when UI is destroyed
+    table.insert(self.State.HookedConnections, screenGui.Destroying:Connect(function()
+        for _, conn in ipairs(self.State.HookedConnections) do
+            if conn and typeof(conn) == "RBXScriptConnection" then
+                pcall(function() conn:Disconnect() end)
+            end
+        end
+        self.State.HookedConnections = {}
+        self.State.UI = nil
+    end))
 
     task.spawn(function()
         local paths = {ReplicatedStorage, Players.LocalPlayer, Workspace}
@@ -13225,8 +13487,8 @@ function Modules.Overseer:Initialize()
     end)
 
     RegisterCommand({
-        Name = "OverseerPrime",
-        Aliases = {"os"},
+        Name = "os",
+        Aliases = {"opensource"},
         Description = "Opens the ultimate Overseer module, Use at your own risk."
     }, function()
         module:CreateUI()
@@ -20354,10 +20616,8 @@ function Modules.PluginManager:LoadPlugin(pluginSource, pluginName)
     end
 
     local success, result = pcall(function()
-        -- Create Nameless Admin compatibility API (full format support)
         local cmdAPI = {}
         
-        -- Full Nameless Admin format: cmd.add(aliases, info, func, requiresArguments)
         function cmdAPI:add(aliases, info, func, requiresArguments)
             if type(aliases) ~= "table" then
                 aliases = {tostring(aliases)}
