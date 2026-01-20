@@ -6,6 +6,30 @@ this wont work on xeno probably.
 Loadstring Command - loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/Main-Repo/refs/heads/main/MainPanel.lua"))()
 --]]
 
+if getgenv().ZukaTech_Loaded then
+    return
+end
+getgenv().ZukaTech_Loaded = true
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local Players = game:GetService("Players")
+local function getLocalPlayer()
+    local lp = Players.LocalPlayer
+    while not lp do
+        task.wait(0.1)
+        lp = Players.LocalPlayer
+    end
+    return lp
+end
+local LocalPlayer = getLocalPlayer()
+
+local CoreGui = game:GetService("CoreGui")
+repeat task.wait(0.1) until CoreGui:FindFirstChild("RobloxGui")
+
+task.wait(0.5)
 local getgenv = getgenv
 local getrawmetatable = getrawmetatable
 local setreadonly = setreadonly
@@ -17152,6 +17176,186 @@ RegisterCommand({
     end
 end)
 
+Modules.ScriptView = {
+    State = {
+        IsEnabled = false,
+        UI = nil,
+        Syntax = true,
+        CurrentSource = "",
+        CurrentName = "",
+        Open = false,
+        OtherDone = 1
+    },
+    Config = {
+        Operators = {
+            ['bracket'] = Color3.fromRGB(204, 104, 147),
+            ['math']    = Color3.fromRGB(204, 104, 147),
+            ['compare'] = Color3.fromRGB(204, 104, 147),
+            ['misc']    = Color3.fromRGB(204, 104, 147),
+        },
+        Textures = {
+            ['folder']       = "2950788693",
+            ['localscript']  = "99340858",
+            ['modulescript'] = "413367412",
+            ['function']     = "2759601950",
+            ['variable']     = "2759602224",
+            ['table']        = "2757039628",
+            ['constant']     = "2717878542",
+            ['upvalue']      = "2717876089",
+        }
+    }
+}
+
+function Modules.ScriptView:Initialize()
+    local module = self
+    local state = self.State
+    local config = self.Config
+
+    RegisterCommand({
+        Name = "scriptview",
+        Aliases = {"sv", "forensics", "decompile"},
+        Description = "Opens ScriptView (Home/RShift). Decompile scripts and explore memory."
+    }, function()
+        if state.UI then
+            state.Open = not state.Open
+            if state.Open then module:Open() else module:Close() end
+            return
+        end
+
+        local success, err = pcall(function()
+            local screenGui = game:GetObjects("rbxassetid://2971927607")[1]
+            local backdrop = screenGui.Backdrop
+            local lexer_mod = game:GetObjects('rbxassetid://2798231692')[1]
+            local lexer = loadstring(lexer_mod.Source)()
+            
+            screenGui.Parent = CoreGui
+            state.UI = screenGui
+            
+            local scriptList = backdrop.Debugger.Scripts
+            local sourceFrame = backdrop.ScriptFrame.Source
+            local debugTemplate = scriptList.Template; debugTemplate.Parent = nil
+            local lineTemplate = sourceFrame.Line; lineTemplate.Parent = nil
+            local wordTemplate = lineTemplate.Word; wordTemplate.Parent = nil
+            local tabsFrame = backdrop.Tabs
+            local tabTemplate = tabsFrame.Deselected; tabTemplate.Parent = nil
+            local ttemp = tabsFrame.Selected; ttemp.Parent = nil
+
+            local function GVT(v, def)
+                return (type(v) == "function" and "function") or (type(v) == "table" and "table") or def or "variable"
+            end
+
+            local function getEnv(scr)
+                local g_env = getsenv or getmenv
+                if not g_env then return {ERROR = "No env access"} end
+                return (scr:IsA("LocalScript") and (getsenv and getsenv(scr))) or (getmenv and getmenv(scr))
+            end
+
+            local function Tween(Obj, Dir, Style, Duration, Goal)
+                local tween = game:GetService("TweenService"):Create(Obj, TweenInfo.new(Duration, Enum.EasingStyle[Style], Enum.EasingDirection[Dir]), Goal)
+                tween:Play()
+                return tween
+            end
+
+            local function loadSource(source)
+                state.CurrentSource = source
+                for _, v in pairs(sourceFrame:GetChildren()) do
+                    if v.Name == "Line" then v:Destroy() end
+                end
+                
+                local lines = {}
+                local tblLine = {}
+                for typ, word in lexer.scan(source) do
+                    if word:find("\n") then
+                        word = word:gsub("\n", "")
+                        if word == "" then word = " " end
+                        table.insert(tblLine, {typ, word})
+                        table.insert(lines, tblLine)
+                        tblLine = {}
+                    else
+                        table.insert(tblLine, {typ, word})
+                    end
+                end
+                table.insert(lines, tblLine)
+
+                for num, lineTable in ipairs(lines) do
+                    local line = lineTemplate:Clone()
+                    line.LineNumber.Text = tostring(num).."  "
+                    line.Parent = sourceFrame
+                    for _, wordData in ipairs(lineTable) do
+                        local word = wordTemplate:Clone()
+                        word.Parent = line
+                        word.String.Text = wordData[2]
+                        local txtSize = game:GetService("TextService"):GetTextSize(word.String.Text, word.String.TextSize, word.String.Font, Vector2.new(10000, 25))
+                        word.String.Size = UDim2.new(0, txtSize.X, 1, 0)
+                        word.Size = word.String.Size
+                        if state.Syntax then
+
+                        end
+                    end
+                end
+            end
+
+            local function createButton(parent, info)
+                local button = debugTemplate:Clone()
+                local par = (parent:FindFirstChild("Contents")) or parent
+                button.Label.Text = info.Name
+                button.Icon.Image = "rbxassetid://" .. (config.Textures[info.Type:lower()] or config.Textures.variable)
+                button.Parent = par
+                
+                button.Clicked.MouseButton1Click:Connect(function()
+                    if info.Type:lower():find("script") then
+                        local success, src = pcall(decompile, info.Obj)
+                        loadSource(success and src or "-- Decompilation Failed")
+                    end
+                end)
+
+                button.Expand.MouseButton1Click:Connect(function()
+                    button.Contents.Visible = not button.Contents.Visible
+                    if button.Contents.Visible then
+                        for _, child in ipairs(info.Obj:GetChildren()) do
+                            createButton(button, {Name = child.Name, Type = child.ClassName, Obj = child})
+                        end
+                    end
+                end)
+            end
+
+            createButton(scriptList, {Name="Active Scripts", Type="Folder", Obj=game})
+            createButton(scriptList, {Name="LocalPlayer", Type="Folder", Obj=game:GetService("Players").LocalPlayer})
+            createButton(scriptList, {Name="Nil", Type="Folder", Obj=nil})
+
+            module.Open = function()
+                Tween(backdrop, "Out", "Sine", 0.2, {
+                    Position = UDim2.new(0.5, -400, 0.5, -250),
+                    Size = UDim2.new(0, 800, 0, 500)
+                })
+                state.Open = true
+            end
+
+            module.Close = function()
+                Tween(backdrop, "Out", "Sine", 0.2, {
+                    Position = UDim2.new(0.5, 0, 1, 2),
+                    Size = UDim2.new(0.25, 0, 0.25, 0)
+                })
+                state.Open = false
+            end
+
+            UserInputService.InputBegan:Connect(function(input)
+                if input.KeyCode == Enum.KeyCode.Home or input.KeyCode == Enum.KeyCode.RightShift then
+                    state.Open = not state.Open
+                    if state.Open then module.Open() else module.Close() end
+                end
+            end)
+
+            DoNotif("ScriptView forensic module enabled.", 3)
+        end)
+        
+        if not success then
+            warn("--> [FORENSIC]: ScriptView Failed to Load Assets: " .. tostring(err))
+            DoNotif("ScriptView failed: Assets unavailable.", 5)
+        end
+    end)
+end
+
 Modules.Gravity = {
     State = {
         IsEnabled = false,
@@ -17161,7 +17365,6 @@ Modules.Gravity = {
         Workspace = game:GetService("Workspace")
     }
 }
-
 function Modules.Gravity:Enable(newGravityValue)
     if not self.State.IsEnabled then
         self.State.OriginalGravity = self.Services.Workspace.Gravity
