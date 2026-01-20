@@ -4972,8 +4972,8 @@ function Modules.VoidShield:Initialize()
     local module = self
     
     RegisterCommand({
-        Name = "shield",
-        Aliases = {"wall", "barrier", "blocknpc"},
+        Name = "clientshield",
+        Aliases = {},
         Description = "Toggles a physical shield in front of you. Usage: ;shield [size]"
     }, function(args)
         local sizeVal = tonumber(args[1])
