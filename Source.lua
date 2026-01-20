@@ -4858,41 +4858,58 @@ Modules.VoidShield = {
         IsEnabled = false,
         ShieldPart = nil,
         Connection = nil,
-        CharacterAddedConn = nil
+        CharacterAddedConn = nil,
+        ToolConn = nil
     },
     Config = {
-        Size = Vector3.new(10, 10, 1),
-        Distance = 4,
-        Transparency = 0.6,
-        Color = Color3.fromRGB(0, 255, 200),
-        Material = Enum.Material.ForceField
+        Size = Vector3.new(12, 12, 5),
+        Distance = 5,
+        Transparency = 0.7,
+        Color = Color3.fromRGB(0, 255, 255),
+        Material = Enum.Material.ForceField,
+        RepulsionForce = 25,
     }
 }
+
+function Modules.VoidShield:_applyNoCollision(part)
+    local character = LocalPlayer.Character
+    if not character or not part then return end
+
+    for _, v in ipairs(character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            local constraint = Instance.new("NoCollisionConstraint")
+            constraint.Part0 = part
+            constraint.Part1 = v
+            constraint.Parent = part
+        end
+    end
+end
 
 function Modules.VoidShield:_createShield()
     if self.State.ShieldPart then self.State.ShieldPart:Destroy() end
     
     local part = Instance.new("Part")
-    part.Name = "Zuka_KineticBarrier"
+    part.Name = "Callum_KineticRepulsor"
     part.Size = self.Config.Size
     part.Transparency = self.Config.Transparency
     part.Color = self.Config.Color
     part.Material = self.Config.Material
-    part.CanCollide = true
+    part.CanCollide = false
     part.CanQuery = true
     part.Anchored = true
     part.CastShadow = false
+    part.Massless = true
 
-    local character = LocalPlayer.Character
-    if character then
-        for _, v in ipairs(character:GetDescendants()) do
-            if v:IsA("BasePart") then
-                local constraint = Instance.new("NoCollisionConstraint")
-                constraint.Part0 = part
-                constraint.Part1 = v
-                constraint.Parent = part
+    self:_applyNoCollision(part)
+    
+    if LocalPlayer.Character then
+        if self.State.ToolConn then self.State.ToolConn:Disconnect() end
+        self.State.ToolConn = LocalPlayer.Character.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") and self.State.ShieldPart then
+                task.wait()
+                self:_applyNoCollision(self.State.ShieldPart)
             end
-        end
+        end)
     end
     
     part.Parent = Workspace
@@ -4917,88 +4934,71 @@ function Modules.VoidShield:_update()
 
     local targetCF = root.CFrame * CFrame.new(0, 0, -self.Config.Distance)
     shield.CFrame = targetCF
+
+    local overlapParams = OverlapParams.new()
+    overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+    overlapParams.FilterDescendantsInstances = {character, shield}
+    
+    local partsInShield = Workspace:GetPartBoundsInBox(shield.CFrame, shield.Size, overlapParams)
+    
+    for _, part in ipairs(partsInShield) do
+
+        local model = part:FindFirstAncestorOfClass("Model")
+        if model and model:FindFirstChildOfClass("Humanoid") then
+            local npcRoot = model:FindFirstChild("HumanoidRootPart")
+            if npcRoot then
+
+                local pushDir = (npcRoot.Position - root.Position).Unit
+
+                npcRoot.CFrame = CFrame.new(npcRoot.Position + (pushDir * 1.5), npcRoot.Position + (pushDir * 2))
+
+                npcRoot.AssemblyLinearVelocity = pushDir * self.Config.RepulsionForce
+            end
+        end
+    end
 end
 
 function Modules.VoidShield:Enable()
     if self.State.IsEnabled then return end
     self.State.IsEnabled = true
-
     self:_createShield()
 
-    self.State.Connection = RunService.RenderStepped:Connect(function()
+    self.State.Connection = RunService.Heartbeat:Connect(function()
         self:_update()
     end)
 
     self.State.CharacterAddedConn = LocalPlayer.CharacterAdded:Connect(function()
-        task.wait(1)
-        if self.State.IsEnabled then
-            self:_createShield()
-        end
+        task.wait(0.5)
+        if self.State.IsEnabled then self:_createShield() end
     end)
 
-    DoNotif("Void Shield: [ACTIVE] | NPCs Neutralized", 2)
+    if typeof(DoNotif) == "function" then DoNotif("Repulsor: [ACTIVE]", 2) end
 end
 
 function Modules.VoidShield:Disable()
     self.State.IsEnabled = false
-    
-    if self.State.Connection then
-        self.State.Connection:Disconnect()
-        self.State.Connection = nil
-    end
-
-    if self.State.CharacterAddedConn then
-        self.State.CharacterAddedConn:Disconnect()
-        self.State.CharacterAddedConn = nil
-    end
-
-    if self.State.ShieldPart then
-        self.State.ShieldPart:Destroy()
-        self.State.ShieldPart = nil
-    end
-
-    DoNotif("Void Shield: [DISABLED]", 2)
+    if self.State.Connection then self.State.Connection:Disconnect() end
+    if self.State.CharacterAddedConn then self.State.CharacterAddedConn:Disconnect() end
+    if self.State.ToolConn then self.State.ToolConn:Disconnect() end
+    if self.State.ShieldPart then self.State.ShieldPart:Destroy(); self.State.ShieldPart = nil end
+    if typeof(DoNotif) == "function" then DoNotif("Repulsor: [DISABLED]", 2) end
 end
 
 function Modules.VoidShield:Toggle()
-    if self.State.IsEnabled then
-        self:Disable()
-    else
-        self:Enable()
-    end
+    if self.State.IsEnabled then self:Disable() else self:Enable() end
 end
 
 function Modules.VoidShield:Initialize()
-    local module = self
-    
-    RegisterCommand({
-        Name = "clientshield",
-        Aliases = {},
-        Description = "Toggles a physical shield in front of you. Usage: ;shield [size]"
-    }, function(args)
-        local sizeVal = tonumber(args[1])
-        if sizeVal then
-            module.Config.Size = Vector3.new(sizeVal, sizeVal, 1)
-            if module.State.ShieldPart then
-                module.State.ShieldPart.Size = module.Config.Size
+    if typeof(RegisterCommand) == "function" then
+        RegisterCommand({Name = "cshield", Aliases = {"noobshield"}}, function(args)
+            local sizeVal = tonumber(args[1])
+            if sizeVal then
+                self.Config.Size = Vector3.new(sizeVal, sizeVal, 5)
+                if self.State.ShieldPart then self.State.ShieldPart.Size = self.Config.Size end
             end
-            DoNotif("Shield Size set to: " .. sizeVal, 2)
-        end
-        
-        module:Toggle()
-    end)
-
-    RegisterCommand({
-        Name = "shielddist",
-        Aliases = {"sd"},
-        Description = "Adjust shield distance. Usage: ;sd [number]"
-    }, function(args)
-        local dist = tonumber(args[1])
-        if dist then
-            module.Config.Distance = dist
-            DoNotif("Shield Distance set to: " .. dist, 2)
-        end
-    end)
+            self:Toggle()
+        end)
+    end
 end
 
 Modules.Blackhole = {
@@ -24491,7 +24491,7 @@ function Modules.InternalExecutor:CreateUI()
     local title = Instance.new("TextLabel", header)
     title.Size = UDim2.new(1, -60, 1, 0)
     title.Position = UDim2.fromOffset(10, 0)
-    title.Text = "ZukaTech Forensic IDE v2.4 [STABLE]"
+    title.Text = "Zukas Lifter."
     title.TextColor3 = self.Config.ACCENT
     title.Font = Enum.Font.Code
     title.TextSize = 14
