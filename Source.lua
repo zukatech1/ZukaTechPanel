@@ -4853,6 +4853,154 @@ function Modules.AntiDestroy:Initialize(): ()
     end)
 end
 
+Modules.VoidShield = {
+    State = {
+        IsEnabled = false,
+        ShieldPart = nil,
+        Connection = nil,
+        CharacterAddedConn = nil
+    },
+    Config = {
+        Size = Vector3.new(10, 10, 1),
+        Distance = 4,
+        Transparency = 0.6,
+        Color = Color3.fromRGB(0, 255, 200),
+        Material = Enum.Material.ForceField
+    }
+}
+
+function Modules.VoidShield:_createShield()
+    if self.State.ShieldPart then self.State.ShieldPart:Destroy() end
+    
+    local part = Instance.new("Part")
+    part.Name = "Zuka_KineticBarrier"
+    part.Size = self.Config.Size
+    part.Transparency = self.Config.Transparency
+    part.Color = self.Config.Color
+    part.Material = self.Config.Material
+    part.CanCollide = true
+    part.CanQuery = true
+    part.Anchored = true
+    part.CastShadow = false
+
+    local character = LocalPlayer.Character
+    if character then
+        for _, v in ipairs(character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                local constraint = Instance.new("NoCollisionConstraint")
+                constraint.Part0 = part
+                constraint.Part1 = v
+                constraint.Parent = part
+            end
+        end
+    end
+    
+    part.Parent = Workspace
+    self.State.ShieldPart = part
+end
+
+function Modules.VoidShield:_update()
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    
+    if not root or not self.State.IsEnabled then
+        if self.State.ShieldPart then self.State.ShieldPart.Transparency = 1 end
+        return
+    end
+
+    if not self.State.ShieldPart or not self.State.ShieldPart.Parent then
+        self:_createShield()
+    end
+
+    local shield = self.State.ShieldPart
+    shield.Transparency = self.Config.Transparency
+
+    local targetCF = root.CFrame * CFrame.new(0, 0, -self.Config.Distance)
+    shield.CFrame = targetCF
+end
+
+function Modules.VoidShield:Enable()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+
+    self:_createShield()
+
+    self.State.Connection = RunService.RenderStepped:Connect(function()
+        self:_update()
+    end)
+
+    self.State.CharacterAddedConn = LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        if self.State.IsEnabled then
+            self:_createShield()
+        end
+    end)
+
+    DoNotif("Void Shield: [ACTIVE] | NPCs Neutralized", 2)
+end
+
+function Modules.VoidShield:Disable()
+    self.State.IsEnabled = false
+    
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+
+    if self.State.CharacterAddedConn then
+        self.State.CharacterAddedConn:Disconnect()
+        self.State.CharacterAddedConn = nil
+    end
+
+    if self.State.ShieldPart then
+        self.State.ShieldPart:Destroy()
+        self.State.ShieldPart = nil
+    end
+
+    DoNotif("Void Shield: [DISABLED]", 2)
+end
+
+function Modules.VoidShield:Toggle()
+    if self.State.IsEnabled then
+        self:Disable()
+    else
+        self:Enable()
+    end
+end
+
+function Modules.VoidShield:Initialize()
+    local module = self
+    
+    RegisterCommand({
+        Name = "shield",
+        Aliases = {"wall", "barrier", "blocknpc"},
+        Description = "Toggles a physical shield in front of you. Usage: ;shield [size]"
+    }, function(args)
+        local sizeVal = tonumber(args[1])
+        if sizeVal then
+            module.Config.Size = Vector3.new(sizeVal, sizeVal, 1)
+            if module.State.ShieldPart then
+                module.State.ShieldPart.Size = module.Config.Size
+            end
+            DoNotif("Shield Size set to: " .. sizeVal, 2)
+        end
+        
+        module:Toggle()
+    end)
+
+    RegisterCommand({
+        Name = "shielddist",
+        Aliases = {"sd"},
+        Description = "Adjust shield distance. Usage: ;sd [number]"
+    }, function(args)
+        local dist = tonumber(args[1])
+        if dist then
+            module.Config.Distance = dist
+            DoNotif("Shield Distance set to: " .. dist, 2)
+        end
+    end)
+end
+
 Modules.Blackhole = {
     State = {
         IsEnabled = false,
