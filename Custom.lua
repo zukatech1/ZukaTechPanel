@@ -1696,7 +1696,7 @@ local function main()
 		if presentClasses["BindableFunction"] then context:AddRegistered("BLOCK_REMOTE", env.hookfunction == nil) end
 		if presentClasses["BindableFunction"] then context:AddRegistered("UNBLOCK_REMOTE", env.hookfunction == nil) end
 
-		if presentClasses["Player"] then context:AddRegistered("SELECT_CHARACTER")context:AddRegistered("VIEW_PLAYER")context:AddRegistered("ESP_PLAYER")end
+		if presentClasses["Player"] then context:AddRegistered("SELECT_CHARACTER")context:AddRegistered("VIEW_PLAYER")end
 		if presentClasses["Players"] then
 			context:AddRegistered("SELECT_LOCAL_PLAYER")
 			context:AddRegistered("SELECT_ALL_CHARACTERS")
