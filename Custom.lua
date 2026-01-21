@@ -2794,8 +2794,24 @@ local function main()
 			print(output)
 			print("--- [END GENERATED PATCH] ---")
 
-			if env.setclipboard then env.setclipboard(output) end
-			if getgenv().DoNotif then getgenv().DoNotif("Poison Patch printed to console!", 3) end
+			-- COPY TO CLIPBOARD (Multiple fallback methods)
+			local clipboardSuccess = false
+			if setclipboard then
+				pcall(function() setclipboard(output) end)
+				clipboardSuccess = true
+			elseif env.setclipboard then
+				pcall(function() env.setclipboard(output) end)
+				clipboardSuccess = true
+			elseif getgenv().setclipboard then
+				pcall(function() getgenv().setclipboard(output) end)
+				clipboardSuccess = true
+			end
+
+			if clipboardSuccess then
+				if getgenv().DoNotif then getgenv().DoNotif("✓ Poison Patch copied to clipboard!", 3) end
+			else
+				if getgenv().DoNotif then getgenv().DoNotif("⚠ Failed to copy to clipboard", 3) end
+			end
 		end})
 
 		context:Register("SELECT_CHARACTER",{Name = "Select Character", IconMap = Explorer.LegacyClassIcons, Icon = 9, OnClick = function()
