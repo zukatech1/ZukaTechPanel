@@ -1715,6 +1715,10 @@ local function main()
 			context:AddRegistered("GENERATE_POISON_PATCH")
 		end
 
+		if presentClasses["ScreenGui"] then
+			context:AddRegistered("SCREENGUI_TO_SCRIPT")
+		end
+
 		if sMap[nilNode] then
 			context:AddRegistered("REFRESH_NIL")
 			context:AddRegistered("HIDE_NIL")
@@ -1772,7 +1776,7 @@ local function main()
 					if cloned then
 						cloned.Parent = inst
 						local clonedNode = nodes[cloned]
-						if clonedNode then newSelection[count] = clonedNode count = count + 1 end
+						if clonedNode then newSelection[count] = clonedNode; count = count + 1 end
 					end
 				end
 			end
@@ -1797,7 +1801,7 @@ local function main()
 				if s and cloned then
 					cloned.Parent = instPar
 					local clonedNode = nodes[cloned]
-					if clonedNode then newSelection[count] = clonedNode count = count + 1 end
+					if clonedNode then newSelection[count] = clonedNode; count = count + 1 end
 				end
 			end
 
@@ -1983,23 +1987,23 @@ local function main()
 					local offset = plrRP.CFrame.LookVector * distance
 					if Obj.CanCollide then
 						Obj.CanCollide = false
-						Obj.CFrame = plrRP.CFrame + offset
+						Obj.CFrame = plrRP.CFrame * CFrame.new(offset)
 						Obj.CanCollide = true
 					else
-						Obj.CFrame = plrRP.CFrame + offset
+						Obj.CFrame = plrRP.CFrame * CFrame.new(offset)
 					end
 					break
 				elseif Obj:IsA("Model") then
 					if Obj.PrimaryPart then
 						local offset = plrRP.CFrame.LookVector * distance
-						local newCFrame = plrRP.CFrame + offset
+						local newCFrame = plrRP.CFrame * CFrame.new(offset)
 						Obj:MoveTo(newCFrame.Position)
 						break
 					else
 						local part = Obj:FindFirstChildWhichIsA("BasePart", true)
 						if part then
 							local offset = plrRP.CFrame.LookVector * distance
-							Obj:MoveTo((plrRP.CFrame + offset).Position)
+							Obj:MoveTo((plrRP.CFrame * CFrame.new(offset)).Position)
 							break
 						end
 					end
@@ -2866,6 +2870,129 @@ local function main()
 
 			if clipboardSuccess then
 				if getgenv().DoNotif then getgenv().DoNotif("✓ Poison Patch copied to clipboard!", 3) end
+			else
+				if getgenv().DoNotif then getgenv().DoNotif("⚠ Failed to copy to clipboard", 3) end
+			end
+		end})
+
+		context:Register("SCREENGUI_TO_SCRIPT",{Name = "Convert to Script", IconMap = Explorer.MiscIcons, Icon = "Save", OnClick = function()
+			local node = selection.List[1]
+			if not node or not node.Obj:IsA("ScreenGui") then return end
+			local gui = node.Obj
+			
+			-- Serialize values based on type
+			local function serialize(v)
+				local t = typeof(v)
+				if t == "string" then
+					return '"' .. v:gsub('"', '\\"') .. '"'
+				elseif t == "number" or t == "boolean" then
+					return tostring(v)
+				elseif t == "Vector3" then
+					return "Vector3.new(" .. v.X .. ", " .. v.Y .. ", " .. v.Z .. ")"
+				elseif t == "Vector2" then
+					return "Vector2.new(" .. v.X .. ", " .. v.Y .. ")"
+				elseif t == "UDim2" then
+					return "UDim2.new(" .. v.X.Scale .. ", " .. v.X.Offset .. ", " .. v.Y.Scale .. ", " .. v.Y.Offset .. ")"
+				elseif t == "UDim" then
+					return "UDim.new(" .. v.Scale .. ", " .. v.Offset .. ")"
+				elseif t == "CFrame" then
+					return "CFrame.new(" .. tostring(v) .. ")"
+				elseif t == "Color3" then
+					return "Color3.fromRGB(" .. math.floor(v.R*255) .. ", " .. math.floor(v.G*255) .. ", " .. math.floor(v.B*255) .. ")"
+				elseif t == "EnumItem" then
+					return tostring(v)
+				elseif t == "Rect" then
+					return "Rect.new(" .. v.Min.X .. ", " .. v.Min.Y .. ", " .. v.Max.X .. ", " .. v.Max.Y .. ")"
+				end
+				return "nil"
+			end
+			
+			-- Get important GUI properties
+			local guiProperties = {
+				"Name", "Enabled", "ResetOnSpawn", "DisplayOrder", "IgnoreGuiInset", "ZIndexBehavior",
+				"BackgroundColor3", "BackgroundTransparency", "BorderColor3", "BorderSizePixel", "Transparency"
+			}
+			
+			-- Function to recursively generate GUI code
+			local function generateGuiCode(obj, indent, varName)
+				local code = ""
+				local objType = obj.ClassName
+				
+				-- Create object
+				code = code .. indent .. "local " .. varName .. " = Instance.new(\"" .. objType .. "\")\n"
+				
+				-- Set properties
+				for _, propName in ipairs(guiProperties) do
+					local success, prop = pcall(function() return obj[propName] end)
+					if success and prop ~= nil then
+						local defaultVal
+						if objType == "ScreenGui" then
+							if propName == "Enabled" then defaultVal = true
+							elseif propName == "DisplayOrder" then defaultVal = 0
+							elseif propName == "ZIndexBehavior" then defaultVal = Enum.ZIndexBehavior.Global
+							end
+						end
+						
+						if prop ~= defaultVal then
+							code = code .. indent .. varName .. "." .. propName .. " = " .. serialize(prop) .. "\n"
+						end
+					end
+				end
+				
+				-- Recursively add children (only first level children)
+				local children = obj:GetChildren()
+				for i, child in ipairs(children) do
+					if child:IsA("GuiObject") then
+						local childVar = varName .. "_child" .. i
+						code = code .. indent .. "local " .. childVar .. " = Instance.new(\"" .. child.ClassName .. "\")\n"
+						
+						-- Copy common GUI properties
+						local commonProps = {"Name", "Visible", "Active", "Selectable", "BackgroundColor3", "BackgroundTransparency", "BorderColor3", "Size", "Position"}
+						for _, prop in ipairs(commonProps) do
+							local success, val = pcall(function() return child[prop] end)
+							if success and val ~= nil then
+								code = code .. indent .. childVar .. "." .. prop .. " = " .. serialize(val) .. "\n"
+							end
+						end
+						
+						code = code .. indent .. childVar .. ".Parent = " .. varName .. "\n"
+					end
+				end
+				
+				return code
+			end
+			
+			-- Generate full script
+			local output = "--[[ ScreenGui: " .. gui.Name .. " ]]\n"
+			output = output .. "-- This script recreates the GUI structure\n"
+			output = output .. "-- Place this in StarterPlayer.StarterCharacterScripts or StarterPlayer.StarterPlayerScripts\n\n"
+			output = output .. "local UserInputService = game:GetService(\"UserInputService\")\n"
+			output = output .. "local Players = game:GetService(\"Players\")\n"
+			output = output .. "local player = Players.LocalPlayer\n"
+			output = output .. "local screenGui\n\n"
+			output = output .. "local function createGui()\n"
+			output = output .. generateGuiCode(gui, "  ", "screenGui")
+			output = output .. "  screenGui.Parent = player:WaitForChild(\"PlayerGui\")\n"
+			output = output .. "end\n\n"
+			output = output .. "createGui()\n"
+			
+			-- Output to console
+			print("--- [BEGIN GUI SCRIPT] ---")
+			print(output)
+			print("--- [END GUI SCRIPT] ---")
+			
+			-- Copy to clipboard
+			local clipboardSuccess = false
+			if env.setclipboard then
+				pcall(function() env.setclipboard(output) end)
+				clipboardSuccess = true
+			elseif setclipboard then
+				pcall(function() setclipboard(output) end)
+				clipboardSuccess = true
+			end
+			
+			if clipboardSuccess then
+				if getgenv().DoNotif then getgenv().DoNotif("✓ GUI Script copied to clipboard!", 3) end
 			else
 				if getgenv().DoNotif then getgenv().DoNotif("⚠ Failed to copy to clipboard", 3) end
 			end
@@ -15270,4 +15397,4 @@ Main = (function()
 	return Main
 end)()
 
-Main.Init()
+Main.Init
