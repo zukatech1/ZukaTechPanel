@@ -2525,46 +2525,75 @@ local function main()
 		context:Register("ESP_MODEL",{Name = "Toggle ESP Box (Model)", IconMap = Explorer.MiscIcons, Icon = "ViewObject", OnClick = function()
 			local sList = selection.List
 			local isa = game.IsA
+			local function createESPWireframe(obj, color, label)
+				local espContainer = Instance.new("Folder")
+				espContainer.Name = "ESP_Box"
+				espContainer.Parent = obj
+				
+				local cframe, size = (isa(obj, "Model") and obj:GetBoundingBox()) or (obj.CFrame, obj.Size)
+				local halfSize = size / 2
+				
+				-- Create wireframe edges (12 edges of a box)
+				local edgeConfigs = {
+					-- Top edges
+					{CFrame = cframe * CFrame.new(0, halfSize.Y, halfSize.Z), Size = Vector3.new(size.X, 0.05, 0.05)},
+					{CFrame = cframe * CFrame.new(0, halfSize.Y, -halfSize.Z), Size = Vector3.new(size.X, 0.05, 0.05)},
+					{CFrame = cframe * CFrame.new(halfSize.X, halfSize.Y, 0), Size = Vector3.new(0.05, 0.05, size.Z)},
+					{CFrame = cframe * CFrame.new(-halfSize.X, halfSize.Y, 0), Size = Vector3.new(0.05, 0.05, size.Z)},
+					-- Bottom edges
+					{CFrame = cframe * CFrame.new(0, -halfSize.Y, halfSize.Z), Size = Vector3.new(size.X, 0.05, 0.05)},
+					{CFrame = cframe * CFrame.new(0, -halfSize.Y, -halfSize.Z), Size = Vector3.new(size.X, 0.05, 0.05)},
+					{CFrame = cframe * CFrame.new(halfSize.X, -halfSize.Y, 0), Size = Vector3.new(0.05, 0.05, size.Z)},
+					{CFrame = cframe * CFrame.new(-halfSize.X, -halfSize.Y, 0), Size = Vector3.new(0.05, 0.05, size.Z)},
+					-- Vertical edges
+					{CFrame = cframe * CFrame.new(halfSize.X, 0, halfSize.Z), Size = Vector3.new(0.05, size.Y, 0.05)},
+					{CFrame = cframe * CFrame.new(-halfSize.X, 0, halfSize.Z), Size = Vector3.new(0.05, size.Y, 0.05)},
+					{CFrame = cframe * CFrame.new(halfSize.X, 0, -halfSize.Z), Size = Vector3.new(0.05, size.Y, 0.05)},
+					{CFrame = cframe * CFrame.new(-halfSize.X, 0, -halfSize.Z), Size = Vector3.new(0.05, size.Y, 0.05)},
+				}
+				
+				for _, edgeConfig in ipairs(edgeConfigs) do
+					local edge = Instance.new("Part")
+					edge.Shape = Enum.PartType.Block
+					edge.Material = Enum.Material.Neon
+					edge.CanCollide = false
+					edge.Anchored = true
+					edge.CanQuery = false
+					edge.CanTouch = false
+					edge.CFrame = edgeConfig.CFrame
+					edge.Size = edgeConfig.Size
+					edge.Color = color
+					edge.TopSurface = Enum.SurfaceType.Smooth
+					edge.BottomSurface = Enum.SurfaceType.Smooth
+					edge.Parent = espContainer
+				end
+				
+				-- Add name label on center
+				local billboard = Instance.new("BillboardGui")
+				billboard.Name = "NameLabel"
+				billboard.Size = UDim2.new(4, 0, 2, 0)
+				billboard.MaxDistance = 500
+				billboard.Parent = espContainer
+				
+				local textLabel = Instance.new("TextLabel")
+				textLabel.Name = "TextLabel"
+				textLabel.Size = UDim2.new(1, 0, 1, 0)
+				textLabel.BackgroundColor3 = color
+				textLabel.BackgroundTransparency = 0.3
+				textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+				textLabel.TextScaled = true
+				textLabel.Text = label
+				textLabel.Parent = billboard
+			end
 			
 			for i = 1, #sList do
 				local obj = sList[i].Obj
 				if isa(obj, "Model") or isa(obj, "BasePart") then
-					-- Create/Toggle ESP box
 					if obj:FindFirstChild("ESP_Box") then
 						obj:FindFirstChild("ESP_Box"):Destroy()
 					else
-						local part = Instance.new("Part")
-						part.Name = "ESP_Box"
-						part.Shape = Enum.PartType.Block
-						part.Material = Enum.Material.Neon
-						part.CanCollide = false
-						part.Anchored = true
-						part.CFrame = obj:IsA("Model") and obj:GetBoundingBox() or obj.CFrame
-						part.Size = obj:IsA("Model") and obj:GetExtentsSize() or obj.Size
-						part.Transparency = 0.5
-						part.Color = Color3.fromRGB(0, 255, 0)
-						part.TopSurface = Enum.SurfaceType.Smooth
-						part.BottomSurface = Enum.SurfaceType.Smooth
-						part.CanQuery = false
-						part.CanTouch = false
-						part.Parent = obj
-						
-						-- Add name label
-						local billboard = Instance.new("BillboardGui")
-						billboard.Name = "NameLabel"
-						billboard.Size = UDim2.new(4, 0, 2, 0)
-						billboard.MaxDistance = 500
-						billboard.Parent = part
-						
-						local textLabel = Instance.new("TextLabel")
-						textLabel.Name = "TextLabel"
-						textLabel.Size = UDim2.new(1, 0, 1, 0)
-						textLabel.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-						textLabel.BackgroundTransparency = 0.3
-						textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-						textLabel.TextScaled = true
-						textLabel.Text = obj.Name
-						textLabel.Parent = billboard
+						createESPWireframe(obj, Color3.fromRGB(0, 255, 0), obj.Name)
+					end
 				end
 			end
 		end
@@ -2573,11 +2602,70 @@ local function main()
 		context:Register("ESP_PLAYER",{Name = "Toggle ESP Box (Player)", IconMap = Explorer.MiscIcons, Icon = "ViewObject", OnClick = function()
 			local sList = selection.List
 			local isa = game.IsA
+			local function createESPWireframe(obj, color, label)
+				local espContainer = Instance.new("Folder")
+				espContainer.Name = "ESP_Box"
+				espContainer.Parent = obj
+				
+				local cframe, size = obj:GetBoundingBox()
+				local halfSize = size / 2
+				
+				-- Create wireframe edges (12 edges of a box)
+				local edgeConfigs = {
+					-- Top edges
+					{CFrame = cframe * CFrame.new(0, halfSize.Y, halfSize.Z), Size = Vector3.new(size.X, 0.05, 0.05)},
+					{CFrame = cframe * CFrame.new(0, halfSize.Y, -halfSize.Z), Size = Vector3.new(size.X, 0.05, 0.05)},
+					{CFrame = cframe * CFrame.new(halfSize.X, halfSize.Y, 0), Size = Vector3.new(0.05, 0.05, size.Z)},
+					{CFrame = cframe * CFrame.new(-halfSize.X, halfSize.Y, 0), Size = Vector3.new(0.05, 0.05, size.Z)},
+					-- Bottom edges
+					{CFrame = cframe * CFrame.new(0, -halfSize.Y, halfSize.Z), Size = Vector3.new(size.X, 0.05, 0.05)},
+					{CFrame = cframe * CFrame.new(0, -halfSize.Y, -halfSize.Z), Size = Vector3.new(size.X, 0.05, 0.05)},
+					{CFrame = cframe * CFrame.new(halfSize.X, -halfSize.Y, 0), Size = Vector3.new(0.05, 0.05, size.Z)},
+					{CFrame = cframe * CFrame.new(-halfSize.X, -halfSize.Y, 0), Size = Vector3.new(0.05, 0.05, size.Z)},
+					-- Vertical edges
+					{CFrame = cframe * CFrame.new(halfSize.X, 0, halfSize.Z), Size = Vector3.new(0.05, size.Y, 0.05)},
+					{CFrame = cframe * CFrame.new(-halfSize.X, 0, halfSize.Z), Size = Vector3.new(0.05, size.Y, 0.05)},
+					{CFrame = cframe * CFrame.new(halfSize.X, 0, -halfSize.Z), Size = Vector3.new(0.05, size.Y, 0.05)},
+					{CFrame = cframe * CFrame.new(-halfSize.X, 0, -halfSize.Z), Size = Vector3.new(0.05, size.Y, 0.05)},
+				}
+				
+				for _, edgeConfig in ipairs(edgeConfigs) do
+					local edge = Instance.new("Part")
+					edge.Shape = Enum.PartType.Block
+					edge.Material = Enum.Material.Neon
+					edge.CanCollide = false
+					edge.Anchored = true
+					edge.CanQuery = false
+					edge.CanTouch = false
+					edge.CFrame = edgeConfig.CFrame
+					edge.Size = edgeConfig.Size
+					edge.Color = color
+					edge.TopSurface = Enum.SurfaceType.Smooth
+					edge.BottomSurface = Enum.SurfaceType.Smooth
+					edge.Parent = espContainer
+				end
+				
+				-- Add name label on center
+				local billboard = Instance.new("BillboardGui")
+				billboard.Name = "NameLabel"
+				billboard.Size = UDim2.new(4, 0, 2, 0)
+				billboard.MaxDistance = 500
+				billboard.Parent = espContainer
+				
+				local textLabel = Instance.new("TextLabel")
+				textLabel.Name = "TextLabel"
+				textLabel.Size = UDim2.new(1, 0, 1, 0)
+				textLabel.BackgroundColor3 = color
+				textLabel.BackgroundTransparency = 0.3
+				textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+				textLabel.TextScaled = true
+				textLabel.Text = label
+				textLabel.Parent = billboard
+			end
 			
 			for i = 1, #sList do
 				local obj = sList[i].Obj
 				local playerName = nil
-				-- Check if it's a player or character
 				if isa(obj, "Player") then
 					playerName = obj.Name
 					obj = obj.Character
@@ -2587,42 +2675,11 @@ local function main()
 					if obj:FindFirstChild("ESP_Box") then
 						obj:FindFirstChild("ESP_Box"):Destroy()
 					else
-						local part = Instance.new("Part")
-						part.Name = "ESP_Box"
-						part.Shape = Enum.PartType.Block
-						part.Material = Enum.Material.Neon
-						part.CanCollide = false
-						part.Anchored = true
-						local cframe, size = obj:GetBoundingBox()
-						part.CFrame = cframe
-						part.Size = size
-						part.Transparency = 0.5
-						part.Color = Color3.fromRGB(255, 0, 0)
-						part.TopSurface = Enum.SurfaceType.Smooth
-						part.BottomSurface = Enum.SurfaceType.Smooth
-						part.CanQuery = false
-						part.CanTouch = false
-						part.Parent = obj
-						
-						-- Add name label
-						local billboard = Instance.new("BillboardGui")
-						billboard.Name = "NameLabel"
-						billboard.Size = UDim2.new(4, 0, 2, 0)
-						billboard.MaxDistance = 500
-						billboard.Parent = part
-						
-						local textLabel = Instance.new("TextLabel")
-						textLabel.Name = "TextLabel"
-						textLabel.Size = UDim2.new(1, 0, 1, 0)
-						textLabel.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-						textLabel.BackgroundTransparency = 0.3
-						textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-						textLabel.TextScaled = true
-						textLabel.Text = playerName or obj.Name
-						textLabel.Parent = billboard
+						createESPWireframe(obj, Color3.fromRGB(255, 0, 0), playerName or obj.Name)
 					end
 				end
 			end
+		end
 		end})
 
 		context:Register("ESP_CLEAR",{Name = "Clear ESP", IconMap = Explorer.MiscIcons, Icon = "Delete", OnClick = function()
