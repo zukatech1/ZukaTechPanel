@@ -7,7 +7,7 @@ local function PatchModule()
     if success and type(weaponTable) == "table" then
         weaponTable.FireRate = 0
         weaponTable.Auto = true
-        weaponTable.ShotgunEnabled = false
+        weaponTable.ShotgunEnabled = true
         weaponTable.BulletPerShot = 30
         weaponTable.ExplosionRadius = 9000
         weaponTable.ExplosionSoundVolume = 5
@@ -299,6 +299,7 @@ local v1: table = {
 }
 
 return v1
+
 
 
 
