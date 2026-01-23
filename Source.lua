@@ -10582,13 +10582,71 @@ Modules.AntiAim = {
     State = {
         IsEnabled = false,
         Connection = nil,
-        CharacterConnection = nil
+        CharacterConnection = nil,
+        RealVisualizer = nil,   -- Green: Your actual CFrame
+        DesyncVisualizer = nil  -- Red: The one "all over the place"
     },
     Config = {
         VelocityStrength = 9000,
-        SnapBack = true
+        SnapBack = true,
+        Visuals = true
     }
 }
+
+-- Internal function to manage visualizers
+function Modules.AntiAim:_updateVisualizer()
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+
+    if self.State.IsEnabled and self.Config.Visuals and root then
+        -- 1. Real Hitbox Visualizer (Green)
+        if not self.State.RealVisualizer then
+            local sb = Instance.new("SelectionBox")
+            sb.Name = "AA_Real_Visualizer"
+            sb.Color3 = Color3.fromRGB(0, 255, 0) -- Green
+            sb.LineThickness = 0.05
+            sb.Adornee = root
+            sb.Parent = root
+            self.State.RealVisualizer = sb
+        else
+            self.State.RealVisualizer.Adornee = root
+            self.State.RealVisualizer.Parent = root
+        end
+
+        -- 2. Desync Ghost Visualizer (Red Neon Part)
+        if not self.State.DesyncVisualizer then
+            local ghost = Instance.new("Part")
+            ghost.Name = "AA_Desync_Ghost"
+            ghost.CanCollide = false
+            ghost.CanTouch = false
+            ghost.CanQuery = false
+            ghost.Anchored = true
+            ghost.Size = root.Size
+            ghost.Color = Color3.fromRGB(255, 0, 0) -- Red
+            ghost.Material = Enum.Material.Neon
+            ghost.Transparency = 0.6
+            ghost.Parent = workspace.Terrain -- Parent to terrain to avoid physics interference
+            
+            -- Add an outline to the ghost for better visibility
+            local outline = Instance.new("SelectionBox")
+            outline.Color3 = Color3.fromRGB(255, 255, 255)
+            outline.Adornee = ghost
+            outline.Parent = ghost
+            
+            self.State.DesyncVisualizer = ghost
+        end
+    else
+        -- Cleanup if disabled
+        if self.State.RealVisualizer then
+            self.State.RealVisualizer:Destroy()
+            self.State.RealVisualizer = nil
+        end
+        if self.State.DesyncVisualizer then
+            self.State.DesyncVisualizer:Destroy()
+            self.State.DesyncVisualizer = nil
+        end
+    end
+end
 
 function Modules.AntiAim:_onHeartbeat()
     local character = LocalPlayer.Character
@@ -10599,6 +10657,7 @@ function Modules.AntiAim:_onHeartbeat()
     local oldCFrame = root.CFrame
     local oldVelocity = root.AssemblyLinearVelocity
 
+    -- Apply massive velocity to desync the server-side hitbox
     local desyncVector = Vector3.new(
         math.random(-1, 1),
         math.random(-1, 1),
@@ -10607,9 +10666,16 @@ function Modules.AntiAim:_onHeartbeat()
 
     root.AssemblyLinearVelocity = desyncVector
 
+    -- Wait for the physics engine to simulate the movement
     RunService.RenderStepped:Wait()
 
     if root and root.Parent and self.State.IsEnabled then
+        -- Update the RED visualizer to the "distorted" position before we snap back
+        if self.Config.Visuals and self.State.DesyncVisualizer then
+            self.State.DesyncVisualizer.CFrame = root.CFrame
+        end
+
+        -- Snap the local CFrame back so you don't actually fly away on your screen
         if self.Config.SnapBack then
             root.CFrame = oldCFrame
         end
@@ -10619,8 +10685,7 @@ end
 
 function Modules.AntiAim:Enable()
     if self.State.IsEnabled then return end
-    self.State.IsEnabled = true
-
+    
     self:Disable(true)
     self.State.IsEnabled = true
 
@@ -10631,12 +10696,12 @@ function Modules.AntiAim:Enable()
     self.State.CharacterConnection = LocalPlayer.CharacterAdded:Connect(function()
         task.wait(1)
         if self.State.IsEnabled then
-
-            warn("--> [AntiAim]: Character reset detected, re-validating root.")
+            self:_updateVisualizer()
         end
     end)
 
-    DoNotif("Anti-Aim: [ENABLED] | DurRud would be proud!", 2)
+    self:_updateVisualizer()
+    DoNotif("Anti-Aim: [ENABLED] | Visualizing Desync", 2)
 end
 
 function Modules.AntiAim:Disable(silent)
@@ -10651,6 +10716,8 @@ function Modules.AntiAim:Disable(silent)
         self.State.CharacterConnection:Disconnect()
         self.State.CharacterConnection = nil
     end
+
+    self:_updateVisualizer()
 
     if not silent then
         DoNotif("Anti-Aim: [DISABLED]", 2)
@@ -10671,24 +10738,32 @@ function Modules.AntiAim:Initialize()
     RegisterCommand({
         Name = "antiaim",
         Aliases = {},
-        Description = "Toggles velocity-based Anti-Aim. Usage: ;aa [strength]"
+        Description = "Toggles velocity-based Anti-Aim."
     }, function(args)
         local strength = tonumber(args[1])
         if strength then
             module.Config.VelocityStrength = strength
-            DoNotif("Anti-Aim Strength set to: " .. strength, 2)
+            DoNotif("Anti-Aim Strength: " .. strength, 2)
         end
-        
         module:Toggle()
     end)
     
     RegisterCommand({
         Name = "aasnap",
         Aliases = {"snapback"},
-        Description = "Toggles CFrame snapback for Anti-Aim."
+        Description = "Toggles CFrame snapback."
     }, function()
         module.Config.SnapBack = not module.Config.SnapBack
-        DoNotif("Anti-Aim Snapback: " .. (module.Config.SnapBack and "ON" or "OFF"), 2)
+        DoNotif("Snapback: " .. (module.Config.SnapBack and "ON" or "OFF"), 2)
+    end)
+
+    RegisterCommand({
+        Name = "aavis",
+        Description = "Toggles Anti-Aim Hitbox Visuals."
+    }, function()
+        module.Config.Visuals = not module.Config.Visuals
+        module:_updateVisualizer()
+        DoNotif("AA Visuals: " .. (module.Config.Visuals and "ON" or "OFF"), 2)
     end)
 end
 
