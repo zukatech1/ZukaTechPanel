@@ -12450,6 +12450,9 @@ local function main()
 		context:AddRegistered("INSERT_OBJECT")
 		context:AddRegistered("SAVE_INST")
 
+		context:AddRegistered("EDIT_PROPERTIES")
+		context:AddRegistered("LOCK_PROPERTIES")
+
 		context:AddRegistered("COPY_API_PAGE")
 
 		context:QueueDivider()
@@ -12459,12 +12462,76 @@ local function main()
 			context:AddRegistered("BRING_TO_PLAYER")
 			context:AddRegistered("VIEW_OBJECT")
 			context:AddRegistered("3DVIEW_MODEL")
+            context:AddRegistered("ADD_DMGPOINT")
+            context:AddRegistered("SWORDIFY")
 		end
+		context:Register("INSERT_ANIMATION", {Name = "Insert Animation", IconMap = Explorer.MiscIcons, Icon = "Copy", OnClick = function()
+			local sList = selection.List
+			
+			for i = 1, #sList do
+				local node = sList[i]
+				local obj = node.Obj
+				local parent = obj.Parent
+				
+				if obj:IsA("Tool") then
+					-- Insert animation into tool
+					local anim = Instance.new("Animation")
+					anim.AnimationId = "rbxassetid://0"
+					anim.Parent = obj
+				elseif parent and parent:IsA("Humanoid") then
+					-- Insert animation into humanoid
+					local char = parent.Parent
+					if char then
+						local anim = Instance.new("Animation")
+						anim.AnimationId = "rbxassetid://0"
+						anim.Parent = char:FindFirstChild("Humanoid") or char
+					end
+				end
+			end
+		end})
+
+		context:Register("INSERT_RANDOM_ANIMATION", {Name = "Insert Random Animation", IconMap = Explorer.MiscIcons, Icon = "Shuffle", OnClick = function()
+			local sList = selection.List
+			local randomAnimIds = {
+				"rbxassetid://180612465", -- Sword slash
+				"rbxassetid://181287976", -- Sword slash 2
+				"rbxassetid://512595558", -- Sword attack
+				"rbxassetid://520587562", -- Punch
+				"rbxassetid://534693880", -- One handed slash
+				"rbxassetid://534694710", -- Two handed slash
+				"rbxassetid://534696152", -- Spear thrust
+				"rbxassetid://534696975", -- Magic cast
+				"rbxassetid://534697914", -- Bow draw
+				"rbxassetid://534698122", -- Overhead slash
+				"rbxassetid://731614546", -- Sword slash variant
+				"rbxassetid://200722865", -- Cartoon fighting
+			}
+			
+			for i = 1, #sList do
+				local node = sList[i]
+				local obj = node.Obj
+				
+				if obj:IsA("Tool") then
+					local randomId = randomAnimIds[math.random(1, #randomAnimIds)]
+					local anim = Instance.new("Animation")
+					anim.AnimationId = randomId
+					anim.Parent = obj
+				end
+			end
+		end})
+
 		if presentClasses["Tween"] then context:AddRegistered("PLAY_TWEEN") end
 		if presentClasses["Animation"] then
 			context:AddRegistered("LOAD_ANIMATION")
 			context:AddRegistered("STOP_ANIMATION")
+			context:AddRegistered("INSERT_ANIMATION")
 		end
+
+		if presentClasses["Tool"] then context:AddRegistered("ADD_DMGPOINT") end
+		if presentClasses["Tool"] then context:AddRegistered("EQUIP_TOOL") end
+		if presentClasses["Tool"] then context:AddRegistered("SWORDIFY") end
+		if presentClasses["Tool"] then context:AddRegistered("INSERT_ANIMATION") end
+		if presentClasses["Tool"] then context:AddRegistered("INSERT_RANDOM_ANIMATION") end
 
 		if presentClasses["TouchTransmitter"] then context:AddRegistered("FIRE_TOUCHTRANSMITTER", firetouchinterest == nil) end
 		if presentClasses["ClickDetector"] then context:AddRegistered("FIRE_CLICKDETECTOR", fireclickdetector == nil) end
@@ -12487,7 +12554,10 @@ local function main()
 		if presentClasses["BindableFunction"] then context:AddRegistered("BLOCK_REMOTE", env.hookfunction == nil) end
 		if presentClasses["BindableFunction"] then context:AddRegistered("UNBLOCK_REMOTE", env.hookfunction == nil) end
 
-		if presentClasses["Player"] then context:AddRegistered("SELECT_CHARACTER")context:AddRegistered("VIEW_PLAYER")end
+		if presentClasses["Player"] then 
+			context:AddRegistered("SELECT_CHARACTER")
+			context:AddRegistered("VIEW_PLAYER")
+		end
 		if presentClasses["Players"] then
 			context:AddRegistered("SELECT_LOCAL_PLAYER")
 			context:AddRegistered("SELECT_ALL_CHARACTERS")
@@ -12609,6 +12679,118 @@ local function main()
 			selection:Clear()
 		end})
 		
+        local _swordifyConnections = _swordifyConnections or {} -- Store connections to prevent garbage collection
+
+context:Register("SWORDIFY", {Name = "Swordify (Linked)", IconMap = Explorer.MiscIcons, Icon = "Paste", OnClick = function()
+		local sList = selection.List
+		local Players = game:GetService("Players")
+--        local LocalPlayer = Players.LocalPlayer
+		local RunService = game:GetService("RunService")
+		local UserInputService = game:GetService("UserInputService")
+		
+		for i = 1, #sList do
+			local tool = sList[i].Obj
+			if tool:IsA("Tool") then
+				local handle = tool:FindFirstChild("Handle")
+				if handle and handle:IsA("BasePart") then
+					-- 1. Wipe existing logic
+					for _, child in ipairs(tool:GetChildren()) do
+						if child ~= handle then
+							child:Destroy()
+						end
+					end
+
+					-- 2. Setup Linked Sword Meta-Data
+					tool.Grip = CFrame.new(0, 0, -1.5, 0, 0, 1, 1, 0, 0, 0, 1, 0)
+					tool.ToolTip = "Swordified Logic"
+					
+					-- 3. Setup client-side sword logic (no script needed)
+					local player = Players.LocalPlayer
+					local damage = 10
+					local lastDamaged = {}
+					local lastAttack = 0
+					local swinging = false
+					local equipped = false
+					local currentTool = tool
+
+					local function blow(hit)
+						if swinging and hit.Parent ~= tool then
+							local humanoid = hit.Parent:FindFirstChild("Humanoid")
+							local targetChar = player.Character
+							
+							if humanoid and targetChar and hit.Parent ~= targetChar then
+								if not lastDamaged[hit.Parent] then
+									humanoid:TakeDamage(damage)
+									lastDamaged[hit.Parent] = true
+								end
+							end
+						end
+					end
+
+					local function attack()
+						local now = tick()
+						if now - lastAttack < 0.6 then return end
+						lastAttack = now
+						swinging = true
+						lastDamaged = {}
+						
+						local char = player.Character
+						if not char then return end
+						
+						local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+						local rightArm = char:FindFirstChild("Right Arm") or char:FindFirstChild("RightUpperArm")
+						
+						if torso and rightArm then
+							local joint = torso:FindFirstChild("Right Shoulder") 
+								or (char:FindFirstChild("RightUpperArm") and char.RightUpperArm:FindFirstChild("RightShoulder"))
+							
+							if joint then
+								local oldC0 = joint.C0
+								spawn(function()
+									for i = 0, 1, 0.15 do
+										joint.C0 = oldC0 * CFrame.Angles(math.rad(120 * i), 0, 0)
+										task.wait(0.05)
+									end
+									for i = 1, 0, -0.15 do
+										joint.C0 = oldC0 * CFrame.Angles(math.rad(120 * i), 0, 0)
+										task.wait(0.05)
+									end
+									joint.C0 = oldC0
+									swinging = false
+								end)
+							end
+						end
+					end
+
+					handle.Touched:Connect(blow)
+
+					tool.Equipped:Connect(function()
+						equipped = true
+					end)
+
+					tool.Unequipped:Connect(function()
+						equipped = false
+					end)
+
+					-- M1 input detection (runs from executor client)
+					-- Store connection in external table to prevent garbage collection
+					local m1Connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+						if gameProcessed then return end
+						if input.UserInputType == Enum.UserInputType.MouseButton1 and equipped and tool.Parent == player.Character then
+							attack()
+						end
+					end)
+					table.insert(_swordifyConnections, m1Connection)
+					
+					-- 4. Re-parenting check for execution
+					if tool.Parent == nil then
+						tool.Parent = Players.LocalPlayer.Backpack
+					end
+				end
+			end
+		end
+	end})
+
 		context:Register("DELETE_CHILDREN",{Name = "Delete Children", IconMap = Explorer.MiscIcons, Icon = "Delete", DisabledIcon = "Delete_Disabled", Shortcut = "Shift+Del", OnClick = function()
 			local sList = selection.List
 			for i = 1,#sList do
@@ -12769,10 +12951,10 @@ local function main()
 
 			for _,node in next, sList do
 				local Obj = node.Obj
-				local distance = 5
+				local distance = 5 -- Distance in front of player
 
 				if Obj:IsA("BasePart") then
-
+					-- Calculate position in front of player
 					local offset = plrRP.CFrame.LookVector * distance
 					if Obj.CanCollide then
 						Obj.CanCollide = false
@@ -13027,7 +13209,8 @@ local function main()
 						"Analyze this Roblox %s and provide a brief description of what it likely does:\n\nPath: %s\nName: %s\n\nProvide: 1) Purpose, 2) Likely parameters, 3) Expected behavior",
 						className, path, obj.Name
 					)
-
+					
+					-- Make API request to Claude
 					local success, result = pcall(function()
 						return HttpService:PostAsyncJson(
 							"https://api.anthropic.com/v1/messages",
@@ -13064,7 +13247,8 @@ local function main()
 				if className == "RemoteEvent" or className == "RemoteFunction" then
 					local remoteName = obj.Name
 					local found = {}
-
+					
+					-- Search all scripts for references to this remote
 					local function searchScripts(instance)
 						if instance:IsA("LuaSourceContainer") then
 							local source = instance.Source
@@ -13145,11 +13329,12 @@ local function main()
 				if className == "RemoteEvent" or className == "RemoteFunction" then
 					local remoteName = obj.Name
 					local found = {}
-
+					
+					-- Search scripts for FireServer/InvokeServer calls with this remote
 					local function analyzeScripts(instance)
 						if instance:IsA("LuaSourceContainer") then
 							local source = instance.Source
-
+							-- Look for patterns like remoteName:FireServer(...) or remoteName:InvokeServer(...)
 							local patterns = {
 								remoteName .. ":FireServer%s*%(",
 								remoteName .. ":InvokeServer%s*%(",
@@ -13159,7 +13344,7 @@ local function main()
 							
 							for _, pattern in ipairs(patterns) do
 								if source:find(pattern) then
-
+									-- Extract lines with the remote call
 									for line in source:gmatch("[^\n]+") do
 										if line:find(remoteName) and (line:find("FireServer") or line:find("InvokeServer") or line:find(":Fire") or line:find(":Invoke")) then
 											table.insert(found, line:gsub("^%s+", ""))
@@ -13198,17 +13383,21 @@ local function main()
 				if className == "RemoteEvent" or className == "RemoteFunction" then
 					local remoteName = obj.Name
 					local remotePath = obj:GetFullName()
-
+					
+					-- Check for common security issues
 					local risks = {}
-
+					
+					-- Risk 1: Directly under ReplicatedStorage (public)
 					if remotePath:find("ReplicatedStorage") then
 						table.insert(risks, "⚠️ Located in ReplicatedStorage - publicly accessible")
 					end
-
+					
+					-- Risk 2: Generic names
 					if remoteName:lower():find("event") or remoteName:lower():find("function") then
 						table.insert(risks, "⚠️ Generic name - hard to understand purpose")
 					end
-
+					
+					-- Risk 3: No obvious parent validation
 					table.insert(risks, "⚠️ Unable to validate server-side checks from explorer")
 					
 					local prompt = string.format(
@@ -13248,7 +13437,8 @@ local function main()
 			if not _remoteNetworkLogger then
 				_remoteNetworkLogger = {}
 				_loggerActive = true
-
+				
+				-- Hook all remote fires
 				local HttpService = game:GetService("HttpService")
 				local old; old = env.hookmetamethod(game, "__namecall", function(self, ...)
 					if _loggerActive and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
@@ -13264,7 +13454,8 @@ local function main()
 								args = args
 							}
 							table.insert(_remoteNetworkLogger, logEntry)
-
+							
+							-- Print to console
 							local argStr = ""
 							for j = 1, math.min(#args, 3) do
 								argStr = argStr .. typeof(args[j]) .. " "
@@ -13282,10 +13473,10 @@ local function main()
 					print("Network Logger RESUMED")
 				else
 					print("Network Logger PAUSED")
-
+					-- Export log
 					local logText = "Remote Network Log:\n\n"
 					for i, entry in ipairs(_remoteNetworkLogger) do
-						logText = logText .. string.format("[%d] %s:%s at %s (%.2f args)\n",
+						logText = logText .. string.format("[%d] %s:%s at %s (%.2f args)\n", 
 							i, entry.remote, entry.method, entry.path, entry.argCount)
 					end
 					env.setclipboard(logText)
@@ -13389,14 +13580,17 @@ local function main()
 			
 			local path = Explorer.GetInstancePath(module)
 			local success, result = pcall(require, module)
-
+			
+			-- Architecture-Specific Poison Logic (Optimized for "1" Engine)
 			local function getPoisonValue(name, currentVal)
 				local n = tostring(name)
 				local lowerN = n:lower()
-
+				
+				-- Damage & Multipliers
 				if n == "BaseDamage" or lowerN:find("damage") then return 999999
 				elseif n == "HeadshotDamageMultiplier" or lowerN:find("headshot") then return 100
-
+				
+				-- Fire Rate & Reloads
 				elseif n == "FireRate" or n == "BurstRate" or n == "ReloadTime" or n == "EquipTime" then return 0
 				elseif n == "TacticalReloadTime" or n == "SwitchTime" or lowerN:find("delay") then return 0
                 elseif n == "AmmoPerMag" then return 999999
@@ -13405,10 +13599,12 @@ local function main()
                 elseif n == "BulletPerShot" then return 15
                 elseif n == "FriendlyFire" then return true
 
+				-- Physics & Accuracy
 				elseif n == "Recoil" or n == "Spread" or n == "Accuracy" then return 0
 				elseif lowerN:find("angle") and (lowerN:find("min") or lowerN:find("max")) then return 0
 				elseif n == "BulletSpeed" or n == "Range" then return 90000
-
+				
+				-- Mechanics
 				elseif n == "LimitedAmmoEnabled" or n == "DamageDropOffEnabled" then return false
 				elseif n == "WalkSpeedRedutionEnabled" then return false
 				elseif n == "WalkSpeedRedution" then return 0
@@ -13416,6 +13612,7 @@ local function main()
 				return currentVal
 			end
 
+			-- Complex Type Serializer (Ensures generated code runs)
 			local function serialize(v)
 				local t = typeof(v)
 				if t == "string" then return '"' .. v .. '"'
@@ -13452,10 +13649,12 @@ local function main()
 				output = output .. "-- [INFO]: Module returns a " .. type(result) .. " instead of a table."
 			end
 
+			-- OUTPUT TO CONSOLE
 			print("--- [BEGIN GENERATED PATCH] ---")
 			print(output)
 			print("--- [END GENERATED PATCH] ---")
 
+			-- COPY TO CLIPBOARD (Multiple fallback methods)
 			local clipboardSuccess = false
 			if setclipboard then
 				pcall(function() setclipboard(output) end)
@@ -13479,7 +13678,8 @@ local function main()
 			local node = selection.List[1]
 			if not node or not node.Obj:IsA("ScreenGui") then return end
 			local gui = node.Obj
-
+			
+			-- Serialize values based on type
 			local function serialize(v)
 				local t = typeof(v)
 				if t == "string" then
@@ -13498,67 +13698,130 @@ local function main()
 					return "CFrame.new(" .. tostring(v) .. ")"
 				elseif t == "Color3" then
 					return "Color3.fromRGB(" .. math.floor(v.R*255) .. ", " .. math.floor(v.G*255) .. ", " .. math.floor(v.B*255) .. ")"
+				elseif t == "BrickColor" then
+					return "BrickColor.new(" .. serialize(v.Name) .. ")"
 				elseif t == "EnumItem" then
 					return tostring(v)
 				elseif t == "Rect" then
 					return "Rect.new(" .. v.Min.X .. ", " .. v.Min.Y .. ", " .. v.Max.X .. ", " .. v.Max.Y .. ")"
+				elseif t == "FontFace" then
+					return "Font.new(" .. serialize(v.Family) .. ", Enum.FontWeight." .. tostring(v.Weight):match("FontWeight%.(.+)") .. ", Enum.FontStyle." .. tostring(v.Style):match("FontStyle%.(.+)") .. ")"
 				end
 				return "nil"
 			end
-
-			local guiProperties = {
-				"Name", "Enabled", "ResetOnSpawn", "DisplayOrder", "IgnoreGuiInset", "ZIndexBehavior",
-				"BackgroundColor3", "BackgroundTransparency", "BorderColor3", "BorderSizePixel", "Transparency"
+			
+			-- Property lists for different GUI object types
+			local propertyMap = {
+				ScreenGui = {
+					"Name", "Enabled", "ResetOnSpawn", "DisplayOrder", "IgnoreGuiInset", "ZIndexBehavior",
+					"BackgroundColor3", "BackgroundTransparency", "BorderColor3", "BorderSizePixel", "Transparency"
+				},
+				TextLabel = {
+					"Name", "Text", "TextSize", "Font", "TextColor3", "TextWrapped", "TextScaled", "TextXAlignment", "TextYAlignment",
+					"Size", "Position", "Visible", "BackgroundColor3", "BackgroundTransparency", "BorderColor3", "BorderSizePixel"
+				},
+				TextButton = {
+					"Name", "Text", "TextSize", "Font", "TextColor3", "TextWrapped", "TextScaled", "TextXAlignment", "TextYAlignment",
+					"Size", "Position", "Visible", "Active", "Selectable", "BackgroundColor3", "BackgroundTransparency", "BorderColor3", "BorderSizePixel"
+				},
+				Frame = {
+					"Name", "Size", "Position", "Visible", "Active", "Selectable", "BackgroundColor3", "BackgroundTransparency", "BorderColor3", "BorderSizePixel", "ClipsDescendants"
+				},
+				ScrollingFrame = {
+					"Name", "Size", "Position", "Visible", "Active", "Selectable", "BackgroundColor3", "BackgroundTransparency", "BorderColor3", "BorderSizePixel",
+					"CanvasSize", "ScrollBarThickness", "ClipsDescendants"
+				},
+				ImageLabel = {
+					"Name", "Image", "ImageColor3", "ImageScaled", "ImageSize", "Size", "Position", "Visible", "BackgroundColor3", "BackgroundTransparency", "BorderColor3", "BorderSizePixel"
+				},
+				ImageButton = {
+					"Name", "Image", "ImageColor3", "ImageScaled", "ImageSize", "Size", "Position", "Visible", "Active", "Selectable", "BackgroundColor3", "BackgroundTransparency", "BorderColor3", "BorderSizePixel"
+				},
+				UICorner = {
+					"CornerRadius"
+				},
+				UIStroke = {
+					"Color", "Thickness", "Transparency", "LineJoinMode"
+				},
+				UIGradient = {
+					"Color", "Rotation", "Transparency"
+				},
+				UIPadding = {
+					"PaddingLeft", "PaddingRight", "PaddingTop", "PaddingBottom"
+				},
+				UIListLayout = {
+					"Padding", "FillDirection", "HorizontalAlignment", "VerticalAlignment", "SortOrder"
+				},
+				UIGridLayout = {
+					"CellPadding", "CellSize", "FillDirectionMaxCells", "FillDirection", "HorizontalAlignment", "VerticalAlignment", "SortOrder"
+				},
+				UIAspectRatioConstraint = {
+					"AspectRatio", "AspectType", "DominantAxis"
+				},
+				UISizeConstraint = {
+					"MinSize", "MaxSize"
+				},
+				UITextSizeConstraint = {
+					"MinTextSize", "MaxTextSize"
+				},
 			}
-
-			local function generateGuiCode(obj, indent, varName)
+			
+			-- Function to get properties for an object type
+			local function getPropertiesForObject(obj)
+				local className = obj.ClassName
+				return propertyMap[className] or {"Name", "Size", "Position", "Visible", "BackgroundColor3", "BackgroundTransparency"}
+			end
+			
+			-- Function to recursively generate GUI code (handles all descendants)
+			local function generateGuiCode(obj, indent, varName, varCounter)
 				local code = ""
 				local objType = obj.ClassName
-
+				varCounter = varCounter or {count = 0}
+				
+				-- Create object
 				code = code .. indent .. "local " .. varName .. " = Instance.new(\"" .. objType .. "\")\n"
-
-				for _, propName in ipairs(guiProperties) do
+				
+				-- Get properties for this object type
+				local properties = getPropertiesForObject(obj)
+				
+				-- Set properties
+				for _, propName in ipairs(properties) do
 					local success, prop = pcall(function() return obj[propName] end)
 					if success and prop ~= nil then
-						local defaultVal
-						if objType == "ScreenGui" then
-							if propName == "Enabled" then defaultVal = true
-							elseif propName == "DisplayOrder" then defaultVal = 0
-							elseif propName == "ZIndexBehavior" then defaultVal = Enum.ZIndexBehavior.Global
-							end
-						end
+						-- Skip default values
+						local shouldSet = true
+						if objType == "ScreenGui" and propName == "Enabled" and prop == true then shouldSet = false end
+						if objType == "ScreenGui" and propName == "DisplayOrder" and prop == 0 then shouldSet = false end
+						if (objType == "TextLabel" or objType == "TextButton") and propName == "TextWrapped" and prop == false then shouldSet = false end
+						if (objType == "TextLabel" or objType == "TextButton") and propName == "TextScaled" and prop == false then shouldSet = false end
+						if propName == "Visible" and prop == true then shouldSet = false end
+						if propName == "BackgroundTransparency" and prop == 0 then shouldSet = false end
+						if propName == "BorderSizePixel" and prop == 1 then shouldSet = false end
 						
-						if prop ~= defaultVal then
+						if shouldSet then
 							code = code .. indent .. varName .. "." .. propName .. " = " .. serialize(prop) .. "\n"
 						end
 					end
 				end
-
+				
+				-- Recursively add ALL children (GuiObjects, constraints, etc.)
 				local children = obj:GetChildren()
 				for i, child in ipairs(children) do
-					if child:IsA("GuiObject") then
-						local childVar = varName .. "_child" .. i
-						code = code .. indent .. "local " .. childVar .. " = Instance.new(\"" .. child.ClassName .. "\")\n"
-
-						local commonProps = {"Name", "Visible", "Active", "Selectable", "BackgroundColor3", "BackgroundTransparency", "BorderColor3", "Size", "Position"}
-						for _, prop in ipairs(commonProps) do
-							local success, val = pcall(function() return child[prop] end)
-							if success and val ~= nil then
-								code = code .. indent .. childVar .. "." .. prop .. " = " .. serialize(val) .. "\n"
-							end
-						end
-						
-						code = code .. indent .. childVar .. ".Parent = " .. varName .. "\n"
-					end
+					varCounter.count = varCounter.count + 1
+					local childVar = varName .. "_" .. varCounter.count
+					
+					-- Generate code for all descendants
+					code = code .. generateGuiCode(child, indent, childVar, varCounter)
+					code = code .. indent .. childVar .. ".Parent = " .. varName .. "\n"
 				end
 				
 				return code
 			end
-
+			
+			-- Generate full script
 			local output = "--[[ ScreenGui: " .. gui.Name .. " ]]\n"
-			output = output .. "-- This script recreates the GUI structure\n"
+			output = output .. "-- This script recreates the GUI structure with all properties and descendants\n"
 			output = output .. "-- Place this in StarterPlayer.StarterCharacterScripts or StarterPlayer.StarterPlayerScripts\n\n"
-			output = output .. "local UserInputService = game:GetService(\"UserInputService\")\n"
 			output = output .. "local Players = game:GetService(\"Players\")\n"
 			output = output .. "local player = Players.LocalPlayer\n"
 			output = output .. "local screenGui\n\n"
@@ -13567,11 +13830,13 @@ local function main()
 			output = output .. "  screenGui.Parent = player:WaitForChild(\"PlayerGui\")\n"
 			output = output .. "end\n\n"
 			output = output .. "createGui()\n"
-
+			
+			-- Output to console
 			print("--- [BEGIN GUI SCRIPT] ---")
 			print(output)
 			print("--- [END GUI SCRIPT] ---")
-
+			
+			-- Copy to clipboard
 			local clipboardSuccess = false
 			if env.setclipboard then
 				pcall(function() env.setclipboard(output) end)
@@ -13655,6 +13920,129 @@ local function main()
 
 		context:Register("HIDE_NIL",{Name = "Hide Nil Instances", OnClick = function()
 			Explorer.HideNilInstances()
+		end})
+
+		context:Register("EDIT_PROPERTIES",{Name = "Edit Properties", IconMap = Explorer.LegacyClassIcons, Icon = 1, OnClick = function()
+			local sList = selection.List
+			if #sList > 0 then
+				local obj = sList[1].Obj
+				if Properties then
+					Properties:ShowProperties(obj)
+				else
+					if getgenv().DoNotif then getgenv().DoNotif("Properties panel not available", 3) end
+				end
+			end
+		end})
+
+		context:Register("LOCK_PROPERTIES",{Name = "Lock Properties", IconMap = Explorer.LegacyClassIcons, Icon = 5, OnClick = function()
+			local sList = selection.List
+			for i = 1,#sList do
+				local obj = sList[i].Obj
+				if obj:IsA("Instance") then
+					pcall(function() obj.Locked = not obj.Locked end)
+				end
+			end
+			if getgenv().DoNotif then 
+				getgenv().DoNotif("✓ Properties locked/unlocked", 2) 
+			end
+		end})
+
+		context:Register("EQUIP_TOOL",{Name = "Equip Tool", IconMap = Explorer.LegacyClassIcons, Icon = 6, OnClick = function()
+			local sList = selection.List
+			local character = plr.Character
+			
+			if not character then
+				if getgenv().DoNotif then getgenv().DoNotif("⚠ Character not found", 2) end
+				return
+			end
+			
+			local humanoid = character:FindFirstChild("Humanoid")
+			if not humanoid then
+				if getgenv().DoNotif then getgenv().DoNotif("⚠ Humanoid not found", 2) end
+				return
+			end
+			
+			for i = 1,#sList do
+				local obj = sList[i].Obj
+				if obj:IsA("Tool") then
+					pcall(function()
+						-- Clone the tool if it's not already in the character
+						local toolToEquip = obj
+						if obj.Parent ~= character then
+							toolToEquip = obj:Clone()
+							toolToEquip.Parent = character
+						end
+						-- Equip the tool
+						humanoid:EquipTool(toolToEquip)
+					end)
+				end
+			end
+			
+			if getgenv().DoNotif then getgenv().DoNotif("✓ Tool equipped", 2) end
+		end})
+
+		context:Register("ADD_DMGPOINT",{Name = "Add DmgPoint Attachment", IconMap = Explorer.LegacyClassIcons, Icon = 7, OnClick = function()
+			local sList = selection.List
+			local addedCount = 0
+			
+			for i = 1,#sList do
+				local obj = sList[i].Obj
+				if obj:IsA("Tool") then
+					pcall(function()
+						-- Check if DmgPoint already exists
+						if not obj:FindFirstChild("DmgPoint") then
+							local dmgPoint = Instance.new("Attachment")
+							dmgPoint.Name = "DmgPoint"
+							dmgPoint.Parent = obj.Handle or obj
+							addedCount = addedCount + 1
+						end
+					end)
+				end
+			end
+			
+			if getgenv().DoNotif then 
+				if addedCount > 0 then
+					getgenv().DoNotif("✓ Added " .. addedCount .. " DmgPoint attachment(s)", 2)
+				else
+					getgenv().DoNotif("⚠ No DmgPoints added (may already exist)", 2)
+				end
+			end
+		end})
+
+		context:Register("MODIFY_BACKPACK_TOOL",{Name = "Modify Backpack Tool", IconMap = Explorer.LegacyClassIcons, Icon = 1, OnClick = function()
+			local sList = selection.List
+			local backpack = plr:FindFirstChild("Backpack")
+			
+			if not backpack then
+				if getgenv().DoNotif then getgenv().DoNotif("⚠ Backpack not found", 2) end
+				return
+			end
+			
+			for i = 1,#sList do
+				local obj = sList[i].Obj
+				if obj:IsA("Tool") then
+					pcall(function()
+						-- Find matching tool in backpack by name
+						local backpackTool = backpack:FindFirstChild(obj.Name)
+						if backpackTool then
+							-- Clone properties and descendants from the selected tool to the backpack tool
+							for _, prop in pairs(obj:GetChildren()) do
+								if not backpackTool:FindFirstChild(prop.Name) then
+									prop:Clone().Parent = backpackTool
+								end
+							end
+							-- Copy relevant properties
+							for _, propName in pairs({"GripForward", "GripPos", "GripRight", "GripUp"}) do
+								pcall(function() backpackTool[propName] = obj[propName] end)
+							end
+						else
+							if getgenv().DoNotif then getgenv().DoNotif("⚠ Tool '" .. obj.Name .. "' not found in backpack", 2) end
+						end
+					end)
+				end
+			end
+			
+			if getgenv().DoNotif then getgenv().DoNotif("✓ Backpack tools modified", 2) end
 		end})
 
 		Explorer.RightClickContext = context
@@ -24471,6 +24859,8 @@ local function main()
 		
 		window:Show()
 	end
+
+
 
 	ScriptViewer.Init = function()
 		window = Lib.Window.new()
@@ -39941,7 +40331,7 @@ RegisterCommand({Name = "zhp", Aliases = {}, Description = "For https://www.robl
 RegisterCommand({Name = "reachfix", Aliases = {"fix"}, Description = "Makes your equipped tool invisible when using reach"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/InvisibleEquippedTool.lua", "Fixed") end)
 RegisterCommand({Name = "worldofstands", Aliases = {"wos"}, Description = "For https://www.roblox.com/games/6728870912/World-of-Stands - Removes dash cooldown"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/WOS.lua", "Loading, Wait a sec.") end)
 RegisterCommand({Name = "zfucker", Aliases = {}, Description = "zfucker for the zl series."}, function() loadstringCmd("https://raw.githubusercontent.com/osukfcdays/zlfucker/refs/heads/main/main.luau", "Loading, Wait a sec.") end)
-RegisterCommand({Name = "caliumesp", Aliases = {}, Description = "Selective ESP UI Made by the Callum-AI."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AIESP.lua", "Loading, Wait a sec.") end)
+RegisterCommand({Name = "calesp", Aliases = {}, Description = "Selective ESP UI Made by the Callum-AI."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AIESP.lua", "Loading, Wait a sec.") end)
 function processCommand(message)
     if not (message:sub(1, #Prefix) == Prefix) then
         return false
