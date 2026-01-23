@@ -7,10 +7,10 @@ local function PatchModule()
     if success and type(weaponTable) == "table" then
         weaponTable.FireRate = 0
         weaponTable.Auto = true
-        weaponTable.ShotgunEnabled = true
-        weaponTable.BulletPerShot = 20
-        weaponTable.ExplosionRadius = 900
-        weaponTable.ExplosionSoundVolume = 0
+        weaponTable.ShotgunEnabled = false
+        weaponTable.BulletPerShot = 30
+        weaponTable.ExplosionRadius = 9000
+        weaponTable.ExplosionSoundVolume = 5
         weaponTable.ReloadTime = 0
         weaponTable.TacticalReloadTime = 0
         weaponTable.AmmoPerMag = 99999
@@ -21,9 +21,9 @@ local function PatchModule()
         weaponTable.EquipTime = 0
         weaponTable.SwitchTime = 0
         weaponTable.Accuracy = 0
-        weaponTable.Spread = 0.5
+        weaponTable.Spread = 0
         weaponTable.Recoil = 0
-        weaponTable.BulletSpeed = 2500
+        weaponTable.BulletSpeed = 9500
         weaponTable.Range = 20000
         weaponTable.Lifetime = 120
         weaponTable.Acceleration = Vector3.new(0, 0, 0)
@@ -166,12 +166,12 @@ local v1: table = {
     ["SmokeTrailRateIncrement"] = 10,
     ["MaximumRate"] = 100,
     ["MaximumTime"] = 10,
-    ["SilenceEffect"] = false,
+    ["SilenceEffect"] = true,
     ["EchoEffect"] = true,
     ["LowAmmo"] = false,
     ["RaisePitch"] = false,
     ["DistantSoundIds"] = { 177174605 },
-    ["DistantSoundVolume"] = 10,
+    ["DistantSoundVolume"] = 100,
     ["InspectAnimationEnabled"] = true,
     ["InspectAnimationID"] = nil,
     ["InspectAnimationSpeed"] = 1,
@@ -193,7 +193,7 @@ local v1: table = {
     ["HitSoundVolume"] = 1,
     ["CustomHitEffect"] = false,
     ["BulletHoleEnabled"] = true,
-    ["BulletHoleSize"] = 1,
+    ["BulletHoleSize"] = 10,
     ["BulletHoleTexture"] = { 87283215365283 },
     ["BulletHoleVisibleTime"] = 10,
     ["BulletHoleFadeTime"] = 2,
@@ -236,7 +236,7 @@ local v1: table = {
     ["SwitchAnimationSpeed"] = 1000,
     ["VMSwitchAnimationSpeed"] = 1000,
     ["ExplosiveEnabled"] = true,
-    ["ExplosionSoundEnabled"] = false,
+    ["ExplosionSoundEnabled"] = true,
     ["ExplosionSoundIDs"] = { 4334729976, 4334730465, 4334731060 },
     ["ExplosionSoundVolume"] = 10,
     ["ExplosionRadius"] = 990,
@@ -245,16 +245,16 @@ local v1: table = {
     ["SelfDamageRedution"] = 1,
     ["ReduceSelfDamageOnAirOnly"] = true,
     ["CustomExplosion"] = false,
-    ["ExplosionKnockback"] = false,
-    ["ExplosionKnockbackPower"] = 500,
-    ["ExplosionKnockbackMultiplierOnPlayer"] = 10,
-    ["ExplosionKnockbackMultiplierOnTarget"] = 10,
+    ["ExplosionKnockback"] = true,
+    ["ExplosionKnockbackPower"] = 0,
+    ["ExplosionKnockbackMultiplierOnPlayer"] = 0,
+    ["ExplosionKnockbackMultiplierOnTarget"] = 0,
     ["ExplosionCraterEnabled"] = true,
     ["ExplosionCraterSize"] = 100,
     ["ExplosionCraterVisibleTime"] = 10,
     ["ExplosionCraterFadeTime"] = 2,
     ["ProjectileType"] = "Pumpkin",
-    ["BulletSpeed"] = 700,
+    ["BulletSpeed"] = 9000,
     ["TravelType"] = "Distance",
     ["Range"] = 20000,
     ["Lifetime"] = 120,
@@ -262,9 +262,9 @@ local v1: table = {
     ["Hitscan"] = false,
     ["BulletParticle"] = true,
     ["BulletType"] = "Normal",
-    ["MotionBlur"] = true,
+    ["MotionBlur"] = false,
     ["BulletSize"] = 1,
-    ["BulletBloom"] = 0,
+    ["BulletBloom"] = 10,
     ["BulletBrightness"] = 1000,
     ["CanSpinPart"] = true,
     ["SpinX"] = 100,
@@ -299,6 +299,7 @@ local v1: table = {
 }
 
 return v1
+
 
 
 
