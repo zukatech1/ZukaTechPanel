@@ -2206,82 +2206,161 @@ Modules.ESP = {
 }
 
 function Modules.ESP:_cleanup()
-    for _, conn in pairs(self.State.Connections) do conn:Disconnect() end
-    for _, data in pairs(self.State.TrackedPlayers) do
-        pcall(function() data.Highlight:Destroy() end)
-        pcall(function() data.Billboard:Destroy() end)
+    -- Disconnect global player listeners
+    for name, conn in pairs(self.State.Connections) do 
+        conn:Disconnect() 
+        self.State.Connections[name] = nil
     end
-    table.clear(self.State.Connections)
+    
+    -- Cleanup all tracked player visuals and their specific connections
+    for player, _ in pairs(self.State.TrackedPlayers) do
+        self:_removePlayerEsp(player)
+    end
+    
     table.clear(self.State.TrackedPlayers)
 end
 
 function Modules.ESP:_createPlayerEsp(player)
-    if player == LocalPlayer or self.State.TrackedPlayers[player] then return end
+    if player == LocalPlayer then return end
+    
+    -- Prevent duplicate tracking logic
+    if self.State.Connections["CharAdded_" .. player.UserId] then return end
 
     local function setupVisuals(character)
-        if self.State.TrackedPlayers[player] then
-            pcall(function() self.State.TrackedPlayers[player].Highlight:Destroy() end)
-            pcall(function() self.State.TrackedPlayers[player].Billboard:Destroy() end)
+        -- Clean up existing visuals for this specific player before rebuilding
+        local existing = self.State.TrackedPlayers[player]
+        if existing then
+            if existing.Highlight then pcall(function() existing.Highlight:Destroy() end) end
+            if existing.Billboard then pcall(function() existing.Billboard:Destroy() end) end
+            if existing.InternalConns then
+                for _, c in pairs(existing.InternalConns) do c:Disconnect() end
+            end
         end
 
-        local head = character:WaitForChild("Head", 2)
-        if not head then return end
+        -- Ensure vital parts exist before proceeding
+        local head = character:WaitForChild("Head", 10)
+        local humanoid = character:WaitForChild("Humanoid", 10)
+        local hrp = character:WaitForChild("HumanoidRootPart", 10)
+        
+        if not head or not humanoid or not hrp then return end
 
-        local highlight = Instance.new("Highlight", character)
-        highlight.FillColor = Color3.fromRGB(255, 60, 60)
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.FillTransparency = 0.8
-        highlight.OutlineTransparency = 0.3
+        local teamColor = player.TeamColor.Color
+        
+        -- Tactical Highlight
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "v_Highlight"
+        highlight.Parent = character
+        highlight.FillColor = teamColor
+        highlight.OutlineColor = Color3.new(1, 1, 1)
+        highlight.FillTransparency = 0.75
+        highlight.OutlineTransparency = 0.1
         highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 
-        local billboard = Instance.new("BillboardGui", head)
+        -- Professional Billboard
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "v_Billboard"
+        billboard.Parent = head
         billboard.Adornee = head
         billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 175, 0, 50)
-        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+        billboard.Size = UDim2.new(0, 200, 0, 60)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.MaxDistance = 2500
+
+        local container = Instance.new("Frame", billboard)
+        container.Size = UDim2.new(1, 0, 1, 0)
+        container.BackgroundTransparency = 1
+
+        -- Slim Health Bar
+        local healthBarBg = Instance.new("Frame", container)
+        healthBarBg.Size = UDim2.new(0, 3, 0.5, 0)
+        healthBarBg.Position = UDim2.new(0.5, -65, 0.25, 0)
+        healthBarBg.BackgroundColor3 = Color3.new(0, 0, 0)
+        healthBarBg.BorderSizePixel = 0
+
+        local healthBar = Instance.new("Frame", healthBarBg)
+        healthBar.Size = UDim2.new(1, 0, 1, 0)
+        healthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
+        healthBar.BorderSizePixel = 0
+
+        -- Info Stack
+        local infoLabel = Instance.new("TextLabel", container)
+        infoLabel.Size = UDim2.new(1, 0, 0.4, 0)
+        infoLabel.Position = UDim2.new(0.5, -55, 0.2, 0)
+        infoLabel.BackgroundTransparency = 1
+        infoLabel.Font = Enum.Font.BuilderSansBold
+        infoLabel.TextColor3 = Color3.new(1, 1, 1)
+        infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+        infoLabel.TextSize = 14
+        infoLabel.Text = player.DisplayName
         
-        local listLayout = Instance.new("UIListLayout", billboard)
-        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        listLayout.Padding = UDim.new(0, -2)
+        local infoStroke = Instance.new("UIStroke", infoLabel)
+        infoStroke.Thickness = 1.5
 
-        local nameLabel = Instance.new("TextLabel", billboard)
-        nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
-        nameLabel.Text = player.Name
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Font = Enum.Font.Code
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.TextScaled = true
-        
-        local nameStroke = Instance.new("UIStroke", nameLabel)
-        nameStroke.Color = Color3.new(0,0,0)
-        nameStroke.Thickness = 1.25
+        local subLabel = Instance.new("TextLabel", container)
+        subLabel.Size = UDim2.new(1, 0, 0.3, 0)
+        subLabel.Position = UDim2.new(0.5, -55, 0.5, 0)
+        subLabel.BackgroundTransparency = 1
+        subLabel.Font = Enum.Font.BuilderSansMedium
+        subLabel.TextColor3 = teamColor
+        subLabel.TextXAlignment = Enum.TextXAlignment.Left
+        subLabel.TextSize = 12
+        subLabel.Text = "DISTANCE: 0m"
 
-        local teamLabel = Instance.new("TextLabel", billboard)
-        teamLabel.Size = UDim2.new(1, 0, 0.5, 0)
-        teamLabel.BackgroundTransparency = 1
-        teamLabel.Font = Enum.Font.Code
-        teamLabel.TextScaled = true
-        teamLabel.Text = player.Team and player.Team.Name or "No Team"
-        teamLabel.TextColor3 = player.Team and player.Team.TeamColor.Color or Color3.fromRGB(200, 200, 200)
+        local subStroke = Instance.new("UIStroke", subLabel)
+        subStroke.Thickness = 1.2
 
-        local teamStroke = Instance.new("UIStroke", teamLabel)
-        teamStroke.Color = Color3.new(0,0,0)
-        teamStroke.Thickness = 1.25
+        -- Dynamic Update Logic
+        local function update()
+            if not hrp or not LocalPlayer.Character then return end
+            local lHrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not lHrp then return end
 
-        self.State.TrackedPlayers[player] = { Highlight = highlight, Billboard = billboard, CharacterAddedConn = nil }
+            -- Smooth Health Update
+            local hp = humanoid.Health / humanoid.MaxHealth
+            healthBar.Size = UDim2.new(1, 0, hp, 0)
+            healthBar.Position = UDim2.new(0, 0, 1 - hp, 0)
+            healthBar.BackgroundColor3 = Color3.fromHSV(hp * 0.35, 1, 1)
+
+            -- Distance Update
+            local dist = (hrp.Position - lHrp.Position).Magnitude
+            subLabel.Text = string.format("%s | %d STUDS", (player.Team and player.Team.Name:upper() or "NEUTRAL"), math.floor(dist))
+        end
+
+        local hConn = humanoid.HealthChanged:Connect(update)
+        local rConn = game:GetService("RunService").Heartbeat:Connect(update)
+
+        self.State.TrackedPlayers[player] = {
+            Highlight = highlight,
+            Billboard = billboard,
+            InternalConns = {hConn, rConn}
+        }
     end
 
-    if player.Character then setupVisuals(player.Character) end
-    local conn = player.CharacterAdded:Connect(setupVisuals)
-    if self.State.TrackedPlayers[player] then self.State.TrackedPlayers[player].CharacterAddedConn = conn end
+    -- Run for current character and future ones
+    if player.Character then task.spawn(setupVisuals, player.Character) end
+    self.State.Connections["CharAdded_" .. player.UserId] = player.CharacterAdded:Connect(function(char)
+        task.spawn(setupVisuals, char)
+    end)
 end
 
 function Modules.ESP:_removePlayerEsp(player)
-    if not self.State.TrackedPlayers[player] then return end
-    pcall(function() self.State.TrackedPlayers[player].Highlight:Destroy() end)
-    pcall(function() self.State.TrackedPlayers[player].Billboard:Destroy() end)
-    if self.State.TrackedPlayers[player].CharacterAddedConn then self.State.TrackedPlayers[player].CharacterAddedConn:Disconnect() end
-    self.State.TrackedPlayers[player] = nil
+    -- Clean visuals
+    local data = self.State.TrackedPlayers[player]
+    if data then
+        if data.Highlight then pcall(function() data.Highlight:Destroy() end) end
+        if data.Billboard then pcall(function() data.Billboard:Destroy() end) end
+        if data.InternalConns then
+            for _, c in pairs(data.InternalConns) do c:Disconnect() end
+        end
+        self.State.TrackedPlayers[player] = nil
+    end
+
+    -- Clean Character listener
+    local charConn = self.State.Connections["CharAdded_" .. player.UserId]
+    if charConn then
+        charConn:Disconnect()
+        self.State.Connections["CharAdded_" .. player.UserId] = nil
+    end
 end
 
 function Modules.ESP:Toggle(argument)
@@ -2289,28 +2368,35 @@ function Modules.ESP:Toggle(argument)
 
     if argument == "players" or argument == "p" or argument == "all" then
         self.State.PlayersEnabled = not self.State.PlayersEnabled
-        DoNotif("Player ESP: " .. (self.State.PlayersEnabled and "ENABLED" or "DISABLED"), 2)
+        DoNotif("Visuals: " .. (self.State.PlayersEnabled and "ACTIVE" or "OFFLINE"), 2)
+        
         if self.State.PlayersEnabled then
-            for _, player in ipairs(Players:GetPlayers()) do self:_createPlayerEsp(player) end
-            self.State.Connections.PlayerAdded = Players.PlayerAdded:Connect(function(p) self:_createPlayerEsp(p) end)
-            self.State.Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(p) self:_removePlayerEsp(p) end)
+            -- Connect to PlayerAdded FIRST to catch anyone joining while we loop
+            self.State.Connections.MainAdded = Players.PlayerAdded:Connect(function(p) 
+                self:_createPlayerEsp(p) 
+            end)
+            self.State.Connections.MainRemoving = Players.PlayerRemoving:Connect(function(p) 
+                self:_removePlayerEsp(p) 
+            end)
+
+            -- Initialize existing players
+            for _, player in ipairs(Players:GetPlayers()) do 
+                self:_createPlayerEsp(player) 
+            end
         else
-            if self.State.Connections.PlayerAdded then self.State.Connections.PlayerAdded:Disconnect(); self.State.Connections.PlayerAdded = nil end
-            if self.State.Connections.PlayerRemoving then self.State.Connections.PlayerRemoving:Disconnect(); self.State.Connections.PlayerRemoving = nil end
-            for player, _ in pairs(self.State.TrackedPlayers) do self:_removePlayerEsp(player) end
+            self:_cleanup()
         end
     else
+        -- Handle specific player toggle
         local targetPlayer = Utilities.findPlayer(argument)
-        if not targetPlayer then
-            return DoNotif("Player '" .. argument .. "' not found.", 3)
-        end
+        if not targetPlayer then return DoNotif("Target not found", 3) end
 
-        if self.State.TrackedPlayers[targetPlayer] then
+        if self.State.TrackedPlayers[targetPlayer] or self.State.Connections["CharAdded_" .. targetPlayer.UserId] then
             self:_removePlayerEsp(targetPlayer)
-            DoNotif("ESP for " .. targetPlayer.Name .. ": DISABLED", 2)
+            DoNotif("ESP Disabled for " .. targetPlayer.DisplayName, 2)
         else
             self:_createPlayerEsp(targetPlayer)
-            DoNotif("ESP for " .. targetPlayer.Name .. ": ENABLED", 2)
+            DoNotif("ESP Enabled for " .. targetPlayer.DisplayName, 2)
         end
     end
 end
