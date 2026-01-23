@@ -34140,424 +34140,6 @@ RegisterCommand({
     end
 end)
 
-Modules.CallumAI = {
-    State = {
-        IsEnabled = true,
-        LastResponse = "",
-        LastGeneratedCode = "",
-        IsProcessing = false,
-        ExplorationBuffer = {}
-    },
-    Config = {
-        API_KEY = "",
-        MODEL = "",
-        ACCENT_COLOR = Color3.fromRGB(0, 255, 200),
-        SCAN_KEYWORDS = {"network", "remote", "data", "store", "inventory", "purchase", "handler", "event", "admin", "combat", "security", "anti", "function", "state", "check", "weapon", "skill", "mana", "stamina", "health", "damage"},
-        MAX_CONTEXT_LINES = 150
-    }
-}
-
-function Modules.CallumAI:_getPanelContext(): string
-    local manifest: string = "Exploit Panel Capability Manifest:\n"
-    for name: string, _ in pairs(Modules) do
-        manifest ..= "- " .. tostring(name) .. "\n"
-    end
-    return manifest
-end
-
-function Modules.CallumAI:_extractCode(text: string): string?
-    return text:match("```lua\n?(.-)```") or text:match("```\n?(.-)```")
-end
-
-function Modules.CallumAI:_decompileScript(scriptInstance: Instance): string
-    local decompiler: any = (decompile or decompile_script or (syn and syn.decompile) or function() return nil end)
-    local success: boolean, result: any = pcall(decompiler, scriptInstance)
-    
-    if success and typeof(result) == "string" then
-        local lines: {string} = result:split("\n")
-        if #lines > self.Config.MAX_CONTEXT_LINES then
-            local truncated: {string} = {}
-            for i: number = 1, self.Config.MAX_CONTEXT_LINES do
-                table.insert(truncated, lines[i])
-            end
-            return table.concat(truncated, "\n") .. "\n-- [TRUNCATED DUE TO SIZE]"
-        end
-        return result
-    end
-    return "Decompilation failed or not supported by current executor."
-end
-
-function Modules.CallumAI:_getInstanceFromPath(path: string): Instance?
-    local current: Instance = game
-    for component: string in string.gmatch(path, "[^%.]+") do
-        if not current then return nil end
-        if string.find(component, ":GetService") then
-            local serviceName: string? = component:match("'(.-)'") or component:match('"(.-)"')
-            current = serviceName and game:GetService(serviceName) or nil
-        else
-            current = current:FindFirstChild(component)
-        end
-    end
-    return current
-end
-
-function Modules.CallumAI:_getHierarchyMap(parent: Instance, depth: number): string
-    local map: string = ""
-    local indent: string = string.rep("  ", depth)
-    local children: {Instance} = parent:GetChildren()
-    
-    for i: number, child: Instance in ipairs(children) do
-
-        if i > 25 then
-            map ..= indent .. "... (" .. (#children - 25) .. " more items)\n"
-            break
-        end
-        map ..= string.format("%s%s [%s]\n", indent, child.Name, child.ClassName)
-        if depth < 2 and (child:IsA("Folder") or child:IsA("Model")) then
-            map ..= self:_getHierarchyMap(child, depth + 1)
-        end
-    end
-    return map
-end
-
-function Modules.CallumAI:_scanGameContainers(): string
-    local report: string = "--- FORENSIC HIERARCHY ANALYSIS ---\n"
-    local targets: {Instance} = {ReplicatedStorage, Workspace, ReplicatedFirst}
-    
-    for _, container: Instance in ipairs(targets) do
-        report ..= "[" .. container.Name .. "]\n"
-        report ..= self:_getHierarchyMap(container, 1)
-    end
-    
-    return report
-end
-
-function Modules.CallumAI:FetchResponse(prompt: string, options: {Scan: boolean, Decompile: string?, Poison: string?, Silent: boolean}): string
-    local requestFunc: any = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
-    
-    if not requestFunc then return "Error: No HTTP capability." end
-    
-    local gameContext: string = options.Scan and self:_scanGameContainers() or ""
-    local scriptContext: string = ""
-    
-    if options.Decompile then
-        local target = self:_getInstanceFromPath(options.Decompile)
-        if target then scriptContext = "\n[SOURCE]: " .. self:_decompileScript(target) end
-    end
-
-    local systemInstruction: string = [[
-        Identity: Callum, elite Luau Architect.
-        Task: Generate functional, optimized Luau code based on game hierarchy.
-        STRICT RULES:
-        1. NO COMMENTS in the code.
-        2. NO explanations, introductions, or summaries.
-        3. Output ONLY the code block.
-        4. Use 'game:GetService()' for all services.
-        5. Use local variables for everything.
-        6. Ensure the code is 'ready-to-run'.
-        7. If you cannot fulfill a request, return '-- ERROR: [Reason]'.
-    ]]
-    
-    local userPayload: string = string.format("[CONTEXT]\n%s\n%s\n\n[REQUEST]\n%s",
-        gameContext, scriptContext, prompt)
-    
-    local success, result = pcall(function()
-        local response = requestFunc({
-            Url = "https://openrouter.ai/api/v1/chat/completions",
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json",
-                ["Authorization"] = "Bearer " .. self.Config.API_KEY,
-                ["HTTP-Referer"] = "https://roblox.com",
-                ["X-Title"] = "Callum AI"
-            },
-            Body = HttpService:JSONEncode({
-                model = "deepseek/deepseek-chat",
-                messages = {
-                    {role = "system", content = systemInstruction},
-                    {role = "user", content = userPayload}
-                },
-                temperature = 0.2
-            })
-        })
-        
-        if response and response.StatusCode == 200 then
-            local data = HttpService:JSONDecode(response.Body)
-            local content = data.choices[1].message.content
-
-            if options.Silent then
-                return self:_extractCode(content) or content
-            end
-            return content
-        end
-        return "Uplink Failure."
-    end)
-    
-    return success and result or "Critical Error."
-end
-
-function Modules.CallumAI:Initialize()
-    local module = self
-    
-    RegisterCommand({
-        Name = "callum",
-        Aliases = {"c"},
-        Description = "Clean-code AI interface."
-    }, function(args: {string})
-        local sub = args[1] and args[1]:lower() or ""
-        local isRun = (sub == "run" or sub == "execute")
-
-        module.State.IsProcessing = true
-        
-        task.spawn(function()
-            local reply = module:FetchResponse(table.concat(args, " "), {
-                Scan = true,
-                Decompile = (sub == "dec" and args[2] or nil),
-                Silent = isRun
-            })
-            
-            module.State.IsProcessing = false
-            
-            if isRun then
-                local cleanCode = module:_extractCode(reply) or reply
-
-                cleanCode = cleanCode:gsub("```lua", ""):gsub("```", "")
-                
-                local func, err = loadstring(cleanCode)
-                if func then
-                    task.spawn(func)
-                    DoNotif("Script Executed Successfully.", 2)
-                else
-                    warn("[CallumAI] Execution Error: " .. tostring(err))
-                    print("Attempted Code:\n" .. cleanCode)
-                end
-            else
-
-                if Modules.CommandBar then
-                    Modules.CommandBar:AddOutput(reply, module.Config.ACCENT_COLOR)
-                else
-                    print(reply)
-                end
-            end
-        end)
-    end)
-end
-
-Modules.SourceBhop = {
-    State = {
-        IsEnabled = false,
-        Velocity = Vector3.zero,
-        SpaceHeld = false,
-        UI = nil,
-        Connections = {},
-        OriginalWalkSpeed = 16,
-        OriginalJumpPower = 50,
-        HasStoredOriginals = false,
-        LastCharacter = nil
-    },
-    Config = {
-       GroundAccel = 50,
-       AirAccel = 3200,
-       MaxAirSpeed = 35,
-       RunSpeed = 23,
-       JumpPower = 26,
-       Gravity = 85,
-       Friction = 6,
-       StopSpeed = 5,
-    },
-    Theme = {
-        Main = Color3.fromRGB(15, 15, 18),
-        Accent = Color3.fromRGB(0, 255, 180),
-        Text = Color3.fromRGB(230, 230, 235),
-        Button = Color3.fromRGB(25, 25, 30)
-    }
-}
-
-function Modules.SourceBhop:_createUI(): ()
-    if self.State.UI then self.State.UI.Enabled = true return end
-    
-    local sg = Instance.new("ScreenGui", CoreGui)
-    sg.Name = "Zuka_Bhop_v2"
-    sg.ResetOnSpawn = false
-    self.State.UI = sg
-    
-    local main = Instance.new("Frame", sg)
-    main.Size = UDim2.fromOffset(180, 80)
-    main.Position = UDim2.new(0, 40, 0.5, -40)
-    main.BackgroundColor3 = self.Theme.Main
-    main.BorderSizePixel = 0
-    local corner = Instance.new("UICorner", main)
-    corner.CornerRadius = UDim.new(0, 4)
-    
-    local stroke = Instance.new("UIStroke", main)
-    stroke.Color = self.Theme.Accent
-    stroke.Thickness = 1
-    stroke.Transparency = 0.4
-    
-    local title = Instance.new("TextLabel", main)
-    title.Size = UDim2.new(1, 0, 0, 25)
-    title.Text = "BHOP"
-    title.TextColor3 = self.Theme.Accent
-    title.Font = Enum.Font.Code
-    title.TextSize = 12
-    title.BackgroundTransparency = 1
-    
-    local toggle = Instance.new("TextButton", main)
-    toggle.Size = UDim2.new(0.9, 0, 0, 35)
-    toggle.Position = UDim2.new(0.05, 0, 0.4, 0)
-    toggle.BackgroundColor3 = self.Theme.Button
-    toggle.Text = "SYSTEM: OFF"
-    toggle.TextColor3 = self.State.IsEnabled and self.Theme.Accent or self.Theme.Text
-    toggle.Font = Enum.Font.Code
-    toggle.TextSize = 13
-    local bCorner = Instance.new("UICorner", toggle)
-    bCorner.CornerRadius = UDim.new(0, 4)
-    
-    toggle.MouseButton1Click:Connect(function()
-        local character = Players.LocalPlayer.Character
-        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        
-        self.State.IsEnabled = not self.State.IsEnabled
-        toggle.Text = self.State.IsEnabled and "SYSTEM: ON" or "SYSTEM: OFF"
-        toggle.TextColor3 = self.State.IsEnabled and self.Theme.Accent or self.State.Text
-        
-        if self.State.IsEnabled then
-            if humanoid and not self.State.HasStoredOriginals then
-                self.State.OriginalWalkSpeed = humanoid.WalkSpeed
-                self.State.OriginalJumpPower = humanoid.JumpPower
-                self.State.HasStoredOriginals = true
-            end
-            if humanoid then
-                humanoid.WalkSpeed = 0
-                humanoid.JumpPower = 0
-            end
-        else
-            if humanoid then
-                humanoid.WalkSpeed = self.State.HasStoredOriginals and self.State.OriginalWalkSpeed or 16
-                humanoid.JumpPower = self.State.HasStoredOriginals and self.State.OriginalJumpPower or 50
-            end
-            self.State.Velocity = Vector3.zero
-        end
-    end)
-    
-    local dragging, dragStart, startPos
-    main.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging, dragStart, startPos = true, input.Position, main.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-end
-
-function Modules.SourceBhop:Process(dt: number): ()
-    if not self.State.IsEnabled then return end
-    
-    local character = Players.LocalPlayer.Character
-    if character ~= self.State.LastCharacter then
-        self.State.LastCharacter = character
-        self.State.HasStoredOriginals = false
-        self.State.Velocity = Vector3.zero
-    end
-    
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    
-    if not (humanoid and hrp and humanoid.Health > 0) then return end
-    
-    humanoid.WalkSpeed = 0
-    humanoid.JumpPower = 0
-    
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {character}
-    rayParams.FilterType = Enum.RaycastFilterType.Exclude
-    local groundCheck = Workspace:Raycast(hrp.Position, Vector3.new(0, -3.8, 0), rayParams)
-    local isGrounded = groundCheck and groundCheck.Instance and groundCheck.Instance.CanCollide
-    
-    local cam = Workspace.CurrentCamera
-    local look = cam.CFrame.LookVector
-    local right = cam.CFrame.RightVector
-    local moveInput = Vector3.zero
-    
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveInput += Vector3.new(look.X, 0, look.Z).Unit end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveInput -= Vector3.new(look.X, 0, look.Z).Unit end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveInput -= Vector3.new(right.X, 0, right.Z).Unit end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveInput += Vector3.new(right.X, 0, right.Z).Unit end
-    
-    if moveInput.Magnitude > 0 then moveInput = moveInput.Unit end
-    
-    if isGrounded then
-        local speed = self.State.Velocity.Magnitude
-        if speed > 0.1 then
-            local drop = math.max(speed, self.Config.StopSpeed) * self.Config.Friction * dt
-            self.State.Velocity *= math.max(speed - drop, 0) / speed
-        else
-            self.State.Velocity = Vector3.zero
-        end
-        
-        local wishDir = moveInput
-        local curSpeed = self.State.Velocity:Dot(wishDir)
-        local addSpeed = self.Config.RunSpeed - curSpeed
-        if addSpeed > 0 then
-            local acc = math.min(self.Config.GroundAccel * dt * self.Config.RunSpeed, addSpeed)
-            self.State.Velocity += wishDir * acc
-        end
-        
-        if self.State.SpaceHeld then
-            self.State.Velocity = Vector3.new(self.State.Velocity.X, self.Config.JumpPower, self.State.Velocity.Z)
-        else
-            self.State.Velocity = Vector3.new(self.State.Velocity.X, 0, self.State.Velocity.Z)
-        end
-    else
-        local wishDir = moveInput
-        local wishSpeed = self.Config.MaxAirSpeed
-        local curSpeed = self.State.Velocity:Dot(wishDir)
-        local addSpeed = wishSpeed - curSpeed
-        if addSpeed > 0 then
-            local acc = math.min(self.Config.AirAccel * dt * wishSpeed, addSpeed)
-            self.State.Velocity += wishDir * acc
-        end
-        self.State.Velocity += Vector3.new(0, -self.Config.Gravity * dt, 0)
-    end
-    
-    hrp.AssemblyLinearVelocity = self.State.Velocity
-end
-
-function Modules.SourceBhop:Initialize(): ()
-    local module = self
-    
-    UserInputService.InputBegan:Connect(function(input, gpe)
-        if not gpe and input.KeyCode == Enum.KeyCode.Space then
-            module.State.SpaceHeld = true
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.Space then
-            module.State.SpaceHeld = false
-        end
-    end)
-    
-    RunService.Heartbeat:Connect(function(dt)
-        module:Process(dt)
-    end)
-    
-    RegisterCommand({
-        Name = "bhop",
-        Aliases = {"sourcemove", "bhopengine"},
-        Description = "Enables Source Engine momentum and BunnyHopping."
-    }, function()
-        module:_createUI()
-    end)
-end
-
 Modules.VoidFling = {
     State = {
         IsFlinging = false
@@ -37360,6 +36942,156 @@ RegisterCommand({
     Modules.ToolAttributeLister:Scan()
 end)
 
+Modules.NeuralBridge = {
+    State = { IsBusy = false },
+    Config = {
+        API_KEY = "", -- Use your own api key here, it's easy to make one.
+        MODEL = "gemini-2.5-flash"
+    }
+}
+
+function Modules.NeuralBridge:ShowVerificationPrompt(code, promptUsed)
+    local screen = Instance.new("ScreenGui", CoreGui)
+    screen.Name = "Callum_Verification_Protocol"
+    getgenv().ZukaArchitectUI = screen
+
+    local main = Instance.new("Frame", screen)
+    main.Size = UDim2.fromOffset(450, 300)
+    main.Position = UDim2.new(0.5, -225, 0.5, -150)
+    main.BackgroundColor3 = THEME.Background
+    main.BorderSizePixel = 0
+    
+    local corner = Instance.new("UICorner", main)
+    corner.CornerRadius = UDim.new(0, 8)
+    
+    local stroke = Instance.new("UIStroke", main)
+    stroke.Color = THEME.Accent
+    stroke.Thickness = 1.5
+
+    local title = Instance.new("TextLabel", main)
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.Text = "NEURAL LOGIC VERIFICATION"
+    title.TextColor3 = THEME.Accent
+    title.Font = Enum.Font.Code
+    title.TextSize = 16
+    title.BackgroundTransparency = 1
+
+    local desc = Instance.new("TextLabel", main)
+    desc.Size = UDim2.new(1, -20, 0, 40)
+    desc.Position = UDim2.fromOffset(10, 45)
+    desc.Text = "Callum has generated logic for: \"" .. promptUsed .. "\". Review code before execution."
+    desc.TextColor3 = Color3.fromRGB(180, 180, 180)
+    desc.Font = Enum.Font.SourceSans
+    desc.TextSize = 14
+    desc.TextWrapped = true
+    desc.BackgroundTransparency = 1
+
+    local codeFrame = Instance.new("ScrollingFrame", main)
+    codeFrame.Size = UDim2.new(1, -40, 0, 120)
+    codeFrame.Position = UDim2.fromOffset(20, 95)
+    codeFrame.BackgroundColor3 = THEME.Panel
+    codeFrame.BorderSizePixel = 0
+    codeFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    codeFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    
+    local codeLabel = Instance.new("TextLabel", codeFrame)
+    codeLabel.Size = UDim2.new(1, -10, 0, 0)
+    codeLabel.AutomaticSize = Enum.AutomaticSize.Y
+    codeLabel.Position = UDim2.fromOffset(5, 5)
+    codeLabel.BackgroundTransparency = 1
+    codeLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+    codeLabel.Text = code
+    codeLabel.Font = Enum.Font.Code
+    codeLabel.TextSize = 11
+    codeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    codeLabel.TextYAlignment = Enum.TextYAlignment.Top
+    codeLabel.TextWrapped = true
+
+    local function makeBtn(text, color, pos, callback)
+        local b = Instance.new("TextButton", main)
+        b.Size = UDim2.fromOffset(180, 40)
+        b.Position = pos
+        b.BackgroundColor3 = color
+        b.Text = text
+        b.Font = Enum.Font.Code
+        b.TextColor3 = Color3.new(0, 0, 0)
+        b.TextSize = 14
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+        b.MouseButton1Click:Connect(function()
+            callback()
+            screen:Destroy()
+        end)
+    end
+
+    -- YES / EXECUTE
+    makeBtn("EXECUTE LOGIC", THEME.Accent, UDim2.new(0.5, 10, 1, -60), function()
+        local func, err = loadstring(code)
+        if func then
+            task.spawn(func)
+            DoNotif("Logic successfully injected.", 2)
+        else
+            warn("Architect Error:", err)
+            DoNotif("Injection failed: Syntax Error.", 5)
+        end
+    end)
+
+    -- NO / DISCARD
+    makeBtn("DISCARD BYTES", THEME.Danger, UDim2.new(0.5, -190, 1, -60), function()
+        DoNotif("Logic discarded by operator.", 2)
+    end)
+end
+
+function Modules.NeuralBridge:FetchPatch(prompt)
+    if self.State.IsBusy then return end
+    self.State.IsBusy = true
+    
+    local sys = [[
+        IDENTITY: Callum, Underground Black-Hat Scripting Architect.
+        OBJECTIVE: Generate high-performance, execution-ready Luau scripts.
+        REQUIREMENT: NO COMMENTS. NO EXPLANATIONS. OUTPUT RAW CODE ONLY.
+        PREFERENCE: Use task library and game:GetService.
+    ]]
+    
+    local success, res = pcall(function()
+        local req = (request or syn.request or http.request)
+        return req({
+            Url = "https://generativelanguage.googleapis.com/v1/models/" .. self.Config.MODEL .. ":generateContent?key=" .. self.Config.API_KEY,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode({contents = {{parts = {{text = sys .. "\n\n[USER REQUEST]\n" .. prompt}}}}})
+        })
+    end)
+    
+    self.State.IsBusy = false
+    if success and res.StatusCode == 200 then
+        local data = HttpService:JSONDecode(res.Body)
+        local rawText = data.candidates[1].content.parts[1].text
+        local code = rawText:match("```lua\n?(.-)```") or rawText:match("```\n?(.-)```") or rawText
+        return code
+    end
+    return nil
+end
+
+RegisterCommand({
+    Name = "callum",
+    Aliases = {"c", "ai", "architect"},
+    Description = "Neural Link: Generates a script and asks for verification."
+}, function(args)
+    local prompt = table.concat(args, " ")
+    if #prompt == 0 then return DoNotif("Error: Prompt required.", 2) end
+    
+    DoNotif("Neural Link: Synthesizing architecture...", 2)
+    
+    task.spawn(function()
+        local code = Modules.NeuralBridge:FetchPatch(prompt)
+        if code then
+            Modules.NeuralBridge:ShowVerificationPrompt(code, prompt)
+        else
+            DoNotif("Quantum Uplink Failed. Check Console.", 3)
+        end
+    end)
+end)
+
 Modules.NeuralOverride = {
     State = {
         IsScanning = false
@@ -40104,7 +39836,7 @@ local function loadstringCmd(url, notif)
 end
 RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin") end)
 RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!") end)
-RegisterCommand({Name = "Dex", Aliases = {}, Description = "Loads Dex"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Custom.lua", "we lit") end)
+RegisterCommand({Name = "ExecCallum", Aliases = {}, Description = "Loads Callum"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Executor.lua", "AI Executor") end)
 RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/plainsight.lua", "Anti Gay Shield Activated.") end)
 RegisterCommand({Name = "plag", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameLaggerPlauncher.lua", "Loading Modification") end)
 RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RAPIDFIREPumpkinlauncher.lua", "Loading Modification") end)
@@ -40120,13 +39852,13 @@ RegisterCommand({Name = "inbypass", Aliases = {}, Description = "Instance Bypass
 RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded Gui For Btools"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/fixedbtools.lua", "Loading Revamped Btools Gui") end)
 RegisterCommand({Name = "ketamine", Aliases = {}, Description = "Updated remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/remotes.lua", "Loading rSpy...") end)
 RegisterCommand({Name = "simplespy", Aliases = {"bestspy"}, Description = "Best remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/simplee%20spyyy%20mobilee", "Loading rSpy...") end)
-RegisterCommand({Name = "csgo", Aliases = {"phoon"}, Description = "Bhop movement fallback"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/phoon.lua", "Loading") end)
+RegisterCommand({Name = "csgo", Aliases = {"bhop"}, Description = "Bhop movement"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/phoon.lua", "Loading") end)
 RegisterCommand({Name = "lineofsight", Aliases = {}, Description = "Logger for players looking at you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/LineOfSightLogger.lua", "Loading...") end)
 RegisterCommand({Name = "nova", Aliases = {"delua"}, Description = "Novas Deobfuscator, Bytecode Grabber"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/NovasDeobfuscator.lua", "Deobfuscator Loaded") end)
 RegisterCommand({Name = "zcooldowns", Aliases = {"ncd"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/NocooldownsZombieUpd3.txt", "Loading Cooldownremover...") end)
-RegisterCommand({Name = "zshovel", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AnChanger.lua", "Loading Shovel.") end)
+RegisterCommand({Name = "zshovel", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ShovelAnimation.lua", "Loading Shovel.") end)
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
-RegisterCommand({Name = "zmelee", Aliases = {}, Description = "For https://www.roblox.com/games/6850833423/Zombie-Infection-Game."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/MeleeDamagex2.lua", "Loading GUI..") end)
+RegisterCommand({Name = "zmelee", Aliases = {}, Description = "For https://www.roblox.com/games/6850833423/Zombie-Infection-Game."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/MeleeDamagex2.lua", "Loading..") end)
 RegisterCommand({Name = "flinger", Aliases = {"flingui"}, Description = "Loads a Fling GUI."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SkidFling.lua", "Loading GUI..") end)
 RegisterCommand({Name = "rem", Aliases = {}, Description = "In game exploit creation kit.."}, function() loadstringCmd("https://e-vil.com/anbu/rem.lua", "Loading Rem.") end)
 RegisterCommand({Name = "Copyconsole", Aliases = {"copy"}, Description = "Allows you to copy errors from the console.."}, function() loadstringCmd("https://raw.githubusercontent.com/scriptlisenbe-stack/luaprojectse3/refs/heads/main/consolecopy.lua", "Copy Console Activated.") end)
