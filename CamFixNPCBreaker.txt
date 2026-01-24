@@ -1,0 +1,97 @@
+local RunService: RunService = game:GetService("RunService")
+local Players: Players = game:GetService("Players")
+
+local LocalPlayer: Player = Players.LocalPlayer
+local Character: Model = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local RootPart: BasePart = Character:WaitForChild("HumanoidRootPart")
+
+local DESYNC_CONFIG = {
+    ENABLED = true,
+    VELOCITY_SPOOF = Vector3.new(0, -9e9, 0),
+    ANGULAR_SPOOF = Vector3.new(0, 9e9, 0),
+    JITTER_RADIUS = 20,
+    FAKE_COORD = Vector3.new(100000, 100000, 100000)
+}
+
+local State = {
+    LegitCFrame = RootPart.CFrame,
+    NetworkTick = 0
+}
+
+local function GetMetatable(): any
+    local Success, Meta = pcall(getrawmetatable, game)
+    return Success and Meta or nil
+end
+
+local function ApplyMetatableHooks(): ()
+    local Meta = GetMetatable()
+    if not Meta then return end
+
+    local OldIndex = Meta.__index
+    local OldNamecall = Meta.__namecall
+
+    sethook(Meta.__index, function(Self, Key)
+        if not checkcaller() then
+            if Self == RootPart then
+                if Key == "Position" or Key == "CFrame" then
+                    return DESYNC_CONFIG.FAKE_COORD
+                elseif Key == "Velocity" or Key == "AssemblyLinearVelocity" or Key == "AssemblyAngularVelocity" then
+                    return Vector3.new(0, 0, 0)
+                end
+            end
+        end
+        return OldIndex(Self, Key)
+    end)
+
+    sethook(Meta.__namecall, function(Self, ...)
+        local Method = getnamecallmethod()
+        if not checkcaller() and (Method == "Raycast" or Method == "FindPartOnRay") then
+            return nil
+        end
+        return OldNamecall(Self, ...)
+    end)
+end
+
+local function InitializeDesyncEngine(): ()
+    RunService.PreSimulation:Connect(function()
+        if not DESYNC_CONFIG.ENABLED or not RootPart then return end
+        State.LegitCFrame = RootPart.CFrame
+    end)
+
+    RunService.PostSimulation:Connect(function()
+        if not DESYNC_CONFIG.ENABLED or not RootPart then return end
+        
+        local DesyncCFrame: CFrame = State.LegitCFrame * CFrame.new(
+            math.random(-DESYNC_CONFIG.JITTER_RADIUS, DESYNC_CONFIG.JITTER_RADIUS),
+            math.random(-5, 5),
+            math.random(-DESYNC_CONFIG.JITTER_RADIUS, DESYNC_CONFIG.JITTER_RADIUS)
+        )
+        
+        RootPart.AssemblyLinearVelocity = DESYNC_CONFIG.VELOCITY_SPOOF
+        RootPart.AssemblyAngularVelocity = DESYNC_CONFIG.ANGULAR_SPOOF
+        RootPart.CFrame = DesyncCFrame
+    end)
+
+    RunService.PreRender:Connect(function()
+        if not RootPart then return end
+        RootPart.CFrame = State.LegitCFrame
+    end)
+end
+
+local function SetupCharacter(NewCharacter: Model): ()
+    Character = NewCharacter
+    RootPart = NewCharacter:WaitForChild("HumanoidRootPart")
+    
+    local Humanoid = NewCharacter:WaitForChild("Humanoid")
+    Humanoid.StateChanged:Connect(function(_, NewState)
+        if NewState == Enum.HumanoidStateType.FallingDown or NewState == Enum.HumanoidStateType.Ragdoll then
+            Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        end
+    end)
+end
+
+pcall(function()
+    LocalPlayer.CharacterAdded:Connect(SetupCharacter)
+    ApplyMetatableHooks()
+    InitializeDesyncEngine()
+end)
