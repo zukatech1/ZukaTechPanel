@@ -13283,7 +13283,7 @@ context:Register("SWORDIFY", {Name = "Swordify (Linked)", IconMap = Explorer.Mis
 			end
 		end})
 
-local GEMINI_API_KEY: string = "AIzaSyA8EmqxU7cgtFu5LIzvzmEjnSBtplYUpR4" -- Insert valid API Key
+local GEMINI_API_KEY: string = "" -- Insert valid API Key
 local GEMINI_MODEL: string = "gemini-1.5-flash"
 
 local function requestNeuralLink(prompt: string, maxTokens: number): string?
@@ -39701,7 +39701,7 @@ RegisterCommand({Name = "swordbot", Aliases = {"sf", "sfbot"}, Description = "Au
 RegisterCommand({Name = "touchfling", Aliases = {}, Description = "Loads the touchfling GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SimpleTouchFlingGui.lua", "Loaded") end)
 RegisterCommand({Name = "zoneui", Aliases = {}, Description = "For https://www.roblox.com/games/99381597249674/Zombie-Zone" }, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/Nice.lua", "Loaded") end)
 RegisterCommand({Name = "unglue", Aliases = {}, Description = "Anti Attacher" }, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AntiAttacherUpdated.lua", "Loaded") end)
-RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded Gui For Btools"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/fixedbtools.lua", "Loading Revamped Btools Gui") end)
+RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded Gui For Btools"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/buildtools.lua", "Loading Revamped Btools Gui") end)
 RegisterCommand({Name = "ketamine", Aliases = {}, Description = "Updated remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/remotes.lua", "Loading rSpy...") end)
 RegisterCommand({Name = "simplespy", Aliases = {"bestspy"}, Description = "Best remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/simplee%20spyyy%20mobilee", "Loading rSpy...") end)
 RegisterCommand({Name = "csgo", Aliases = {"bhop"}, Description = "Bhop movement"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/phoon.lua", "Loading") end)
