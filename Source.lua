@@ -1,5 +1,6 @@
 --[[
 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatechlive/ZukaTechPanel/refs/heads/main/ZukaSPanel.lua"))() --New 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
 
 Made By Zuka. @OverRuka on ROBLOX.
@@ -619,6 +620,7 @@ end
 		MainWindow.Size = UDim2.new(0, 520, 0, 420);
 		MainWindow.Position = UDim2.new(0.5, -260, 0.5, -210);
 		MainWindow.BackgroundColor3 = Color3.fromRGB(35, 35, 45);
+        MainWindow.BackgroundTransparency = 0.3
 		MainWindow.BorderSizePixel = 0;
 		MainWindow.Active = true;
 		MainWindow.ClipsDescendants = true;
@@ -662,7 +664,7 @@ end
 		TitleLabel.Position = UDim2.new(0, 10, 0, 0);
 		TitleLabel.BackgroundTransparency = 1;
 		TitleLabel.Font = Enum.Font.Code;
-		TitleLabel.Text = "Gaming Chair v2.2";
+		TitleLabel.Text = "GC";
 		TitleLabel.TextColor3 = Color3.fromRGB(200, 220, 255);
 		TitleLabel.TextSize = 16;
 		TitleLabel.TextXAlignment = Enum.TextXAlignment.Left;
@@ -885,12 +887,12 @@ end
 				local absolutePos = partDropdown.AbsolutePosition; local guiPos = MainWindow.AbsolutePosition;
 				partDropdownFrame.Size = UDim2.new(0, partDropdown.AbsoluteSize.X, 0, #parts * 22)
 				partDropdownFrame.Position = UDim2.new(0, absolutePos.X - guiPos.X, 0, absolutePos.Y - guiPos.Y + 22)
-				partDropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40); partDropdownFrame.BackgroundTransparency = 0.2; partDropdownFrame.BorderSizePixel = 0; partDropdownFrame.ZIndex = 5;
+				partDropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40); partDropdownFrame.BackgroundTransparency = 0.3; partDropdownFrame.BorderSizePixel = 0; partDropdownFrame.ZIndex = 5;
 				makeUICorner(partDropdownFrame, 6); local stroke = Instance.new("UIStroke", partDropdownFrame); stroke.Color = Color3.fromRGB(80, 80, 90); stroke.Thickness = 1;
 				for i, part in ipairs(parts) do local btn = Instance.new("TextButton", partDropdownFrame); btn.Size, btn.Position = UDim2.new(1, 0, 0, 22), UDim2.new(0, 0, 0, (i-1)*22); btn.BackgroundColor3, btn.TextColor3 = Color3.fromRGB(40,40,40), Color3.fromRGB(255,255,255); btn.Font, btn.TextSize, btn.Text = Enum.Font.Code, 15, part; makeUICorner(btn, 6); table.insert(janitor, btn.MouseButton1Click:Connect(function() partDropdown.Text = part; if partDropdownFrame then partDropdownFrame:Destroy() end; partDropdownOpen = false end)) end
 			end));
 			
-			local fovRadius = 55;
+			local fovRadius = 75;
 			local smoothingEnabled = false;
 			local smoothingFactor = 0.2;
 			local selectedPlayerTarget, selectedPart = nil, nil;
@@ -1371,7 +1373,7 @@ function Modules.AstralProjection:Initialize()
 end
 RegisterCommand({
     Name = "astral",
-    Aliases = {"desync", "unsync"},
+    Aliases = {},
     Description = "Toggles astral projection, desyncing yourself remaining invisible to others."
 }, function()
     Modules.AstralProjection:Toggle()
@@ -1912,7 +1914,7 @@ function Modules.CommandBar:Initialize(): ()
     TitleLabel.Size = UDim2.new(1, -60, 1, 0)
     TitleLabel.BackgroundTransparency = 1
     TitleLabel.Font = self.Theme.Font
-    TitleLabel.Text = "FORENSIC TERMINAL_V10"
+    TitleLabel.Text = "Gamer."
     TitleLabel.TextColor3 = self.Theme.Accent
     TitleLabel.TextSize = 12
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -2169,7 +2171,7 @@ function Modules.CommandBar:Initialize(): ()
     end)
 
     self:AddOutput("ZUKATECH_V10_INITIALIZED", self.Theme.Accent)
-    self:AddOutput("AUTH_TOKEN_ACCEPTED: " .. Players.LocalPlayer.Name, self.Theme.Accent)
+    self:AddOutput("VIBE_ACCEPTED: " .. Players.LocalPlayer.Name, self.Theme.Accent)
     self:AddOutput("Type 'cmds' for documentation or ';' to toggle shell.", self.Theme.Text)
 end
 
@@ -2640,7 +2642,7 @@ Modules.Fly = {
                 self:Enable()
              end
          end
-    RegisterCommand({ Name = "fly", Aliases = {"flight"}, Description = "Toggles smooth flight mode." }, function()
+    RegisterCommand({ Name = "fly", Aliases = {"flight"}, Description = "The most boring exploit anyone can use." }, function()
          Modules.Fly:Toggle()
     end)
 
@@ -2749,7 +2751,7 @@ function Modules.NoClip:Toggle()
     end
 end
 
-RegisterCommand({ Name = "noclip", Aliases = {"nc"}, Description = "Allows you to fly through walls and objects." }, function()
+RegisterCommand({ Name = "noclip", Aliases = {"nc"}, Description = "Allows you to walk through walls" }, function()
     Modules.NoClip:Toggle()
 end)
 
@@ -13281,295 +13283,203 @@ context:Register("SWORDIFY", {Name = "Swordify (Linked)", IconMap = Explorer.Mis
 			end
 		end})
 
-		context:Register("AI_ANALYZE_REMOTE",{Name = "Analyze Remote (AI)", IconMap = Explorer.MiscIcons, Icon = "Reference", OnClick = function()
-			local sList = selection.List
-			local HttpService = game:GetService("HttpService")
-			
-			for i = 1, #sList do
-				local obj = sList[i].Obj
-				local className = obj.ClassName
+local GEMINI_API_KEY: string = "AIzaSyA8EmqxU7cgtFu5LIzvzmEjnSBtplYUpR4" -- Insert valid API Key
+local GEMINI_MODEL: string = "gemini-1.5-flash"
+
+local function requestNeuralLink(prompt: string, maxTokens: number): string?
+	local endpoint: string = string.format("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", GEMINI_MODEL, GEMINI_API_KEY)
+	local payload: table = {
+		contents = {
+			{
+				parts = {
+					{text = "IDENTITY: Callum, Black-Hat Architect. Objective: High-precision Luau analysis. Format: Concise, technical, no filler.\n\n" .. prompt}
+				}
+			}
+		},
+		generationConfig = {
+			maxOutputTokens = maxTokens,
+			temperature = 0.3,
+			topP = 0.8
+		}
+	}
+
+	local success: boolean, result: any = pcall(function()
+		return HttpService:PostAsyncJson(endpoint, payload)
+	end)
+
+	if success and result and result.candidates and result.candidates[1] then
+		local content = result.candidates[1].content.parts[1].text
+		-- Sanitize markdown artifacts often returned by Gemini
+		return content:gsub("```lua", ""):gsub("```", ""):gsub("^%s+", ""):gsub("%s+$", "")
+	end
+	
+	warn("--> [NEURAL_LINK]: API Uplink Failed. Verify Key/Quota.")
+	return nil
+end
+
+context:Register("AI_ANALYZE_REMOTE", {
+	Name = "Analyze Remote (AI)",
+	IconMap = Explorer.MiscIcons,
+	Icon = "Reference",
+	OnClick = function()
+		local sList = selection.List
+		for i = 1, #sList do
+			local obj = sList[i].Obj
+			if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+				local path: string = obj:GetFullName()
+				local prompt: string = string.format(
+					"Analyze Roblox %s. Path: %s. Name: %s. Provide: 1) Likely Purpose, 2) Expected Parameters, 3) Attack Surface/Behavior.",
+					obj.ClassName, path, obj.Name
+				)
 				
-				if className == "RemoteEvent" or className == "RemoteFunction" then
-					local path = obj:GetFullName()
-					local prompt = string.format(
-						"Analyze this Roblox %s and provide a brief description of what it likely does:\n\nPath: %s\nName: %s\n\nProvide: 1) Purpose, 2) Likely parameters, 3) Expected behavior",
-						className, path, obj.Name
-					)
-					
-					-- Make API request to Claude
-					local success, result = pcall(function()
-						return HttpService:PostAsyncJson(
-							"https://api.anthropic.com/v1/messages",
-							{
-								model = "claude-3-5-sonnet-20241022",
-								max_tokens = 150,
-								messages = {{role = "user", content = prompt}}
-							},
-							{
-								["x-api-key"] = " ",
-								["anthropic-version"] = "2023-06-01"
-							}
-						)
-					end)
-					
-					if success and result and result.content then
-						local analysis = result.content[1].text
-						env.setclipboard(analysis)
-						print("Remote Analysis: " .. analysis)
-					else
-						print("AI Analysis failed - ensure API key is set")
-					end
+				local analysis = requestNeuralLink(prompt, 250)
+				if analysis then
+					env.setclipboard(analysis)
+					print("--> [REMOTE_ANALYSIS]:\n" .. analysis)
+					if getgenv().DoNotif then getgenv().DoNotif("Analysis copied to clipboard", 2) end
 				end
 			end
-		end})
+		end
+	end
+})
 
-		context:Register("AI_TRACE_REMOTE",{Name = "Find Remote Calls (AI)", IconMap = Explorer.MiscIcons, Icon = "Find", OnClick = function()
-			local sList = selection.List
-			
-			for i = 1, #sList do
-				local obj = sList[i].Obj
-				local className = obj.ClassName
+context:Register("AI_TRACE_REMOTE", {
+	Name = "Find Remote Calls (AI)",
+	IconMap = Explorer.MiscIcons,
+	Icon = "Find",
+	OnClick = function()
+		local sList = selection.List
+		for i = 1, #sList do
+			local obj = sList[i].Obj
+			if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+				local remoteName: string = obj.Name
+				local found: {string} = {}
 				
-				if className == "RemoteEvent" or className == "RemoteFunction" then
-					local remoteName = obj.Name
-					local found = {}
-					
-					-- Search all scripts for references to this remote
-					local function searchScripts(instance)
-						if instance:IsA("LuaSourceContainer") then
-							local source = instance.Source
-							if source:find(remoteName, 1, true) then
-								table.insert(found, instance:GetFullName())
-							end
-						end
-						
-						for _, child in pairs(instance:GetChildren()) do
-							searchScripts(child)
+				local function searchScripts(instance: Instance)
+					if instance:IsA("LuaSourceContainer") then
+						local success, source = pcall(function() return instance.Source end)
+						if success and source:find(remoteName, 1, true) then
+							table.insert(found, instance:GetFullName())
 						end
 					end
-					
-					searchScripts(game)
-					
-					if #found > 0 then
-						local result = remoteName .. " is called from:\n" .. table.concat(found, "\n")
-						env.setclipboard(result)
-						print(result)
-					else
-						print("No direct references found for " .. remoteName)
+					for _, child in ipairs(instance:GetChildren()) do
+						searchScripts(child)
 					end
 				end
-			end
-		end})
-
-		context:Register("AI_GENERATE_MOCK",{Name = "Generate Mock Call (AI)", IconMap = Explorer.MiscIcons, Icon = "Play", OnClick = function()
-			local sList = selection.List
-			local HttpService = game:GetService("HttpService")
-			
-			for i = 1, #sList do
-				local obj = sList[i].Obj
-				local className = obj.ClassName
 				
-				if className == "RemoteEvent" or className == "RemoteFunction" then
-					local remoteName = obj.Name
-					local remoteType = className
-					
-					local prompt = string.format(
-						"Generate a realistic Lua mock call for this %s:\n\nName: %s\n\nProvide: 1) Sample call code, 2) Explanation of parameters\n\nKeep it concise.",
-						remoteType, remoteName
-					)
-					
-					local success, result = pcall(function()
-						return HttpService:PostAsyncJson(
-							"https://api.anthropic.com/v1/messages",
-							{
-								model = "claude-3-5-sonnet-20241022",
-								max_tokens = 200,
-								messages = {{role = "user", content = prompt}}
-							},
-							{
-								["x-api-key"] = " ",
-								["anthropic-version"] = "2023-06-01"
-							}
-						)
-					end)
-					
-					if success and result and result.content then
-						local mockCode = result.content[1].text
-						env.setclipboard(mockCode)
-						print("Mock Call:\n" .. mockCode)
-					else
-						print("Mock generation failed - ensure API key is set")
-					end
-				end
-			end
-		end})
-
-		context:Register("REMOTE_PARAM_DETECTOR",{Name = "Detect Remote Parameters", IconMap = Explorer.MiscIcons, Icon = "Find", OnClick = function()
-			local sList = selection.List
-			local detectedParams = {}
-			
-			for i = 1, #sList do
-				local obj = sList[i].Obj
-				local className = obj.ClassName
+				searchScripts(game)
 				
-				if className == "RemoteEvent" or className == "RemoteFunction" then
-					local remoteName = obj.Name
-					local found = {}
-					
-					-- Search scripts for FireServer/InvokeServer calls with this remote
-					local function analyzeScripts(instance)
-						if instance:IsA("LuaSourceContainer") then
-							local source = instance.Source
-							-- Look for patterns like remoteName:FireServer(...) or remoteName:InvokeServer(...)
-							local patterns = {
-								remoteName .. ":FireServer%s*%(",
-								remoteName .. ":InvokeServer%s*%(",
-								remoteName .. ":Fire%s*%(",
-								remoteName .. ":Invoke%s*%("
-							}
-							
-							for _, pattern in ipairs(patterns) do
-								if source:find(pattern) then
-									-- Extract lines with the remote call
-									for line in source:gmatch("[^\n]+") do
-										if line:find(remoteName) and (line:find("FireServer") or line:find("InvokeServer") or line:find(":Fire") or line:find(":Invoke")) then
-											table.insert(found, line:gsub("^%s+", ""))
-										end
-									end
-								end
-							end
-						end
-						
-						for _, child in pairs(instance:GetChildren()) do
-							analyzeScripts(child)
-						end
-					end
-					
-					analyzeScripts(game)
-					
-					if #found > 0 then
-						local result = "Parameter calls for " .. remoteName .. ":\n\n" .. table.concat(found, "\n")
-						env.setclipboard(result)
-						print(result)
-					else
-						print("No parameter patterns found for " .. remoteName)
-					end
-				end
-			end
-		end})
-
-		context:Register("REMOTE_SECURITY_CHECK",{Name = "Security Analysis (AI)", IconMap = Explorer.MiscIcons, Icon = "Delete", OnClick = function()
-			local sList = selection.List
-			local HttpService = game:GetService("HttpService")
-			
-			for i = 1, #sList do
-				local obj = sList[i].Obj
-				local className = obj.ClassName
-				
-				if className == "RemoteEvent" or className == "RemoteFunction" then
-					local remoteName = obj.Name
-					local remotePath = obj:GetFullName()
-					
-					-- Check for common security issues
-					local risks = {}
-					
-					-- Risk 1: Directly under ReplicatedStorage (public)
-					if remotePath:find("ReplicatedStorage") then
-						table.insert(risks, "⚠️ Located in ReplicatedStorage - publicly accessible")
-					end
-					
-					-- Risk 2: Generic names
-					if remoteName:lower():find("event") or remoteName:lower():find("function") then
-						table.insert(risks, "⚠️ Generic name - hard to understand purpose")
-					end
-					
-					-- Risk 3: No obvious parent validation
-					table.insert(risks, "⚠️ Unable to validate server-side checks from explorer")
-					
-					local prompt = string.format(
-						"Security analysis for Roblox %s '%s' at %s\n\nCommon risks detected:\n%s\n\nProvide security recommendations in 2-3 sentences.",
-						className, remoteName, remotePath, table.concat(risks, "\n")
-					)
-					
-					local success, result = pcall(function()
-						return HttpService:PostAsyncJson(
-							"https://api.anthropic.com/v1/messages",
-							{
-								model = "claude-3-5-sonnet-20241022",
-								max_tokens = 200,
-								messages = {{role = "user", content = prompt}}
-							},
-							{
-								["x-api-key"] = " ",
-								["anthropic-version"] = "2023-06-01"
-							}
-						)
-					end)
-					
-					if success and result and result.content then
-						local analysis = "Security Check: " .. remoteName .. "\n\n" .. table.concat(risks, "\n") .. "\n\nAI Recommendations:\n" .. result.content[1].text
-						env.setclipboard(analysis)
-						print(analysis)
-					else
-						local analysis = "Security Check: " .. remoteName .. "\n\n" .. table.concat(risks, "\n")
-						env.setclipboard(analysis)
-						print(analysis)
-					end
-				end
-			end
-		end})
-
-		context:Register("REMOTE_NETWORK_LOGGER",{Name = "Network Logger (Toggle)", IconMap = Explorer.MiscIcons, Icon = "Play", OnClick = function()
-			if not _remoteNetworkLogger then
-				_remoteNetworkLogger = {}
-				_loggerActive = true
-				
-				-- Hook all remote fires
-				local HttpService = game:GetService("HttpService")
-				local old; old = env.hookmetamethod(game, "__namecall", function(self, ...)
-					if _loggerActive and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
-						local method = getnamecallmethod()
-						if method == "FireServer" or method == "InvokeServer" or method == "Fire" or method == "Invoke" then
-							local args = {...}
-							local logEntry = {
-								time = tick(),
-								remote = self.Name,
-								path = self:GetFullName(),
-								method = method,
-								argCount = #args,
-								args = args
-							}
-							table.insert(_remoteNetworkLogger, logEntry)
-							
-							-- Print to console
-							local argStr = ""
-							for j = 1, math.min(#args, 3) do
-								argStr = argStr .. typeof(args[j]) .. " "
-							end
-							print(string.format("[REMOTE] %s:%s(%s) - %d args", self.Name, method, argStr, #args))
-						end
-					end
-					return old(self, ...)
-				end)
-				
-				print("Network Logger ENABLED - tracking all remote calls")
-			else
-				_loggerActive = not _loggerActive
-				if _loggerActive then
-					print("Network Logger RESUMED")
+				if #found > 0 then
+					local result: string = string.format("[%s] referenced in:\n%s", remoteName, table.concat(found, "\n"))
+					env.setclipboard(result)
+					print("--> [TRACE]:\n" .. result)
 				else
-					print("Network Logger PAUSED")
-					-- Export log
-					local logText = "Remote Network Log:\n\n"
-					for i, entry in ipairs(_remoteNetworkLogger) do
-						logText = logText .. string.format("[%d] %s:%s at %s (%.2f args)\n", 
-							i, entry.remote, entry.method, entry.path, entry.argCount)
-					end
-					env.setclipboard(logText)
-					print(logText)
+					print("--> [TRACE]: No static references found for " .. remoteName)
 				end
 			end
-		end})
+		end
+	end
+})
+
+context:Register("AI_GENERATE_MOCK", {
+	Name = "Generate Mock Call (AI)",
+	IconMap = Explorer.MiscIcons,
+	Icon = "Play",
+	OnClick = function()
+		local sList = selection.List
+		for i = 1, #sList do
+			local obj = sList[i].Obj
+			if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+				local prompt: string = string.format(
+					"Write a realistic Luau mock call for %s '%s'. Output RAW CODE ONLY. No explanation.",
+					obj.ClassName, obj.Name
+				)
+				
+				local mockCode = requestNeuralLink(prompt, 300)
+				if mockCode then
+					env.setclipboard(mockCode)
+					print("--> [MOCK_GENERATED]:\n" .. mockCode)
+					if getgenv().DoNotif then getgenv().DoNotif("Mock logic copied", 2) end
+				end
+			end
+		end
+	end
+})
+
+context:Register("REMOTE_SECURITY_CHECK", {
+	Name = "Security Analysis (AI)",
+	IconMap = Explorer.MiscIcons,
+	Icon = "Delete",
+	OnClick = function()
+		local sList = selection.List
+		for i = 1, #sList do
+			local obj = sList[i].Obj
+			if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+				local path: string = obj:GetFullName()
+				local risks: {string} = {}
+				
+				if path:find("ReplicatedStorage") then table.insert(risks, "- Publicly accessible (ReplicatedStorage)") end
+				if obj.Name:lower():find("event") or obj.Name:lower():find("remote") then table.insert(risks, "- Generic/Predictable naming") end
+				
+				local prompt: string = string.format(
+					"Security audit for Roblox Remote. Path: %s. Identified risks: %s. Recommend specific server-side mitigations.",
+					path, table.concat(risks, ", ")
+				)
+				
+				local audit = requestNeuralLink(prompt, 300)
+				if audit then
+					local fullReport: string = string.format("[SECURITY REPORT: %s]\n\n%s", obj.Name, audit)
+					env.setclipboard(fullReport)
+					print("--> [AUDIT_COMPLETE]: Check F9 and Clipboard.")
+				end
+			end
+		end
+	end
+})
+
+context:Register("REMOTE_NETWORK_LOGGER", {
+	Name = "Network Logger (Toggle)",
+	IconMap = Explorer.MiscIcons,
+	Icon = "Play",
+	OnClick = function()
+		if not _G._remoteNetworkLogger then
+			_G._remoteNetworkLogger = {}
+			_G._loggerActive = true
+			
+			local oldNamecall; oldNamecall = env.hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+				local method = getnamecallmethod()
+				if _G._loggerActive and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
+					if method == "FireServer" or method == "InvokeServer" then
+						local args = {...}
+						table.insert(_G._remoteNetworkLogger, {
+							time = tick(),
+							remote = self.Name,
+							path = self:GetFullName(),
+							method = method,
+							args = args
+						})
+						print(string.format("[NET_LOG] %s:%s | Args: %d", self.Name, method, #args))
+					end
+				end
+				return oldNamecall(self, ...)
+			end))
+			
+			if getgenv().DoNotif then getgenv().DoNotif("Network Observer: ACTIVE", 2) end
+		else
+			_G._loggerActive = not _G._loggerActive
+			local state: string = _G._loggerActive and "RESUMED" or "PAUSED"
+			if getgenv().DoNotif then getgenv().DoNotif("Network Observer: " .. state, 2) end
+			
+			if not _G._loggerActive then
+				local logOutput: string = "--- [ZUKA NETWORK LOG] ---\n"
+				for i, entry in ipairs(_G._remoteNetworkLogger) do
+					logOutput ..= string.format("[%d] %s -> %s (%s)\n", i, entry.method, entry.remote, entry.path)
+				end
+				env.setclipboard(logOutput)
+			end
+		end
+	end
+})
 
 		context:Register("3DVIEW_MODEL",{Name = "3D Preview Object", IconMap = Explorer.LegacyClassIcons, Icon = 54, OnClick = function()
 			local sList = selection.List
@@ -13659,7 +13569,7 @@ context:Register("SWORDIFY", {Name = "Swordify (Linked)", IconMap = Explorer.Mis
 			end
 		end})
 		
-		context:Register("GENERATE_POISON_PATCH",{Name = "Poison!", IconMap = Explorer.MiscIcons, Icon = "CallFunction", OnClick = function()
+		context:Register("GENERATE_POISON_PATCH",{Name = "[ZEX] Poison!", IconMap = Explorer.MiscIcons, Icon = "CallFunction", OnClick = function()
 			local node = selection.List[1]
 			if not node or not node.Obj:IsA("ModuleScript") then return end
 			local module = node.Obj
@@ -13684,6 +13594,10 @@ context:Register("SWORDIFY", {Name = "Swordify (Linked)", IconMap = Explorer.Mis
 				elseif n == "Recoil" then return 0
                 elseif n == "BulletPerShot" then return 15
                 elseif n == "FriendlyFire" then return true
+                elseif n == "ExplosionRadius" then return 9999
+                elseif n == "SuperRicochet" then return true
+                elseif n == "RicochetAmount" then return 500
+                --elseif n == "ExplosiveEnabled" then return true
 
 				-- Physics & Accuracy
 				elseif n == "Recoil" or n == "Spread" or n == "Accuracy" then return 0
@@ -25334,7 +25248,7 @@ Main = (function()
 
 	Main.Error = function(str)
 		if rconsoleprint then
-			rconsoleprint("DEX ERROR: "..tostring(str).."\n")
+			rconsoleprint("ZEX ERROR: "..tostring(str).."\n")
 			wait(9e9)
 		else
 			error(str)
@@ -25374,7 +25288,7 @@ Main = (function()
 				end
 
 				local hashfunc = (syn and syn.crypt.hash) or function() return "" end
-				local filePath = "dex/ModuleCache/"..name..".lua"
+				local filePath = "zuka/ModuleCache/"..name..".lua"
 				local s,moduleStr = pcall(env.readfile,filePath)
 
 				if s and hashfunc(moduleStr) == hashs[name] then
@@ -25628,7 +25542,7 @@ Main = (function()
 	end
 
 	Main.LoadSettings = function()
-		local s, data = pcall(env.readfile or error, "DexSettings.json")
+		local s, data = pcall(env.readfile or error, "ZukaSettings.json")
 		if s and data and data ~= "" then
 			local s, decoded = pcall(service.HttpService.JSONDecode, service.HttpService, data)
 			if s and decoded then
@@ -26280,9 +26194,9 @@ Main = (function()
 			local duration = 1
 			local Infos = {
 				"Contributors >>",
-				"Don't Make It",
-				"Open Source",
-				"If you hate skidding retards.",
+				"Moon and chillz",
+				"I don't remember",
+				"the rest",
 			}
 			
 			if isInfoCD then return end
@@ -26349,11 +26263,11 @@ Main = (function()
 
 		local writefile,makefolder = env.writefile,env.makefolder
 
-		makefolder("dex")
-		makefolder("dex/assets")
-		makefolder("dex/saved")
-		makefolder("dex/plugins")
-		makefolder("dex/ModuleCache")
+		makefolder("zuka")
+		makefolder("zuka/assets")
+		makefolder("zuka/saved")
+		makefolder("zuka/plugins")
+		makefolder("zuka/ModuleCache")
 	end
 
 	Main.LocalDepsUpToDate = function()
@@ -26363,8 +26277,8 @@ Main = (function()
 	Main.Init = function()
 		Main.Elevated = pcall(function() local a = game:GetService("CoreGui"):GetFullName() end)
 		
-		if writefile and isfile and not isfile("DexSettings.json") then
-			writefile("DexSettings.json", Main.ExportSettings())
+		if writefile and isfile and not isfile("ZukaSettings.json") then
+			writefile("ZukaSettings.json", Main.ExportSettings())
 		end
 		
 		Main.InitEnv()
@@ -29259,7 +29173,7 @@ Modules.ApexCounter = {
             "AcidSpit",
             "PLACE_LANDMINE",
             "AbilityPlayer",
-            "PlayerAttack"
+            "PlayerAttack",
         }
     },
     Services = {
@@ -29697,7 +29611,7 @@ end
 function Modules.ModuleEditor:Initialize()
     local module = self
     RegisterCommand({
-        Name = "lightedit",
+        Name = "Modui",
         Aliases = {},
         Description = "Opens the Module Table Editor to live-patch constants."
     }, function()
@@ -30417,7 +30331,7 @@ function Modules.MapStripper:Initialize()
     local mouse = lp:GetMouse()
 
     RegisterCommand({
-        Name = "strip",
+        Name = "deltool",
         Aliases = {"del", "erase"},
         Description = "Toggle: Click any object to delete it locally."
     }, function()
@@ -31008,7 +30922,7 @@ end
 Modules.Strengthen = {
 State = {
 Enabled = false,
-Density = 100,
+Density = 1000,
 OriginalProperties = {},
 },
 }
@@ -31220,132 +31134,6 @@ function Modules.TeleportTool:Initialize()
     end)
 end
 
-Modules.FakeLag = {
-    State = {
-        IsEnabled = false,
-        LoopConnection = nil,
-        IsCharacterAnchored = false,
-        NextFlipTimestamp = 0,
-        StartTime = 0
-    },
-    Config = {
-        Interval = 0.05,
-        Jitter = 0.02,
-        Duration = nil
-    },
-    Dependencies = {"RunService", "Players"},
-    Services = {}
-}
-
-function Modules.FakeLag:_onHeartbeat()
-
-    if not self.State.IsEnabled then
-        self:Disable()
-        return
-    end
-
-    local localPlayer = self.Services.Players.LocalPlayer
-    local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-
-    if not hrp then
-        self:Disable()
-        return
-    end
-
-    if self.Config.Duration and (os.clock() - self.State.StartTime) > self.Config.Duration then
-        self:Disable()
-        return
-    end
-
-    local now = os.clock()
-    if now >= self.State.NextFlipTimestamp then
-        self.State.IsCharacterAnchored = not self.State.IsCharacterAnchored
-        pcall(function() hrp.Anchored = self.State.IsCharacterAnchored end)
-
-        local interval = self.Config.Interval
-        local jitter = self.Config.Jitter
-        local nextDelay = interval + (jitter > 0 and (math.random() * 2 * jitter - jitter) or 0)
-        
-        self.State.NextFlipTimestamp = now + math.max(0, nextDelay)
-    end
-end
-
-function Modules.FakeLag:Disable()
-    if not self.State.IsEnabled then return end
-
-    if self.State.LoopConnection then
-        self.State.LoopConnection:Disconnect()
-        self.State.LoopConnection = nil
-    end
-
-    self.State.IsEnabled = false
-
-    task.spawn(function()
-        local hrp = self.Services.Players.LocalPlayer.Character and self.Services.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            pcall(function() hrp.Anchored = false end)
-        end
-    end)
-    
-    DoNotif("Fake Lag disabled.", 2)
-end
-
-function Modules.FakeLag:Enable(interval, jitter, duration)
-
-    self:Disable()
-
-    local newInterval = tonumber(interval)
-    local newJitter = tonumber(jitter)
-    local newDuration = tonumber(duration)
-
-    if newInterval then self.Config.Interval = math.max(0, newInterval) end
-    if newJitter then self.Config.Jitter = math.max(0, newJitter) end
-    self.Config.Duration = (newDuration and newDuration > 0) and newDuration or nil
-
-    self.State.IsEnabled = true
-    self.State.StartTime = os.clock()
-    self.State.NextFlipTimestamp = os.clock()
-    self.State.IsCharacterAnchored = false
-
-    self.State.LoopConnection = self.Services.RunService.Heartbeat:Connect(function() self:_onHeartbeat() end)
-
-    DoNotif("Fake Lag enabled.", 2)
-end
-
-function Modules.FakeLag:Initialize()
-    local module = self
-    for _, service in ipairs(self.Dependencies) do
-        module.Services[service] = game:GetService(service)
-    end
-
-    RegisterCommand({
-        Name = "fakelag",
-        Aliases = {"flag"},
-        Description = "Toggles fake lag."
-    }, function(args)
-        local arg1 = args[1]
-        
-        if arg1 and (arg1:lower() == "off" or arg1:lower() == "stop") then
-            module:Disable()
-        else
-
-            if module.State.IsEnabled and #args == 0 then
-                module:Disable()
-            else
-
-                module:Enable(args[1], args[2], args[3])
-            end
-        end
-    end)
-
-    RegisterCommand({
-        Name = "unfakelag",
-        Aliases = {"unflag"},
-        Description = "Stops the fake lag command."
-    }, function()
-        module:Disable()
-    end)
-end
 
 Modules.ClickDetectorTools = {
     State = {},
@@ -32138,217 +31926,6 @@ function Modules.CharacterMorph:Initialize()
         Description = "Reverts your character's appearance to your own."
     }, function()
         module:Revert()
-    end)
-end
-
-Modules.AvatarEditor = {
-    State = {
-        IsEnabled = false,
-        UI = nil,
-        Connections = {},
-        OriginalAssets = {}
-    },
-
-    Config = {
-        REMOTE_PATH = "ReplicatedStorage.Events.Avatar.ChangeAsset"
-    },
-    
-    Services = {}
-}
-
-function Modules.AvatarEditor:_applyLocally()
-    local character = self.Services.LocalPlayer.Character
-    if not character then return end
-    
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    for _, accessory in ipairs(humanoid:GetAccessories()) do
-        accessory:Destroy()
-    end
-    
-    for assetType, textBox in pairs(self.State.UI.Inputs) do
-        local assetId = tonumber(textBox.Text)
-        if assetId and assetId > 0 then
-            pcall(function()
-                if assetType == "Shirt" then
-                    local shirt = character:FindFirstChildOfClass("Shirt") or Instance.new("Shirt", character)
-                    shirt.ShirtTemplate = "rbxassetid://" .. assetId
-                elseif assetType == "Pants" then
-                    local pants = character:FindFirstChildOfClass("Pants") or Instance.new("Pants", character)
-                    pants.PantsTemplate = "rbxassetid://" .. assetId
-                elseif assetType == "Face" then
-                    local head = character:FindFirstChild("Head")
-                    if head then
-                        local face = head:FindFirstChildOfClass("Decal")
-                        if face then face.Texture = "rbxassetid://" .. assetId end
-                    end
-                else
-                    self.Services.InsertService:LoadAsset(assetId).Parent = character
-                end
-            end)
-        end
-    end
-end
-
-function Modules.AvatarEditor:_applyToServer()
-    local remote = self:_findRemote()
-    if not remote then
-        return DoNotif("Replication failed: RemoteEvent not found at path: " .. self.Config.REMOTE_PATH, 5)
-    end
-    
-    local itemsFired = 0
-    for assetType, textBox in pairs(self.State.UI.Inputs) do
-        local assetId = textBox.Text
-        if #assetId > 0 then
-
-            local success, err = pcall(function()
-                remote:FireServer(assetType, tonumber(assetId) or assetId)
-            end)
-
-            if success then
-                itemsFired = itemsFired + 1
-            else
-                warn("[AvatarEditor] Failed to fire remote for", assetType, ":", err)
-            end
-        end
-    end
-    
-    if itemsFired > 0 then
-        DoNotif("Fired " .. itemsFired .. " asset changes to the server. Re-joining or respawning may be required to see changes.", 4)
-    else
-        DoNotif("No valid asset IDs were entered to send to the server.", 3)
-    end
-end
-
-function Modules.AvatarEditor:_findRemote()
-    local current = game
-    for component in string.gmatch(self.Config.REMOTE_PATH, "[^%.]+") do
-        if not current then return nil end
-        current = current:FindFirstChild(component, true)
-    end
-    return (current and current:IsA("RemoteEvent")) and current or nil
-end
-
-function Modules.AvatarEditor:_createUI()
-    if self.State.UI then return end
-    
-    local ui = {}
-    self.State.UI = ui
-    ui.Inputs = {}
-
-    ui.ScreenGui = Instance.new("ScreenGui")
-    ui.ScreenGui.Name = "AvatarEditor_Module"
-    ui.ScreenGui.ResetOnSpawn = false
-    ui.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.fromOffset(250, 380)
-    mainFrame.Position = UDim2.fromScale(0.5, 0.5)
-    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    mainFrame.Draggable = true
-    mainFrame.Active = true
-    mainFrame.Parent = ui.ScreenGui
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 6)
-    Instance.new("UIStroke", mainFrame).Color = Color3.fromRGB(80, 80, 100)
-    
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    title.Text = "Replicating Avatar Editor"
-    title.Font = Enum.Font.GothamSemibold
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.TextSize = 16
-    Instance.new("UICorner", title).CornerRadius = UDim.new(0, 6)
-
-    local scroll = Instance.new("ScrollingFrame", mainFrame)
-    scroll.Size = UDim2.new(1, -10, 1, -80)
-    scroll.Position = UDim2.fromOffset(5, 35)
-    scroll.BackgroundTransparency = 1
-    scroll.BorderSizePixel = 0
-    scroll.ScrollBarThickness = 5
-    
-    local layout = Instance.new("UIListLayout", scroll)
-    layout.Padding = UDim.new(0, 8)
-
-    local function createInput(assetType)
-        local row = Instance.new("TextLabel", scroll)
-        row.Size = UDim2.new(1, 0, 0, 25)
-        row.BackgroundTransparency = 1
-        row.Font = Enum.Font.Gotham
-        row.Text = assetType .. ":"
-        row.TextColor3 = Color3.fromRGB(200, 200, 200)
-        row.TextXAlignment = Enum.TextXAlignment.Left
-        row.TextSize = 15
-
-        local textBox = Instance.new("TextBox", row)
-        textBox.Size = UDim2.new(0.6, 0, 1, 0)
-        textBox.Position = UDim2.new(0.4, 0, 0, 0)
-        textBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-        textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-        textBox.Font = Enum.Font.Code
-        textBox.TextSize = 14
-        textBox.ClearTextOnFocus = false
-        Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 4)
-        ui.Inputs[assetType] = textBox
-    end
-
-    createInput("Shirt")
-    createInput("Pants")
-    createInput("Face")
-    createInput("Hat1")
-    createInput("Hat2")
-    createInput("Waist")
-    createInput("Shoulder")
-    createInput("Hair")
-
-    local applyButton = Instance.new("TextButton", mainFrame)
-    applyButton.Size = UDim2.new(1, -10, 0, 30)
-    applyButton.Position = UDim2.new(0.5, 0, 1, -10)
-    applyButton.AnchorPoint = Vector2.new(0.5, 1)
-    applyButton.BackgroundColor3 = Color3.fromRGB(80, 160, 80)
-    applyButton.Font = Enum.Font.GothamBold
-    applyButton.Text = "Apply to Server (Replicates)"
-    applyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Instance.new("UICorner", applyButton).CornerRadius = UDim.new(0, 4)
-    
-    local previewButton = applyButton:Clone()
-    previewButton.Position = UDim2.new(0.5, 0, 1, -45)
-    previewButton.BackgroundColor3 = Color3.fromRGB(80, 80, 160)
-    previewButton.Text = "Preview Locally (Client-Only)"
-    previewButton.Parent = mainFrame
-    
-    applyButton.MouseButton1Click:Connect(function() self:_applyToServer() end)
-    previewButton.MouseButton1Click:Connect(function() self:_applyLocally() end)
-
-    ui.ScreenGui.Parent = CoreGui
-end
-
-function Modules.AvatarEditor:Toggle()
-    if self.State.IsEnabled then
-        if self.State.UI and self.State.UI.ScreenGui then
-            self.State.UI.ScreenGui:Destroy()
-            self.State.UI = nil
-        end
-        self.State.IsEnabled = false
-    else
-        self:_createUI()
-        self.State.IsEnabled = true
-    end
-end
-
-function Modules.AvatarEditor:Initialize()
-    self.Services.Players = game:GetService("Players")
-    self.Services.InsertService = game:GetService("InsertService")
-    self.Services.LocalPlayer = self.Services.Players.LocalPlayer
-
-    RegisterCommand({
-        Name = "avatareditor",
-        Aliases = {"replicatedavatar", "ava"},
-        Description = "Opens a UI to edit your avatar, with replication if the game is vulnerable."
-    }, function()
-        self:Toggle()
     end)
 end
 
@@ -33333,7 +32910,7 @@ function Modules.HitboxESP:Initialize()
 
     RegisterCommand({
         Name = "rootp",
-        Aliases = {"hichanger"},
+        Aliases = {},
         Description = "Opens the Hitbox Changer & ESP GUI."
     }, function()
         module:CreateUI()
@@ -34234,50 +33811,6 @@ function Modules.EngineInterceptor:Initialize()
     end)
 end
 
-Modules.SoundNullifier = {
-    State = {
-        IsEnabled = false,
-        OriginalIndex = nil
-    }
-}
-
-function Modules.SoundNullifier:Toggle(): ()
-    local mt = getrawmetatable(game)
-    self.State.IsEnabled = not self.State.IsEnabled
-
-    if self.State.IsEnabled then
-        self.State.OriginalIndex = mt.__index
-        setreadonly(mt, false)
-
-        mt.__index = newcclosure(function(selfArg, key)
-            if self.State.IsEnabled and selfArg:IsA("Sound") then
-                if key == "Volume" then
-                    return 0
-                elseif key == "Playing" then
-                    return false
-                end
-            end
-            return self.State.OriginalIndex(selfArg, key)
-        end)
-
-        setreadonly(mt, true)
-        DoNotif("Sound Nullifier: ENABLED (All game audio muted via engine hook)", 3)
-    else
-        setreadonly(mt, false)
-        mt.__index = self.State.OriginalIndex
-        setreadonly(mt, true)
-        DoNotif("Sound Nullifier: DISABLED", 2)
-    end
-end
-
-RegisterCommand({
-    Name = "mutesounds",
-    Aliases = {"nosound", "silence"},
-    Description = "Forces all Sound instances to have 0 volume and appear as not playing."
-}, function()
-    Modules.SoundNullifier:Toggle()
-end)
-
 Modules.RaycastRedirector = {
     State = {
         IsEnabled = false,
@@ -34346,48 +33879,6 @@ function Modules.RaycastRedirector:Disable()
     DoNotif("Raycast Redirector: DISABLED", 2)
 end
 
-Modules.AudioVisualizer = {
-    State = {
-        IsEnabled = false,
-        Markers = {},
-        Connection = nil
-    }
-}
-
-function Modules.AudioVisualizer:Toggle()
-    self.State.IsEnabled = not self.State.IsEnabled
-    if self.State.IsEnabled then
-        self.State.Connection = Workspace.DescendantAdded:Connect(function(desc)
-            if desc:IsA("Sound") then
-                local marker = Instance.new("BillboardGui")
-                marker.AlwaysOnTop = true
-                marker.Size = UDim2.fromOffset(20, 20)
-                local frame = Instance.new("Frame", marker)
-                frame.Size = UDim2.fromScale(1, 1)
-                frame.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
-                Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 0)
-                local function update()
-                    if desc.IsPlaying then
-                        marker.Enabled = true
-                        marker.Adornee = desc.Parent:IsA("BasePart") and desc.Parent or nil
-                    else
-                        marker.Enabled = false
-                    end
-                end
-                desc:GetPropertyChangedSignal("IsPlaying"):Connect(update)
-                marker.Parent = CoreGui
-                table.insert(self.State.Markers, marker)
-            end
-        end)
-        DoNotif("Audio ESP: ENABLED", 2)
-    else
-        if self.State.Connection then self.State.Connection:Disconnect() end
-        for _, m in ipairs(self.State.Markers) do m:Destroy() end
-        table.clear(self.State.Markers)
-        self.State.IsEnabled = false
-        DoNotif("Audio ESP: DISABLED", 2)
-    end
-end
 
 Modules.LightingLock = {
     State = {
@@ -35555,67 +35046,6 @@ function Modules.KickShield:Initialize()
     end)
 end
 
-Modules.RaycastVisualBypass = {
-    State = {
-        IsEnabled = false,
-        OriginalNamecall = nil,
-        BlacklistedNames = {}
-    }
-}
-
-function Modules.RaycastVisualBypass:Toggle(): ()
-    if not (getrawmetatable and getnamecallmethod and newcclosure) then
-        return DoNotif("Environment does not support namecall hooks.", 3)
-    end
-
-    local mt = getrawmetatable(game)
-    self.State.IsEnabled = not self.State.IsEnabled
-
-    if self.State.IsEnabled then
-        self.State.OriginalNamecall = mt.__namecall
-        setreadonly(mt, false)
-
-        mt.__namecall = newcclosure(function(selfArg, ...)
-            local method = getnamecallmethod()
-            local args = {...}
-
-            if selfArg == Workspace and method == "Raycast" then
-                local result = self.State.OriginalNamecall(selfArg, unpack(args))
-                if result and result.Instance and self.State.BlacklistedNames[result.Instance.Name] then
-                    return nil
-                end
-            end
-
-            return self.State.OriginalNamecall(selfArg, unpack(args))
-        end)
-
-        setreadonly(mt, true)
-        DoNotif("Raycast Bypass: ENABLED (Hiding specific parts from scripts)", 2)
-    else
-        setreadonly(mt, false)
-        mt.__namecall = self.State.OriginalNamecall
-        setreadonly(mt, true)
-        DoNotif("Raycast Bypass: DISABLED", 2)
-    end
-end
-
-RegisterCommand({
-    Name = "rayblock",
-    Aliases = {"rayignore", "rbloc"},
-    Description = "Makes scripts ignore specific parts during raycasting. Usage: ;rb [PartName]"
-}, function(args)
-    local name = args[1]
-    if not name then
-        Modules.RaycastVisualBypass:Toggle()
-    else
-        Modules.RaycastVisualBypass.State.BlacklistedNames[name] = true
-        DoNotif("Added '" .. name .. "' to raycast blacklist.", 2)
-        if not Modules.RaycastVisualBypass.State.IsEnabled then
-            Modules.RaycastVisualBypass:Toggle()
-        end
-    end
-end)
-
 Modules.SpatialQueryBypass = {
     State = {
         IsEnabled = false,
@@ -36531,462 +35961,317 @@ Modules.SettingsManager = {
     State = {
         UI = nil,
         IsOpen = false,
-        Connections = {}
+        ActiveCategory = "General",
+        Connections = {},
+        Cache = {}
     },
     Config = {
         ACCENT = Color3.fromRGB(0, 255, 255),
-        BG = Color3.fromRGB(10, 10, 10),
-        FG = Color3.fromRGB(25, 25, 25),
-        BORDER = Color3.fromRGB(50, 50, 50),
-        SETTINGS_FILE = "ZukaSettings.json"
+        BG = Color3.fromRGB(15, 15, 18),
+        SECONDARY = Color3.fromRGB(22, 22, 26),
+        TEXT = Color3.fromRGB(240, 240, 240),
+        DANGER = Color3.fromRGB(255, 80, 80)
     },
     Settings = {
         General = {
-            NotificationsEnabled = {type = "boolean", value = true, label = "Enable Notifications"},
-            NotificationDuration = {type = "number", value = 2, label = "Notification Duration (s)", min = 0.5, max = 5},
-            DefaultUIAccent = {type = "color", value = Color3.fromRGB(0, 255, 255), label = "UI Accent Color"},
-            AutosaveEnabled = {type = "boolean", value = true, label = "Auto-save Settings"},
+            Notifications = {type = "boolean", value = true, label = "Global Notifications"},
+            AutoSave = {type = "boolean", value = true, label = "Auto-Persistence"},
+            StreamerMode = {type = "boolean", value = false, label = "Anonymize UI Data"}
         },
         Visual = {
-            PanelOpacity = {type = "number", value = 0.95, label = "Panel Opacity", min = 0.5, max = 1},
-            PanelScale = {type = "number", value = 1, label = "Panel Scale", min = 0.7, max = 1.5},
-            TextSize = {type = "number", value = 14, label = "Text Size", min = 10, max = 20},
-            BorderThickness = {type = "number", value = 2, label = "Border Thickness", min = 1, max = 4},
-        },
-        Notifications = {
-            SoundEnabled = {type = "boolean", value = false, label = "Notification Sound"},
-            Position = {type = "string", value = "TopRight", label = "Notification Position", options = {"TopRight", "TopLeft", "BottomRight", "BottomLeft"}},
-            ShowStackTrace = {type = "boolean", value = false, label = "Show Error Stack Trace"},
+            PanelOpacity = {type = "number", value = 0.9, label = "Master Alpha", min = 0.1, max = 1},
+            ThemeColor = {type = "color", value = Color3.fromRGB(0, 255, 255), label = "Accent Color"},
+            OverlayEnabled = {type = "boolean", value = true, label = "Draw Overlays"}
         },
         Keybinds = {
-            OpenUI = {type = "keybind", value = Enum.KeyCode.RightControl, label = "Open Main UI"},
-            OpenSettings = {type = "keybind", value = Enum.KeyCode.RightShift, label = "Open Settings"},
-            QuickSearch = {type = "keybind", value = Enum.KeyCode.F, label = "Quick Script Search"},
-        },
-        Modules = {
-
+            MenuToggle = {type = "keybind", value = Enum.KeyCode.RightControl, label = "Primary Dashboard"},
+            SettingsToggle = {type = "keybind", value = Enum.KeyCode.RightShift, label = "Config Terminal"}
         }
-    },
-    Dependencies = {"CoreGui", "UserInputService", "HttpService"},
-    Services = {}
+    }
 }
 
-function Modules.SettingsManager:SaveSettings()
-    if not self.Settings then return end
-
-    local settingsToSave = {}
-    for category, settings in pairs(self.Settings) do
-        settingsToSave[category] = {}
-        for key, data in pairs(settings) do
-            if data.type == "color" then
-                local color = data.value
-                settingsToSave[category][key] = {
-                    type = "color",
-                    value = string.format("%02X%02X%02X",
-                        math.floor(color.R * 255),
-                        math.floor(color.G * 255),
-                        math.floor(color.B * 255))
-                }
+function Modules.SettingsManager:Save(): ()
+    local encoded = {}
+    for cat, data in pairs(self.Settings) do
+        encoded[cat] = {}
+        for key, setting in pairs(data) do
+            if setting.type == "color" then
+                encoded[cat][key] = {r = setting.value.R, g = setting.value.G, b = setting.value.B}
+            elseif setting.type == "keybind" then
+                encoded[cat][key] = setting.value.Name
             else
-                settingsToSave[category][key] = {type = data.type, value = data.value}
+                encoded[cat][key] = setting.value
             end
         end
     end
     
-    local jsonData = self.Services.HttpService:JSONEncode(settingsToSave)
-    if getgenv().ZukaSettings then
-        getgenv().ZukaSettings = jsonData
+    local success, result = pcall(function()
+        local json = HttpService:JSONEncode(encoded)
+        if writefile then
+            writefile("ZukaV10_Config.json", json)
+        end
+    end)
+    
+    if success and typeof(DoNotif) == "function" then
+        DoNotif("Configuration Synced", 1.5)
     end
-    DoNotif("Settings Saved!", 2)
 end
 
-function Modules.SettingsManager:LoadSettings()
-    local data = getgenv().ZukaSettings
-    if not data then return end
+function Modules.SettingsManager:Load(): ()
+    if not isfile or not isfile("ZukaV10_Config.json") then return end
     
-    local success, decoded = pcall(function()
-        return self.Services.HttpService:JSONDecode(data)
+    local success, data = pcall(function()
+        local raw = readfile("ZukaV10_Config.json")
+        return HttpService:JSONDecode(raw)
     end)
     
     if not success then return end
     
-    for category, settings in pairs(decoded) do
-        if self.Settings[category] then
-            for key, data in pairs(settings) do
-                if self.Settings[category][key] then
-                    if data.type == "color" then
-                        local hex = data.value
-                        local r = tonumber(hex:sub(1, 2), 16) / 255
-                        local g = tonumber(hex:sub(3, 4), 16) / 255
-                        local b = tonumber(hex:sub(5, 6), 16) / 255
-                        self.Settings[category][key].value = Color3.new(r, g, b)
+    for cat, settings in pairs(data) do
+        if self.Settings[cat] then
+            for key, val in pairs(settings) do
+                local target = self.Settings[cat][key]
+                if target then
+                    if target.type == "color" and type(val) == "table" then
+                        target.value = Color3.new(val.r, val.g, val.b)
+                    elseif target.type == "keybind" and type(val) == "string" then
+                        target.value = Enum.KeyCode[val]
                     else
-                        self.Settings[category][key].value = data.value
+                        target.value = val
                     end
                 end
             end
         end
     end
+end
+
+function Modules.SettingsManager:_createControl(parent: Instance, cat: string, key: string, data: table): ()
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, -10, 0, 45)
+    container.BackgroundColor3 = self.Config.SECONDARY
+    container.BorderSizePixel = 0
+    container.Parent = parent
     
-    DoNotif("Settings Loaded!", 2)
-end
-
-function Modules.SettingsManager:GetSetting(category, key)
-    if self.Settings[category] and self.Settings[category][key] then
-        return self.Settings[category][key].value
-    end
-    return nil
-end
-
-function Modules.SettingsManager:SetSetting(category, key, value)
-    if self.Settings[category] and self.Settings[category][key] then
-        self.Settings[category][key].value = value
-        if self:GetSetting("General", "AutosaveEnabled") then
-            self:SaveSettings()
-        end
-    end
-end
-
-function Modules.SettingsManager:_createSettingControl(parent, category, key, data, yOffset)
-    local container = Instance.new("Frame", parent)
-    container.Size = UDim2.new(1, -20, 0, 40)
-    container.Position = UDim2.fromOffset(10, yOffset)
-    container.BackgroundColor3 = self.Config.FG
-    container.BorderSizePixel = 1
-    container.BorderColor3 = self.Config.BORDER
-
+    local corner = Instance.new("UICorner", container)
+    corner.CornerRadius = UDim.new(0, 4)
+    
     local label = Instance.new("TextLabel", container)
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.Position = UDim2.fromOffset(10, 0)
+    label.Size = UDim2.new(0.5, 0, 1, 0)
+    label.Position = UDim2.fromOffset(12, 0)
     label.Text = data.label
-    label.TextColor3 = Color3.new(1, 1, 1)
+    label.TextColor3 = self.Config.TEXT
     label.Font = Enum.Font.Code
-    label.TextSize = 12
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
     label.BackgroundTransparency = 1
-    label.TextXAlignment = "Left"
 
     if data.type == "boolean" then
-        local toggle = Instance.new("TextButton", container)
-        toggle.Size = UDim2.fromOffset(60, 25)
-        toggle.Position = UDim2.new(1, -70, 0, 7)
-        toggle.BackgroundColor3 = data.value and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(100, 100, 100)
-        toggle.BorderSizePixel = 0
-        toggle.Text = data.value and "ON" or "OFF"
-        toggle.TextColor3 = Color3.new(1, 1, 1)
-        toggle.Font = Enum.Font.Code
-        toggle.TextSize = 11
-
-        toggle.MouseButton1Click:Connect(function()
+        local btn = Instance.new("TextButton", container)
+        btn.Size = UDim2.fromOffset(60, 26)
+        btn.Position = UDim2.new(1, -72, 0.5, -13)
+        btn.BackgroundColor3 = data.value and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 65)
+        btn.Text = data.value and "ON" or "OFF"
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.Code
+        btn.TextSize = 11
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+        
+        btn.MouseButton1Click:Connect(function()
             data.value = not data.value
-            toggle.Text = data.value and "ON" or "OFF"
-            toggle.BackgroundColor3 = data.value and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(100, 100, 100)
-            self:SetSetting(category, key, data.value)
+            btn.Text = data.value and "ON" or "OFF"
+            TweenService:Create(btn, TweenInfo.new(0.2), {
+                BackgroundColor3 = data.value and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 65)
+            }):Play()
+            if self.Settings.General.AutoSave.value then self:Save() end
         end)
-
+        
     elseif data.type == "number" then
-        local input = Instance.new("TextBox", container)
-        input.Size = UDim2.fromOffset(100, 25)
-        input.Position = UDim2.new(1, -110, 0, 7)
-        input.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        input.BorderSizePixel = 1
-        input.BorderColor3 = self.Config.BORDER
-        input.Text = tostring(data.value)
-        input.TextColor3 = Color3.new(1, 1, 1)
-        input.Font = Enum.Font.Code
-        input.TextSize = 11
-
-        input.FocusLost:Connect(function()
-            local num = tonumber(input.Text)
-            if num then
-                if data.min and num < data.min then num = data.min end
-                if data.max and num > data.max then num = data.max end
-                data.value = num
-                input.Text = tostring(num)
-                self:SetSetting(category, key, num)
+        local box = Instance.new("TextBox", container)
+        box.Size = UDim2.fromOffset(80, 26)
+        box.Position = UDim2.new(1, -92, 0.5, -13)
+        box.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        box.Text = tostring(data.value)
+        box.TextColor3 = self.Config.ACCENT
+        box.Font = Enum.Font.Code
+        box.TextSize = 12
+        Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
+        
+        box.FocusLost:Connect(function(enter)
+            local n = tonumber(box.Text)
+            if n then
+                n = math.clamp(n, data.min or -math.huge, data.max or math.huge)
+                data.value = n
+                box.Text = tostring(n)
+                if self.Settings.General.AutoSave.value then self:Save() end
+            else
+                box.Text = tostring(data.value)
             end
         end)
-
-    elseif data.type == "color" then
-        local colorBtn = Instance.new("TextButton", container)
-        colorBtn.Size = UDim2.fromOffset(100, 25)
-        colorBtn.Position = UDim2.new(1, -110, 0, 7)
-        colorBtn.BackgroundColor3 = data.value
-        colorBtn.BorderSizePixel = 1
-        colorBtn.BorderColor3 = self.Config.BORDER
-        colorBtn.Text = "PICK COLOR"
-        colorBtn.TextColor3 = Color3.new(1, 1, 1)
-        colorBtn.Font = Enum.Font.Code
-        colorBtn.TextSize = 9
-
-        colorBtn.MouseButton1Click:Connect(function()
-            DoNotif("Color picker not available in this version.", 2)
-        end)
-
-    elseif data.type == "string" and data.options then
-        local dropdown = Instance.new("TextButton", container)
-        dropdown.Size = UDim2.fromOffset(100, 25)
-        dropdown.Position = UDim2.new(1, -110, 0, 7)
-        dropdown.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        dropdown.BorderSizePixel = 1
-        dropdown.BorderColor3 = self.Config.BORDER
-        dropdown.Text = data.value
-        dropdown.TextColor3 = Color3.new(1, 1, 1)
-        dropdown.Font = Enum.Font.Code
-        dropdown.TextSize = 10
-
-        local currentIdx = table.find(data.options, data.value) or 1
-        dropdown.MouseButton1Click:Connect(function()
-            currentIdx = currentIdx % #data.options + 1
-            data.value = data.options[currentIdx]
-            dropdown.Text = data.value
-            self:SetSetting(category, key, data.value)
-        end)
-
+        
     elseif data.type == "keybind" then
-        local keybindBtn = Instance.new("TextButton", container)
-        keybindBtn.Size = UDim2.fromOffset(100, 25)
-        keybindBtn.Position = UDim2.new(1, -110, 0, 7)
-        keybindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        keybindBtn.BorderSizePixel = 1
-        keybindBtn.BorderColor3 = self.Config.ACCENT
-        keybindBtn.Text = data.value.Name
-        keybindBtn.TextColor3 = self.Config.ACCENT
-        keybindBtn.Font = Enum.Font.Code
-        keybindBtn.TextSize = 10
-
-        local listening = false
-        keybindBtn.MouseButton1Click:Connect(function()
-            listening = true
-            keybindBtn.Text = "LISTENING..."
-            keybindBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
-
-            local connection
-            connection = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
+        local btn = Instance.new("TextButton", container)
+        btn.Size = UDim2.fromOffset(100, 26)
+        btn.Position = UDim2.new(1, -112, 0.5, -13)
+        btn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+        btn.Text = data.value.Name
+        btn.TextColor3 = self.Config.ACCENT
+        btn.Font = Enum.Font.Code
+        btn.TextSize = 11
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+        
+        local active = false
+        btn.MouseButton1Click:Connect(function()
+            if active then return end
+            active = true
+            btn.Text = "..."
+            btn.TextColor3 = self.Config.DANGER
+            
+            local conn
+            conn = UserInputService.InputBegan:Connect(function(input, gpe)
                 if gpe then return end
-                if listening then
+                if input.UserInputType == Enum.UserInputType.Keyboard then
                     data.value = input.KeyCode
-                    keybindBtn.Text = input.KeyCode.Name
-                    keybindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-                    listening = false
-                    self:SetSetting(category, key, input.KeyCode)
-                    connection:Disconnect()
+                    btn.Text = input.KeyCode.Name
+                    btn.TextColor3 = self.Config.ACCENT
+                    active = false
+                    if self.Settings.General.AutoSave.value then self:Save() end
+                    conn:Disconnect()
                 end
             end)
-
+            
             task.delay(5, function()
-                if listening then
-                    listening = false
-                    keybindBtn.Text = data.value.Name
-                    keybindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-                    pcall(function() connection:Disconnect() end)
+                if active then
+                    active = false
+                    btn.Text = data.value.Name
+                    btn.TextColor3 = self.Config.ACCENT
+                    if conn then conn:Disconnect() end
                 end
             end)
         end)
     end
-
-    return container
 end
 
-function Modules.SettingsManager:CreateUI()
-    if self.State.IsOpen then return end
-    self.State.IsOpen = true
-
-    if self.State.UI then self.State.UI:Destroy() end
-
-    local sg = Instance.new("ScreenGui", self.Services.CoreGui)
-    sg.Name = "Zuka_SettingsUI"
-    sg.ResetOnSpawn = false
+function Modules.SettingsManager:CreateUI(): ()
+    if self.State.UI then
+        self.State.UI.Enabled = true
+        return
+    end
+    
+    local sg = Instance.new("ScreenGui", CoreGui)
+    sg.Name = "Zuka_Settings_V10"
+    self.State.UI = sg
     
     local main = Instance.new("Frame", sg)
-    main.Size = UDim2.fromOffset(700, 650)
+    main.Size = UDim2.fromOffset(650, 450)
     main.Position = UDim2.fromScale(0.5, 0.5)
     main.AnchorPoint = Vector2.new(0.5, 0.5)
     main.BackgroundColor3 = self.Config.BG
-    main.BorderSizePixel = 2
-    main.BorderColor3 = self.Config.ACCENT
+    main.BorderSizePixel = 0
     main.Active = true
-
+    main.Draggable = true
+    
+    local stroke = Instance.new("UIStroke", main)
+    stroke.Color = self.Config.ACCENT
+    stroke.Thickness = 1.5
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 6)
+    
+    local sidebar = Instance.new("Frame", main)
+    sidebar.Size = UDim2.new(0, 160, 1, -40)
+    sidebar.Position = UDim2.fromOffset(0, 40)
+    sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+    sidebar.BorderSizePixel = 0
+    
+    local content = Instance.new("ScrollingFrame", main)
+    content.Size = UDim2.new(1, -170, 1, -50)
+    content.Position = UDim2.fromOffset(165, 45)
+    content.BackgroundTransparency = 1
+    content.BorderSizePixel = 0
+    content.ScrollBarThickness = 2
+    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    
+    local layout = Instance.new("UIListLayout", content)
+    layout.Padding = UDim.new(0, 8)
+    
     local header = Instance.new("Frame", main)
     header.Size = UDim2.new(1, 0, 0, 35)
-    header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    header.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     header.BorderSizePixel = 0
-
+    
     local title = Instance.new("TextLabel", header)
-    title.Size = UDim2.new(0.7, 0, 1, 0)
+    title.Size = UDim2.new(1, -40, 1, 0)
     title.Position = UDim2.fromOffset(15, 0)
-    title.Text = "⚙️ SETTINGS MANAGER"
+    title.Text = "SYSTEM CONFIGURATION"
     title.TextColor3 = self.Config.ACCENT
     title.Font = Enum.Font.Code
-    title.TextSize = 16
+    title.TextSize = 14
+    title.TextXAlignment = Enum.TextXAlignment.Left
     title.BackgroundTransparency = 1
-    title.TextXAlignment = "Left"
-
-    local closeBtn = Instance.new("TextButton", header)
-    closeBtn.Size = UDim2.fromOffset(35, 35)
-    closeBtn.Position = UDim2.new(1, -35, 0, 0)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.new(1, 0, 0)
-    closeBtn.Font = Enum.Font.Code
-    closeBtn.TextSize = 16
-
-    closeBtn.MouseButton1Click:Connect(function()
-        sg:Destroy()
-        self.State.IsOpen = false
-    end)
-
-    local tabs = Instance.new("Frame", main)
-    tabs.Size = UDim2.new(0.25, 0, 1, -35)
-    tabs.Position = UDim2.fromOffset(0, 35)
-    tabs.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    tabs.BorderSizePixel = 1
-    tabs.BorderColor3 = self.Config.BORDER
-
-    local tabScroll = Instance.new("ScrollingFrame", tabs)
-    tabScroll.Size = UDim2.new(1, 0, 1, 0)
-    tabScroll.BackgroundTransparency = 1
-    tabScroll.ScrollBarThickness = 3
-    tabScroll.ScrollBarImageColor3 = self.Config.ACCENT
-    tabScroll.AutomaticCanvasSize = "Y"
-
-    local tabLayout = Instance.new("UIListLayout", tabScroll)
-    tabLayout.Padding = UDim.new(0, 5)
-    tabLayout.HorizontalAlignment = "Center"
-
-    local contentArea = Instance.new("ScrollingFrame", main)
-    contentArea.Size = UDim2.new(0.75, 0, 1, -35)
-    contentArea.Position = UDim2.new(0.25, 0, 0, 35)
-    contentArea.BackgroundColor3 = self.Config.FG
-    contentArea.BorderSizePixel = 1
-    contentArea.BorderColor3 = self.Config.BORDER
-    contentArea.ScrollBarThickness = 3
-    contentArea.ScrollBarImageColor3 = self.Config.ACCENT
-    contentArea.AutomaticCanvasSize = "Y"
-
-    local contentLayout = Instance.new("UIListLayout", contentArea)
-    contentLayout.Padding = UDim.new(0, 10)
-    contentLayout.FillDirection = Enum.FillDirection.Vertical
-
-    local categories = {"General", "Visual", "Notifications", "Keybinds"}
     
-    for _, categoryName in ipairs(categories) do
-        if self.Settings[categoryName] then
-            local tabBtn = Instance.new("TextButton", tabScroll)
-            tabBtn.Size = UDim2.new(0.9, 0, 0, 35)
-            tabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-            tabBtn.BorderSizePixel = 1
-            tabBtn.BorderColor3 = self.Config.BORDER
-            tabBtn.Text = categoryName
-            tabBtn.TextColor3 = Color3.new(1, 1, 1)
-            tabBtn.Font = Enum.Font.Code
-            tabBtn.TextSize = 11
-
-            tabBtn.MouseButton1Click:Connect(function()
-
-                for _, child in ipairs(contentArea:GetChildren()) do
-                    if child:IsA("Frame") then child:Destroy() end
-                end
-
-                local catTitle = Instance.new("TextLabel", contentArea)
-                catTitle.Size = UDim2.new(1, -20, 0, 30)
-                catTitle.BackgroundColor3 = self.Config.FG
-                catTitle.BorderSizePixel = 0
-                catTitle.Text = categoryName .. " Settings"
-                catTitle.TextColor3 = self.Config.ACCENT
-                catTitle.Font = Enum.Font.Code
-                catTitle.TextSize = 14
-                catTitle.TextXAlignment = "Left"
-
-                local yOffset = 0
-                for key, data in pairs(self.Settings[categoryName]) do
-                    self:_createSettingControl(contentArea, categoryName, key, data, yOffset)
-                    yOffset = yOffset + 50
-                end
-
-                for _, btn in ipairs(tabScroll:GetChildren()) do
-                    if btn:IsA("TextButton") then
-                        btn.BackgroundColor3 = btn == tabBtn and self.Config.ACCENT or Color3.fromRGB(30, 30, 30)
-                        btn.TextColor3 = btn == tabBtn and Color3.new(0, 0, 0) or Color3.new(1, 1, 1)
-                    end
-                end
-            end)
+    local close = Instance.new("TextButton", header)
+    close.Size = UDim2.fromOffset(35, 35)
+    close.Position = UDim2.new(1, -35, 0, 0)
+    close.Text = "X"; close.TextColor3 = self.Config.DANGER
+    close.BackgroundTransparency = 1
+    close.Font = Enum.Font.Code
+    close.MouseButton1Click:Connect(function() sg.Enabled = false end)
+    
+    local sideLayout = Instance.new("UIListLayout", sidebar)
+    sideLayout.Padding = UDim.new(0, 2)
+    
+    local function loadCategory(catName)
+        for _, child in ipairs(content:GetChildren()) do
+            if not child:IsA("UIListLayout") then child:Destroy() end
+        end
+        
+        for key, data in pairs(self.Settings[catName]) do
+            self:_createControl(content, catName, key, data)
         end
     end
-
-    local bottomFrame = Instance.new("Frame", main)
-    bottomFrame.Size = UDim2.new(1, 0, 0, 35)
-    bottomFrame.Position = UDim2.new(0, 0, 1, -35)
-    bottomFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    bottomFrame.BorderSizePixel = 1
-    bottomFrame.BorderColor3 = self.Config.BORDER
-
-    local saveBtn = Instance.new("TextButton", bottomFrame)
-    saveBtn.Size = UDim2.fromOffset(100, 25)
-    saveBtn.Position = UDim2.fromOffset(10, 5)
-    saveBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-    saveBtn.BorderSizePixel = 0
-    saveBtn.Text = "SAVE"
-    saveBtn.TextColor3 = Color3.new(1, 1, 1)
-    saveBtn.Font = Enum.Font.Code
-    saveBtn.TextSize = 11
-
-    saveBtn.MouseButton1Click:Connect(function()
-        self:SaveSettings()
-    end)
-
-    local loadBtn = Instance.new("TextButton", bottomFrame)
-    loadBtn.Size = UDim2.fromOffset(100, 25)
-    loadBtn.Position = UDim2.fromOffset(120, 5)
-    loadBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 150)
-    loadBtn.BorderSizePixel = 0
-    loadBtn.Text = "LOAD"
-    loadBtn.TextColor3 = Color3.new(1, 1, 1)
-    loadBtn.Font = Enum.Font.Code
-    loadBtn.TextSize = 11
-
-    loadBtn.MouseButton1Click:Connect(function()
-        self:LoadSettings()
-    end)
-
-    local resetBtn = Instance.new("TextButton", bottomFrame)
-    resetBtn.Size = UDim2.fromOffset(100, 25)
-    resetBtn.Position = UDim2.new(1, -110, 0, 5)
-    resetBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-    resetBtn.BorderSizePixel = 0
-    resetBtn.Text = "RESET"
-    resetBtn.TextColor3 = Color3.new(1, 1, 1)
-    resetBtn.Font = Enum.Font.Code
-    resetBtn.TextSize = 11
-
-    resetBtn.MouseButton1Click:Connect(function()
-
-        DoNotif("Settings reset to defaults. Restart required.", 3)
-    end)
-
-    self.State.UI = sg
-    DoNotif("Settings Manager Opened", 2)
+    
+    for catName, _ in pairs(self.Settings) do
+        local b = Instance.new("TextButton", sidebar)
+        b.Size = UDim2.new(1, 0, 0, 35)
+        b.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+        b.BorderSizePixel = 0
+        b.Text = catName:upper()
+        b.TextColor3 = Color3.fromRGB(150, 150, 150)
+        b.Font = Enum.Font.Code
+        b.TextSize = 11
+        
+        b.MouseButton1Click:Connect(function()
+            loadCategory(catName)
+            for _, other in ipairs(sidebar:GetChildren()) do
+                if other:IsA("TextButton") then
+                    other.TextColor3 = Color3.fromRGB(150, 150, 150)
+                end
+            end
+            b.TextColor3 = self.Config.ACCENT
+        end)
+    end
+    
+    loadCategory("General")
 end
 
-function Modules.SettingsManager:Initialize()
-    for _, s in ipairs(self.Dependencies) do
-        self.Services[s] = game:GetService(s)
-    end
-
-    self:LoadSettings()
-
+function Modules.SettingsManager:Initialize(): ()
+    self:Load()
+    
     RegisterCommand({
         Name = "settings",
-        Aliases = {"config", "cfg"},
-        Description = "Opens the Settings Manager"
+        Aliases = {"config", "setup"},
+        Description = "Opens the settings menu"
     }, function()
         self:CreateUI()
     end)
-
-    self.State.Connections.Keybind = self.Services.UserInputService.InputBegan:Connect(function(input, gpe)
+    
+    UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
-        if input.KeyCode == self:GetSetting("Keybinds", "OpenSettings") then
-            self:CreateUI()
+        local bind = self.Settings.Keybinds.SettingsToggle.value
+        if input.KeyCode == bind then
+            if self.State.UI then
+                self.State.UI.Enabled = not self.State.UI.Enabled
+            else
+                self:CreateUI()
+            end
         end
     end)
 end
@@ -37188,38 +36473,91 @@ end)
 Modules.NetworkOwner = {
     State = {
         IsEnabled = false,
-        Connection = nil
+        Connection = nil,
+        CharacterAddedConn = nil,
+        CachedParts = {}
+    },
+    Config = {
+        NETWORK_VELOCITY = Vector3.new(0, 30.01, 0)
     }
 }
 
-function Modules.NetworkOwner:Toggle()
-    self.State.IsEnabled = not self.State.IsEnabled
-    if self.State.IsEnabled then
-        self.State.Connection = RunService.Stepped:Connect(function()
-            local char = Players.LocalPlayer.Character
-            if char then
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Velocity = Vector3.new(0, 30, 0)
-                    end
-                end
+function Modules.NetworkOwner:CacheCharacterParts(character: Model)
+    table.clear(self.State.CachedParts)
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            table.insert(self.State.CachedParts, part)
+        end
+    end
+end
+
+function Modules.NetworkOwner:Enable(): ()
+    if self.State.IsEnabled then return end
+    self.State.IsEnabled = true
+    
+    local localPlayer = Players.LocalPlayer
+    
+    local function setup(character)
+        self:CacheCharacterParts(character)
+    end
+
+    if localPlayer.Character then
+        setup(localPlayer.Character)
+    end
+
+    self.State.CharacterAddedConn = localPlayer.CharacterAdded:Connect(setup)
+    
+    self.State.Connection = RunService.Heartbeat:Connect(function()
+        local character = localPlayer.Character
+        if not character then return end
+        
+        for i = #self.State.CachedParts, 1, -1 do
+            local part = self.State.CachedParts[i]
+            if part and part.Parent then
+                part.AssemblyLinearVelocity = self.Config.NETWORK_VELOCITY
+            else
+                table.remove(self.State.CachedParts, i)
             end
-        end)
-        DoNotif("Netless: ENABLED (Bypasses distance-based network ownership)", 2)
+        end
+    end)
+    
+    DoNotif("Netless: ENABLED (Persistent Physics Authority)", 2)
+end
+
+function Modules.NetworkOwner:Disable(): ()
+    if not self.State.IsEnabled then return end
+    self.State.IsEnabled = false
+    
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+    
+    if self.State.CharacterAddedConn then
+        self.State.CharacterAddedConn:Disconnect()
+        self.State.CharacterAddedConn = nil
+    end
+    
+    table.clear(self.State.CachedParts)
+    DoNotif("Netless: DISABLED", 2)
+end
+
+function Modules.NetworkOwner:Toggle(): ()
+    if self.State.IsEnabled then
+        self:Disable()
     else
-        if self.State.Connection then self.State.Connection:Disconnect() end
-        self.State.IsEnabled = false
-        DoNotif("Netless: DISABLED", 2)
+        self:Enable()
     end
 end
 
 RegisterCommand({
     Name = "netless",
     Aliases = {"networkowner", "net"},
-    Description = "Maintains network ownership of your character parts at all times."
+    Description = "Optimized persistence of network ownership for character parts."
 }, function()
     Modules.NetworkOwner:Toggle()
 end)
+
 
 Modules.AttributeSpoofer = {
     State = {
@@ -37496,7 +36834,7 @@ end)
 Modules.NeuralBridge = {
     State = { IsBusy = false },
     Config = {
-        API_KEY = "", -- Use your own api key here, it's easy to make one.
+        API_KEY = "AIzaSyA8EmqxU7cgtFu5LIzvzmEjnSBtplYUpR4", -- Use your own api key here, it's easy to make one.
         MODEL = "gemini-2.5-flash"
     }
 }
@@ -37686,56 +37024,6 @@ RegisterCommand({
     Modules.NeuralOverride:OverwriteData(args[1], args[2])
 end)
 
-Modules.VanguardShield = {
-    State = {
-        IsEnabled = false,
-        OriginalIndex = nil,
-        SpoofTable = {
-            WalkSpeed = 16,
-            JumpPower = 50,
-            JumpHeight = 7.2,
-            Health = 100
-        }
-    }
-}
-
-function Modules.VanguardShield:Toggle(): ()
-    local success, mt = pcall(getrawmetatable, game)
-    if not success or not mt then return end
-
-    self.State.IsEnabled = not self.State.IsEnabled
-
-    if self.State.IsEnabled then
-        self.State.OriginalIndex = mt.__index
-        local originalIndex = self.State.OriginalIndex
-        local lp = LocalPlayer
-
-        setreadonly(mt, false)
-        mt.__index = newcclosure(function(selfArg, key)
-            if Modules.VanguardShield.State.IsEnabled and selfArg:IsA("Humanoid") and selfArg:IsDescendantOf(lp.Character) then
-                if Modules.VanguardShield.State.SpoofTable[key] ~= nil then
-                    return Modules.VanguardShield.State.SpoofTable[key]
-                end
-            end
-            return originalIndex(selfArg, key)
-        end)
-        setreadonly(mt, true)
-        DoNotif("Vanguard Shield: ENABLED (Property Spoofing Active)", 2)
-    else
-        setreadonly(mt, false)
-        mt.__index = self.State.OriginalIndex
-        setreadonly(mt, true)
-        DoNotif("Vanguard Shield: DISABLED", 2)
-    end
-end
-
-RegisterCommand({
-    Name = "propertyspoof",
-    Aliases = {},
-    Description = "Prevents local scripts from reading your real WalkSpeed/JumpPower/Health."
-}, function()
-    Modules.VanguardShield:Toggle()
-end)
 
 Modules.InterstellarInteraction = {
     State = {
@@ -40385,10 +39673,23 @@ local function loadstringCmd(url, notif)
     end)
     DoNotif(notif, 3)
 end
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+RegisterCommand({Name = "mk18", Aliases = {}, Description = "For backrooms."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/mk18.lua", " Loading.. ") end)
 RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin") end)
-RegisterCommand({Name = "wallwalk", Aliases = {"ww"}, Description = "Walk On Walls"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Loaded!") end)
+RegisterCommand({Name = "autofling", Aliases = {"pwned"}, Description = "Pwned Flinger"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Ultimatefling.lua", "Loaded!") end)
 RegisterCommand({Name = "ExecCallum", Aliases = {}, Description = "Loads Callum"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Executor.lua", "AI Executor") end)
-RegisterCommand({Name = "antibang", Aliases = {}, Description = "i'd rather fuck you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/plainsight.lua", "Anti Gay Shield Activated.") end)
+RegisterCommand({Name = "npcbreaker", Aliases = {}, Description = "WIP"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/CamFixNPCBreaker.txt", "Anti Gay Shield Activated.") end)
 RegisterCommand({Name = "plag", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameLaggerPlauncher.lua", "Loading Modification") end)
 RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RAPIDFIREPumpkinlauncher.lua", "Loading Modification") end)
 RegisterCommand({Name = "zukahub", Aliases = {"zuka"}, Description = "Loads the Zuka Hub"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZukaHub.lua", "Loading Zuka's Hub...") end)
@@ -40399,7 +39700,7 @@ RegisterCommand({Name = "creepyanim", Aliases = {"canim"}, Description = "Uncann
 RegisterCommand({Name = "swordbot", Aliases = {"sf", "sfbot"}, Description = "Auto Sword Fighter, use E and R"}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/swordnpc", "Bot loaded.") end)
 RegisterCommand({Name = "touchfling", Aliases = {}, Description = "Loads the touchfling GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SimpleTouchFlingGui.lua", "Loaded") end)
 RegisterCommand({Name = "zoneui", Aliases = {}, Description = "For https://www.roblox.com/games/99381597249674/Zombie-Zone" }, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/Nice.lua", "Loaded") end)
-RegisterCommand({Name = "inbypass", Aliases = {}, Description = "Instance Bypasser" }, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/instancebypass.lua", "Loaded") end)
+RegisterCommand({Name = "unglue", Aliases = {}, Description = "Anti Attacher" }, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AntiAttacherUpdated.lua", "Loaded") end)
 RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded Gui For Btools"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/fixedbtools.lua", "Loading Revamped Btools Gui") end)
 RegisterCommand({Name = "ketamine", Aliases = {}, Description = "Updated remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/remotes.lua", "Loading rSpy...") end)
 RegisterCommand({Name = "simplespy", Aliases = {"bestspy"}, Description = "Best remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/simplee%20spyyy%20mobilee", "Loading rSpy...") end)
