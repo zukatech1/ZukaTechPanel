@@ -1,0 +1,40 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local function removeForceFields(character: Model): nil
+	for _: number, descendant: Instance in ipairs(character:GetDescendants()) do
+		if descendant:IsA("ForceField") then
+			descendant:Destroy()
+		end
+	end
+	return nil
+end
+
+local function monitorCharacter(character: Model): nil
+	removeForceFields(character)
+	character.DescendantAdded:Connect(function(descendant: Instance)
+		if descendant:IsA("ForceField") then
+			task.defer(function()
+				descendant:Destroy()
+			end)
+		end
+	end)
+	return nil
+end
+
+local function onPlayerAdded(player: Player): nil
+	player.CharacterAdded:Connect(function(character: Model)
+		monitorCharacter(character)
+	end)
+	
+	if player.Character then
+		task.spawn(monitorCharacter, player.Character)
+	end
+	return nil
+end
+
+for _: number, player: Player in ipairs(Players:GetPlayers()) do
+	onPlayerAdded(player)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
