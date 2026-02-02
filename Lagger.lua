@@ -1,5 +1,5 @@
 local ReplicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
-local WeaponPath: ModuleScript = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("WeaponSettings"):WaitForChild("Gun"):WaitForChild("Striker"):WaitForChild("Setting"):WaitForChild("1")
+local WeaponPath: ModuleScript = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("WeaponSettings"):WaitForChild("Gun"):WaitForChild("Revolver"):WaitForChild("Setting"):WaitForChild("1")
 
 local function PatchModule()
     local success: boolean, weaponTable: table = pcall(require, WeaponPath)
@@ -299,6 +299,7 @@ local v1: table = {
 }
 
 return v1
+
 
 
 
