@@ -27,7 +27,6 @@ local function getLocalPlayer()
     return lp
 end
 --[[local LocalPlayer = getLocalPlayer()
-
 local CoreGui = game:GetService("CoreGui")
 repeat task.wait(0.1) until CoreGui:FindFirstChild("RobloxGui")
 
@@ -135,9 +134,9 @@ local function dismantle_readonly(target)
     end)
 end
 
-dismantle_readonly(getgenv())
-dismantle_readonly(getrenv())
-dismantle_readonly(getreg())
+---dismantle_readonly(getgenv())
+---dismantle_readonly(getrenv())
+---dismantle_readonly(getreg())
 
 local function protect_interface(instance)
     local protector = (get_hidden_gui or (syn and syn.protect_gui))
@@ -164,10 +163,13 @@ local Services = setmetatable({}, {
         return s
     end
 })
+
+
 print(string.format("--> [ZukaTech]: Memory Baseline: %.2f KB", _GC_START))
 print(string.format("--> [ZukaTech]: Environment Unlock: SUCCESS"))
 print(string.format("--> [ZukaTech]: C-Closure Wrapper: ACTIVE"))
-local Players = game:GetService("Players")
+
+
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -469,63 +471,6 @@ local function loadAimbotGUI(args)
 		
 		local janitor = {}
 
-local function SetupSilentAimHook(): () -> ()
-    if not (getrawmetatable and setreadonly and newcclosure and getnamecallmethod) then
-        warn("Zuka's Analysis: Silent Aim dependencies (e.g., getrawmetatable) not found. Silent Aim will be disabled.")
-        return function() end
-    end
-
-    local gameMetatable: {} = getrawmetatable(game)
-    local originalNamecall = gameMetatable.__namecall
-    
-    local success, err = pcall(function()
-        setreadonly(gameMetatable, false)
-        gameMetatable.__namecall = newcclosure(function(...)
-            local args: {any} = {...}
-            local self: Instance = args[1]
-            local method: string = getnamecallmethod()
-            local targetPosition: Vector3 = getgenv().ZukaSilentAimTarget
-
-            if getgenv().silentAimEnabled and targetPosition and self == Workspace then
-                if method == "Raycast" then
-                    local origin: any, direction: any = args[2], args[3]
-                    if typeof(origin) == "Vector3" and typeof(direction) == "Vector3" then
-                        local newDirection: Vector3 = (targetPosition - origin).Unit * direction.Magnitude
-                        args[3] = newDirection
-                    end
-                elseif method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" then
-                    local rayArg: any = args[2]
-                    if typeof(rayArg) == "Ray" then
-                        local newRay: Ray = Ray.new(rayArg.Origin, (targetPosition - rayArg.Origin).Unit * 1000)
-                        args[2] = newRay
-                    end
-                end
-            end
-            
-            return originalNamecall(unpack(args))
-        end)
-        setreadonly(gameMetatable, true)
-    end)
-
-    if not success then
-        warn("Zuka's Analysis: Failed to hook __namecall.", err)
-        pcall(setreadonly, gameMetatable, false)
-        gameMetatable.__namecall = originalNamecall
-        pcall(setreadonly, gameMetatable, true)
-        return function() end
-    end
-
-    return function()
-        pcall(function()
-            setreadonly(gameMetatable, false)
-            gameMetatable.__namecall = originalNamecall
-            setreadonly(gameMetatable, true)
-        end)
-    end
-end
-
-		local cleanupSilentAimHook = SetupSilentAimHook()
-
 		local function makeUICorner(element, cornerRadius)
 			local corner = Instance.new("UICorner");
 			corner.CornerRadius = UDim.new(0, cornerRadius or 6);
@@ -539,7 +484,6 @@ end
 
 		if not MainScreenGui.Parent then
 			table.insert(janitor, MainScreenGui.Destroying:Connect(function()
-				cleanupSilentAimHook()
 				for _, connection in ipairs(janitor) do
 					connection:Disconnect()
 				end
@@ -552,8 +496,6 @@ end
 
 		getgenv().TargetScope = Workspace
 		getgenv().TargetIndex = {}
-		getgenv().silentAimEnabled = false
-		getgenv().ZukaSilentAimTarget = nil
 		
 		local explorerWindow = nil
 		local function createExplorerWindow(statusLabel, indexerUpdateSignal)
@@ -837,11 +779,6 @@ end
 			targetPlayerToggle.Font, targetPlayerToggle.TextSize, targetPlayerToggle.Text = Enum.Font.Code, 15, "Target Selected: OFF"
 			makeUICorner(targetPlayerToggle, 6)
 			createSectionHeader(RightColumn, "Modifiers")
-			local silentAimToggle = Instance.new("TextButton", RightColumn)
-			silentAimToggle.Size, silentAimToggle.Text = UDim2.new(1, 0, 0, 28), "Silent Aim: OFF"
-			silentAimToggle.BackgroundColor3, silentAimToggle.TextColor3 = Color3.fromRGB(40,40,40), Color3.fromRGB(255,255,255)
-			silentAimToggle.Font, silentAimToggle.TextSize = Enum.Font.Code, 15
-			makeUICorner(silentAimToggle, 6)
 			local ignoreTeamToggle = Instance.new("TextButton", RightColumn)
 			ignoreTeamToggle.Size, ignoreTeamToggle.Text = UDim2.new(1, 0, 0, 28), "Ignore Team: OFF"
 			ignoreTeamToggle.BackgroundColor3, ignoreTeamToggle.TextColor3 = Color3.fromRGB(40,40,40), Color3.fromRGB(255,255,255)
@@ -990,14 +927,13 @@ end
 					if not isTeammate(selectedPlayerTarget) then targetModel, targetPlayer = selectedPlayerTarget.Character, selectedPlayerTarget else targetModel = nil end
 				elseif aiming and currentTarget then targetModel = currentTarget; targetPlayer = Players:GetPlayerFromCharacter(targetModel) end
 				if targetModel then aimPart = targetModel:FindFirstChild(partDropdown.Text) end
-				getgenv().ZukaSilentAimTarget = nil
 				if aiming and aimPart and targetModel then
 					if not wallCheckEnabled or isPartVisible(aimPart) then
 						table.insert(partsToDrawESPFor, {Part = aimPart, Color = Color3.fromRGB(255, 80, 80), Name = "AimbotESP"});
 						local distance = (Camera.CFrame.Position - aimPart.Position).Magnitude;
 						local predictionFactor = (distance / 2000) * (1 + (math.random(-50, 50) / 1000));
 						local predictedPosition = aimPart.Position + (aimPart.AssemblyLinearVelocity * predictionFactor);
-						if getgenv().silentAimEnabled then getgenv().ZukaSilentAimTarget = predictedPosition elseif smoothingEnabled then local goalCFrame = CFrame.lookAt(Camera.CFrame.Position, predictedPosition); local adjustedSmoothFactor = math.clamp(1 - (1 - smoothingFactor) ^ (60 * deltaTime), 0, 1); Camera.CFrame = Camera.CFrame:Lerp(goalCFrame, adjustedSmoothFactor) else Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, predictedPosition) end;
+						if smoothingEnabled then local goalCFrame = CFrame.lookAt(Camera.CFrame.Position, predictedPosition); local adjustedSmoothFactor = math.clamp(1 - (1 - smoothingFactor) ^ (60 * deltaTime), 0, 1); Camera.CFrame = Camera.CFrame:Lerp(goalCFrame, adjustedSmoothFactor) else Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, predictedPosition) end;
 						statusLabel.Text = "Aimbot: Targeting " .. (targetPlayer and targetPlayer.Name or targetModel.Name)
 					else statusLabel.Text = "Aimbot: Target is behind a wall"; currentTarget = nil end
 				elseif aiming then statusLabel.Text = "Aimbot: No visible target in index" elseif not aiming then statusLabel.Text = "Aimbot ready. Hold toggle key to aim." end
@@ -1005,7 +941,6 @@ end
 				for _, data in ipairs(partsToDrawESPFor) do manageESP(data.Part, data.Color, data.Name) end
 			end));
 			
-			table.insert(janitor, silentAimToggle.MouseButton1Click:Connect(function() getgenv().silentAimEnabled = not getgenv().silentAimEnabled; silentAimToggle.Text = "Silent Aim: " .. (getgenv().silentAimEnabled and "ON" or "OFF") end))
 			table.insert(janitor, ignoreTeamToggle.MouseButton1Click:Connect(function() ignoreTeamEnabled = not ignoreTeamEnabled; ignoreTeamToggle.Text = "Ignore Team: " .. (ignoreTeamEnabled and "ON" or "OFF") end))
 			table.insert(janitor, wallCheckToggle.MouseButton1Click:Connect(function() wallCheckEnabled = not wallCheckEnabled; wallCheckToggle.Text = "Wall Check: " .. (wallCheckEnabled and "ON" or "OFF") end))
 			
@@ -6770,154 +6705,9 @@ function Modules.KnockbackNullifier:Initialize()
     end)
 end
 
-Modules.AntiCheatBypass = {
-    State = {
-        IsEnabled = false,
-        HookedHumanoids = setmetatable({}, {__mode = "k"}),
-        Connections = {}
-    },
-    Config = {
-        VANILLA_WALKSPEED = 16,
-        VANILLA_JUMPPOWER = 50,
-        TRUE_WALKSPEED_KEY = "AntiCheatBypass_TrueWalkSpeed",
-        TRUE_JUMPPOWER_KEY = "AntiCheatBypass_TrueJumpPower"
-    }
-}
-
-function Modules.AntiCheatBypass:_applyHooks(character)
-    if not character then return end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid or self.State.HookedHumanoids[humanoid] then
-        return
-    end
-
-    local success, mt = pcall(getrawmetatable, humanoid)
-    if not success or typeof(mt) ~= "table" then
-        warn("AntiCheatBypass: Failed to get humanoid metatable. Environment may not be supported.")
-        return
-    end
-
-    local originalIndex = mt.__index
-    local originalNewIndex = mt.__newindex
-    self.State.HookedHumanoids[humanoid] = { originalIndex, originalNewIndex }
-
-    humanoid[self.Config.TRUE_WALKSPEED_KEY] = humanoid.WalkSpeed
-    humanoid[self.Config.TRUE_JUMPPOWER_KEY] = humanoid.JumpPower
-
-    setreadonly(mt, false)
-
-    mt.__index = function(self, key)
-        if key == "WalkSpeed" then
-            return Modules.AntiCheatBypass.Config.VANILLA_WALKSPEED
-        end
-        if key == "JumpPower" then
-            return Modules.AntiCheatBypass.Config.VANILLA_JUMPPOWER
-        end
-        return originalIndex(self, key)
-    end
-
-    mt.__newindex = function(self, key, value)
-        if key == "WalkSpeed" then
-            humanoid[Modules.AntiCheatBypass.Config.TRUE_WALKSPEED_KEY] = value
-            return
-        end
-        if key == "JumpPower" then
-            humanoid[Modules.AntiCheatBypass.Config.TRUE_JUMPPOWER_KEY] = value
-            return
-        end
-        return originalNewIndex(self, key, value)
-    end
-
-    setreadonly(mt, true)
-end
-
-function Modules.AntiCheatBypass:_removeHooks(character)
-    if not character then return end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid or not self.State.HookedHumanoids[humanoid] then
-        return
-    end
-
-    local success, mt = pcall(getrawmetatable, humanoid)
-    if not success or typeof(mt) ~= "table" then
-        return
-    end
-
-    local originalMeta = self.State.HookedHumanoids[humanoid]
-    setreadonly(mt, false)
-    mt.__index = originalMeta[1]
-    mt.__newindex = originalMeta[2]
-    setreadonly(mt, true)
-
-    if humanoid[self.Config.TRUE_WALKSPEED_KEY] then
-        humanoid.WalkSpeed = humanoid[self.Config.TRUE_WALKSPEED_KEY]
-    end
-    if humanoid[self.Config.TRUE_JUMPPOWER_KEY] then
-        humanoid.JumpPower = humanoid[self.Config.TRUE_JUMPPOWER_KEY]
-    end
-
-    self.State.HookedHumanoids[humanoid] = nil
-end
-
-function Modules.AntiCheatBypass:Enable()
-    if self.State.IsEnabled then return end
-    self.State.IsEnabled = true
-
-    if LocalPlayer.Character then
-        self:_applyHooks(LocalPlayer.Character)
-    end
-
-    self.State.Connections.CharacterAdded = LocalPlayer.CharacterAdded:Connect(function(character)
-        self:_applyHooks(character)
-    end)
-    self.State.Connections.CharacterRemoving = LocalPlayer.CharacterRemoving:Connect(function(character)
-        self:_removeHooks(character)
-    end)
-
-    DoNotif("Anti-Cheat Bypass: ENABLED. Humanoid properties sanitized.", 3)
-end
-
-function Modules.AntiCheatBypass:Disable()
-    if not self.State.IsEnabled then return end
-    self.State.IsEnabled = false
-
-    for _, conn in pairs(self.State.Connections) do
-        conn:Disconnect()
-    end
-    table.clear(self.State.Connections)
-
-    if LocalPlayer.Character then
-        self:_removeHooks(LocalPlayer.Character)
-    end
-
-    for humanoid, _ in pairs(self.State.HookedHumanoids) do
-        if humanoid.Parent then
-            self:_removeHooks(humanoid.Parent)
-        end
-    end
-
-    DoNotif("Anti-Cheat Bypass: DISABLED. Humanoid properties restored.", 3)
-end
-
-function Modules.AntiCheatBypass:Toggle()
-    if self.State.IsEnabled then
-        self:Disable()
-    else
-        self:Enable()
-    end
-end
-
-RegisterCommand({
-    Name = "acbypass",
-    Aliases = {"anticheatbypass", "sanitize"},
-    Description = "Toggles a bypass that makes your WalkSpeed and JumpPower appear normal to client-side anti-cheats."
-}, function()
-    Modules.AntiCheatBypass:Toggle()
-end)
-
 Modules.AntiVoid = {
     State = {
-        IsEnabled = false,
+        IsEnabled = true,
         Connection = nil,
     },
     Config = {
@@ -7674,7 +7464,7 @@ end
 
 Modules.AntiPlayerPhysics = {
     State = {
-        IsEnabled = false,
+        IsEnabled = true,
         SteppedConnection = nil,
         OriginalProperties = setmetatable({}, {__mode = "k"})
     },
@@ -12540,6 +12330,9 @@ local function main()
 
 		context:AddRegistered("EDIT_PROPERTIES")
 		context:AddRegistered("LOCK_PROPERTIES")
+        -- context:AddRegistered("ANCHOR") -- Will be added below after registration
+        -- context:AddRegistered("UNANCHOR") -- Will be added below after registration
+        -- context:AddRegistered("FORCE_HUMANOID_IGNORE")
 
 		context:AddRegistered("COPY_API_PAGE")
 
@@ -12552,7 +12345,78 @@ local function main()
 			context:AddRegistered("3DVIEW_MODEL")
             context:AddRegistered("ADD_DMGPOINT")
             context:AddRegistered("SWORDIFY")
+            context:AddRegistered("FORCE_HUMANOID_IGNORE")
+            context:AddRegistered("ANCHOR") -- Registered below
+            context:AddRegistered("UNANCHOR") -- Registered below
 		end
+
+        context:Register("FORCE_HUMANOID_IGNORE", {Name = "Force Ignore", IconMap = Explorer.MiscIcons, Icon = "Shuffle", OnClick = function()
+	local sList = selection.List
+	
+	for i = 1, #sList do
+		local node = sList[i]
+		local obj = node.Obj
+		local humanoid = obj:IsA("Humanoid") and obj or obj:FindFirstChild("Humanoid")
+		
+		if humanoid then
+			-- Use a tag-based system for better performance and persistence
+			-- Assumes you have a tag service available
+			local tag = "IgnoreLocalPlayer"
+			if game:GetService("CollectionService") then
+				game:GetService("CollectionService"):AddTag(humanoid, tag)
+			end
+		end
+	end
+end})
+
+context:Register("ANCHOR", {Name = "ANCHOR Model/Humanoid", IconMap = Explorer.MiscIcons, Icon = "Copy", OnClick = function()
+	local sList = selection.List
+	local parts = {}
+	
+	-- First pass: collect all parts
+	for i = 1, #sList do
+		local obj = sList[i].Obj
+		if obj:IsA("BasePart") then
+			table.insert(parts, obj)
+		elseif obj:IsA("Model") then
+			for _, part in ipairs(obj:FindFirstChildOfClass("BasePart") and obj:GetDescendants() or {}) do
+				if part:IsA("BasePart") then
+					table.insert(parts, part)
+				end
+			end
+		end
+	end
+	
+	-- Second pass: batch anchor (reduces PropertyChanged events)
+	for i = 1, #parts do
+		parts[i].Anchored = true
+	end
+end})
+
+context:Register("UNANCHOR", {Name = "UNANCHOR Model/Humanoid", IconMap = Explorer.MiscIcons, Icon = "Copy", OnClick = function()
+	local sList = selection.List
+	local parts = {}
+	
+	-- First pass: collect all parts
+	for i = 1, #sList do
+		local obj = sList[i].Obj
+		if obj:IsA("BasePart") then
+			table.insert(parts, obj)
+		elseif obj:IsA("Model") then
+			for _, part in ipairs(obj:FindFirstChildOfClass("BasePart") and obj:GetDescendants() or {}) do
+				if part:IsA("BasePart") then
+					table.insert(parts, part)
+				end
+			end
+		end
+	end
+	
+	-- Second pass: batch unanchor
+	for i = 1, #parts do
+		parts[i].Anchored = false
+	end
+end})
+
 		context:Register("INSERT_ANIMATION", {Name = "Insert Animation", IconMap = Explorer.MiscIcons, Icon = "Copy", OnClick = function()
 			local sList = selection.List
 			
@@ -12645,6 +12509,8 @@ local function main()
 		if presentClasses["Player"] then 
 			context:AddRegistered("SELECT_CHARACTER")
 			context:AddRegistered("VIEW_PLAYER")
+            context:AddRegistered("LOCK_PROPERTIES")
+
 		end
 		if presentClasses["Players"] then
 			context:AddRegistered("SELECT_LOCAL_PLAYER")
@@ -12660,6 +12526,7 @@ local function main()
 		
 		if presentClasses["ModuleScript"] then
 			context:AddRegistered("GENERATE_POISON_PATCH")
+            context:AddRegistered("DUMP_FUNCTIONS")
 		end
 
 		if presentClasses["ScreenGui"] then
@@ -13597,7 +13464,15 @@ context:Register("REMOTE_NETWORK_LOGGER", {
                 elseif n == "ExplosionRadius" then return 9999
                 elseif n == "SuperRicochet" then return true
                 elseif n == "RicochetAmount" then return 500
-                --elseif n == "ExplosiveEnabled" then return true
+                elseif n == "Lifesteal" then return 99999
+                elseif n == "ShotgunEnabled" then return true
+                elseif n == "SilenceEffect" then return true
+                elseif n == "Knockback" then return 9999
+                elseif n == "DualFireEnabled" then return true
+                elseif n == "IcifyChance" then return 9999
+                elseif n == "FlamingBullet" then return true
+                elseif n == "IgniteChance" then return 9999
+                elseif n == "FreezingBullet" then return true
 
 				-- Physics & Accuracy
 				elseif n == "Recoil" or n == "Spread" or n == "Accuracy" then return 0
@@ -13650,9 +13525,9 @@ context:Register("REMOTE_NETWORK_LOGGER", {
 			end
 
 			-- OUTPUT TO CONSOLE
-			print("--- [BEGIN GENERATED PATCH] ---")
+			print("--- [ZUKATECH] ---")
 			print(output)
-			print("--- [END GENERATED PATCH] ---")
+			print("--- [ZUKATECH] ---")
 
 			-- COPY TO CLIPBOARD (Multiple fallback methods)
 			local clipboardSuccess = false
@@ -26175,12 +26050,16 @@ Main = (function()
 		end)
 
 		openButton.InputBegan:Connect(function(input)
+			-- Block right-click (MouseButton2) to allow explorer context menu
+			if input.UserInputType == Enum.UserInputType.MouseButton2 then return end
 			if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 				service.TweenService:Create(Main.MainGui.OpenButton,TweenInfo.new(0,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundTransparency = 0}):Play()
 			end
 		end)
 
 		openButton.InputEnded:Connect(function(input)
+			-- Block right-click (MouseButton2) to allow explorer context menu
+			if input.UserInputType == Enum.UserInputType.MouseButton2 then return end
 			if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 				service.TweenService:Create(Main.MainGui.OpenButton,TweenInfo.new(0,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundTransparency = Main.MainGuiOpen and 0 or 0.2}):Play()
 			end
@@ -26400,7 +26279,6 @@ Modules.Overseer = {
         CurrentMode = "modules",
         ExplorerPath = {},
         ExplorerInstance = nil,
-        IsLoadingDex = false,
         UI = nil,
         SidebarButtons = {},
         ValueHooks = {},
@@ -28184,48 +28062,6 @@ function Modules.Overseer:_showInstanceProperties(inst)
     end
 end
 
-function Modules.Overseer:LoadDex()
-    if self.State.IsLoadingDex then return end
-    self.State.IsLoadingDex = true
-
-    task.spawn(function()
-        local success, dexObjects = pcall(function()
-            return game:GetObjects("rbxassetid://9553291002")
-        end)
-
-        if not success or not dexObjects or #dexObjects == 0 then
-            self.State.IsLoadingDex = false
-            return
-        end
-
-        local dexUI = dexObjects[1]
-        dexUI.Name = self:_generateObfuscatedName()
-
-        if get_hidden_gui or (syn and syn.protect_gui) then
-            local protect = get_hidden_gui or syn.protect_gui
-            protect(dexUI)
-        end
-        dexUI.Parent = CoreGui
-
-        local function loadScripts(parent)
-            for _, child in ipairs(parent:GetChildren()) do
-                if child:IsA("LuaSourceContainer") then
-                    task.spawn(function()
-                        local func, err = loadstring(child.Source, "=" .. child:GetFullName())
-                        if func then
-                            self:_applyEnvironment(func, child)()
-                        end
-                    end)
-                end
-                loadScripts(child)
-            end
-        end
-
-        loadScripts(dexUI)
-        self.State.IsLoadingDex = false
-    end)
-end
-
 function Modules.Overseer:_generatePoisonedVersion(originalCode)
     local poisonedCode = "local ORIGINAL_SCRIPT = [[\n" .. originalCode .. "\n]]\n\n"
     
@@ -28592,6 +28428,328 @@ function Modules.Overseer:_showPatchManager()
     end
 end
 
+function Modules.Overseer:_initFunctionTracer()
+    if self.State.TracerActive then return end
+    self.State.TracerActive = true
+    self.State.CallTrace = {}
+    self.State.CallFrequency = {}
+
+    local function traceCall(func, name, args, returns)
+        local call = {
+            Function = name or "Unknown",
+            Args = args,
+            Returns = returns,
+            Time = tick()
+        }
+        
+        table.insert(self.State.CallTrace, call)
+        if #self.State.CallTrace > self.State.MaxTraceSize then
+            table.remove(self.State.CallTrace, 1)
+        end
+        
+        if not self.State.CallFrequency[name] then
+            self.State.CallFrequency[name] = 0
+        end
+        self.State.CallFrequency[name] = self.State.CallFrequency[name] + 1
+    end
+
+    self.State.TracerCallback = traceCall
+end
+
+function Modules.Overseer:_showFunctionTracer()
+    local ui = self.State.UI
+    ui.Grid.Visible = true
+    ui.CodeFrame.Visible = false
+    ui.Title.Text = "FUNCTION CALL TRACER - " .. #self.State.CallTrace .. " CALLS"
+    
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local tracerStatusLabel = Instance.new("TextLabel", ui.Grid)
+    tracerStatusLabel.Size = UDim2.new(1, -10, 0, 30)
+    tracerStatusLabel.BackgroundColor3 = self.State.TracerActive and Color3.fromRGB(20, 40, 20) or Color3.fromRGB(40, 20, 20)
+    tracerStatusLabel.Text = "TRACER STATUS: " .. (self.State.TracerActive and "ACTIVE" or "INACTIVE")
+    tracerStatusLabel.TextColor3 = self.State.TracerActive and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    tracerStatusLabel.Font = Enum.Font.Code
+    tracerStatusLabel.TextSize = 10
+    self:_applyStyle(tracerStatusLabel, 2)
+    
+    if not self.State.TracerActive then
+        local startBtn = Instance.new("TextButton", ui.Grid)
+        startBtn.Size = UDim2.new(0.9, 0, 0, 35)
+        startBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
+        startBtn.Text = "START TRACING FUNCTIONS"
+        startBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        startBtn.Font = Enum.Font.Code
+        startBtn.TextSize = 10
+        self:_applyStyle(startBtn, 2)
+        
+        startBtn.MouseButton1Click:Connect(function()
+            self:_initFunctionTracer()
+            self:_showFunctionTracer()
+        end)
+    else
+        local clearBtn = Instance.new("TextButton", ui.Grid)
+        clearBtn.Size = UDim2.new(0.9, 0, 0, 35)
+        clearBtn.BackgroundColor3 = Color3.fromRGB(100, 40, 40)
+        clearBtn.Text = "CLEAR TRACE LOG"
+        clearBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        clearBtn.Font = Enum.Font.Code
+        clearBtn.TextSize = 10
+        self:_applyStyle(clearBtn, 2)
+        
+        clearBtn.MouseButton1Click:Connect(function()
+            self.State.CallTrace = {}
+            self.State.CallFrequency = {}
+            self:_showFunctionTracer()
+        end)
+    end
+
+    if #self.State.CallTrace > 0 then
+        local freqLabel = Instance.new("TextLabel", ui.Grid)
+        freqLabel.Size = UDim2.new(1, 0, 0, 20)
+        freqLabel.Text = " CALL FREQUENCY (Top 10)"
+        freqLabel.TextColor3 = Color3.fromRGB(200, 200, 100)
+        freqLabel.BackgroundTransparency = 1
+        freqLabel.Font = Enum.Font.Code
+        freqLabel.TextSize = 9
+
+        local sorted = {}
+        for func, count in pairs(self.State.CallFrequency) do
+            table.insert(sorted, {name = func, count = count})
+        end
+        table.sort(sorted, function(a, b) return a.count > b.count end)
+
+        for i = 1, math.min(10, #sorted) do
+            local data = sorted[i]
+            local row, label = self:_createRow(ui.Grid, "", UDim2.new(0.7, 0, 1, 0))
+            label.Text = "[" .. i .. "] " .. data.name .. " (" .. data.count .. " calls)"
+            label.TextColor3 = Color3.fromRGB(100, 150, 255)
+        end
+    end
+
+    if #self.State.CallTrace > 0 then
+        local callLabel = Instance.new("TextLabel", ui.Grid)
+        callLabel.Size = UDim2.new(1, 0, 0, 20)
+        callLabel.Text = " RECENT CALLS"
+        callLabel.TextColor3 = Color3.fromRGB(200, 200, 100)
+        callLabel.BackgroundTransparency = 1
+        callLabel.Font = Enum.Font.Code
+        callLabel.TextSize = 9
+
+        for i = math.min(20, #self.State.CallTrace), 1, -1 do
+            local call = self.State.CallTrace[i]
+            if call then
+                local row, label = self:_createRow(ui.Grid, "", UDim2.new(0.8, 0, 1, 0))
+                local argCount = call.Args and #call.Args or 0
+                local status = call.Returns and call.Returns[1] and "OK" or "ERR"
+                label.Text = call.Function .. " [" .. argCount .. " args] - " .. status
+                label.TextColor3 = (call.Returns and call.Returns[1]) and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+            end
+        end
+    end
+end
+
+function Modules.Overseer:_initEventSpy()
+    if self.State.EventSpyActive then return end
+    self.State.EventSpyActive = true
+    self.State.EventLog = {}
+
+    local function hookEvent(bindable, eventName)
+        if not bindable or bindable:GetAttribute("_OverseerEventHooked") then return end
+        
+        pcall(function()
+            bindable.Event:Connect(function(...)
+                local args = {...}
+                table.insert(Modules.Overseer.State.EventLog, {
+                    Event = eventName,
+                    Parent = bindable.Parent and bindable.Parent.Name or "Unknown",
+                    Args = args,
+                    Time = tick(),
+                    Type = bindable.ClassName
+                })
+                
+                if #Modules.Overseer.State.EventLog > Modules.Overseer.State.MaxEventLogSize then
+                    table.remove(Modules.Overseer.State.EventLog, 1)
+                end
+            end)
+            
+            bindable:SetAttribute("_OverseerEventHooked", true)
+        end)
+    end
+
+    local function scanEvents(parent)
+        for _, child in ipairs(parent:GetDescendants()) do
+            if child:IsA("BindableEvent") or child:IsA("BindableFunction") then
+                hookEvent(child, child.Name)
+            end
+        end
+    end
+
+    scanEvents(ReplicatedStorage)
+    scanEvents(game)
+
+    table.insert(self.State.HookedConnections, game.DescendantAdded:Connect(function(child)
+        if self.State.EventSpyActive and (child:IsA("BindableEvent") or child:IsA("BindableFunction")) then
+            task.wait(0.05)
+            hookEvent(child, child.Name)
+        end
+    end))
+end
+
+function Modules.Overseer:_showEventSpy()
+    local ui = self.State.UI
+    ui.Grid.Visible = true
+    ui.CodeFrame.Visible = false
+    ui.Title.Text = "EVENT/SIGNAL SPY - " .. #self.State.EventLog .. " FIRES"
+    
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local spyStatusLabel = Instance.new("TextLabel", ui.Grid)
+    spyStatusLabel.Size = UDim2.new(1, -10, 0, 30)
+    spyStatusLabel.BackgroundColor3 = self.State.EventSpyActive and Color3.fromRGB(20, 40, 20) or Color3.fromRGB(40, 20, 20)
+    spyStatusLabel.Text = "EVENT SPY STATUS: " .. (self.State.EventSpyActive and "ACTIVE" or "INACTIVE")
+    spyStatusLabel.TextColor3 = self.State.EventSpyActive and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    spyStatusLabel.Font = Enum.Font.Code
+    spyStatusLabel.TextSize = 10
+    self:_applyStyle(spyStatusLabel, 2)
+    
+    if not self.State.EventSpyActive then
+        local startBtn = Instance.new("TextButton", ui.Grid)
+        startBtn.Size = UDim2.new(0.9, 0, 0, 35)
+        startBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
+        startBtn.Text = "START SPYING ON EVENTS"
+        startBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        startBtn.Font = Enum.Font.Code
+        startBtn.TextSize = 10
+        self:_applyStyle(startBtn, 2)
+        
+        startBtn.MouseButton1Click:Connect(function()
+            self:_initEventSpy()
+            self:_showEventSpy()
+        end)
+    end
+
+    if #self.State.EventLog > 0 then
+        local logLabel = Instance.new("TextLabel", ui.Grid)
+        logLabel.Size = UDim2.new(1, 0, 0, 20)
+        logLabel.Text = " SIGNAL FIRE HISTORY"
+        logLabel.TextColor3 = Color3.fromRGB(200, 200, 100)
+        logLabel.BackgroundTransparency = 1
+        logLabel.Font = Enum.Font.Code
+        logLabel.TextSize = 9
+
+        for i = math.min(30, #self.State.EventLog), 1, -1 do
+            local event = self.State.EventLog[i]
+            if event then
+                local row, label = self:_createRow(ui.Grid, "", UDim2.new(0.8, 0, 1, 0))
+                local parentName = event.Parent or "Unknown"
+                local argCount = #event.Args
+                local eventText = "[" .. event.Type .. "] " .. event.Event .. " (" .. argCount .. " args)"
+                label.Text = eventText
+                label.TextColor3 = (event.Type == "BindableEvent" and Color3.fromRGB(100, 200, 255) or Color3.fromRGB(150, 150, 255))
+            end
+        end
+    end
+end
+
+function Modules.Overseer:_inspectScriptEnvironment(script)
+    if not script or not script:IsA("LuaSourceContainer") then return false end
+    
+    self.State.ViewingCode = true
+    local ui = self.State.UI
+    
+    ui.Grid.Visible = false
+    ui.CodeFrame.Visible = true
+    ui.Title.Text = "SCRIPT STATE: " .. script.Name
+    
+    local envInfo = "SCRIPT: " .. script:GetFullName() .. "\n"
+    envInfo = envInfo .. "CLASS: " .. script.ClassName .. "\n"
+    envInfo = envInfo .. "ENABLED: " .. tostring(script.Enabled) .. "\n\n"
+    envInfo = envInfo .. "--- SOURCE CODE ---\n"
+    envInfo = envInfo .. script.Source .. "\n"
+    
+    ui.CodeBox.Text = envInfo
+    ui.CodeBox.TextEditable = false
+end
+
+function Modules.Overseer:_showScriptStateInspector()
+    local ui = self.State.UI
+    self.State.ViewingCode = false
+    ui.Grid.Visible = true
+    ui.CodeFrame.Visible = false
+    ui.Title.Text = "SCRIPT STATE INSPECTOR"
+    
+    for _, v in ipairs(ui.Grid:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local infoLabel = Instance.new("TextLabel", ui.Grid)
+    infoLabel.Size = UDim2.new(1, -10, 0, 40)
+    infoLabel.Text = "Browse scripts in workspace and ReplicatedStorage"
+    infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    infoLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    infoLabel.Font = Enum.Font.Code
+    infoLabel.TextSize = 10
+    infoLabel.TextWrapped = true
+    self:_applyStyle(infoLabel, 2)
+
+    local scanLabel = Instance.new("TextLabel", ui.Grid)
+    scanLabel.Size = UDim2.new(1, -10, 0, 20)
+    scanLabel.Text = " AVAILABLE SCRIPTS"
+    scanLabel.TextColor3 = Color3.fromRGB(200, 200, 100)
+    scanLabel.BackgroundTransparency = 1
+    scanLabel.Font = Enum.Font.Code
+    scanLabel.TextSize = 9
+
+    local scripts = {}
+    local function scanScripts(parent)
+        for _, child in ipairs(parent:GetDescendants()) do
+            if child:IsA("LocalScript") or child:IsA("Script") or child:IsA("ModuleScript") then
+                table.insert(scripts, child)
+            end
+        end
+    end
+
+    scanScripts(Workspace)
+    scanScripts(ReplicatedStorage)
+
+    for i, script in ipairs(scripts) do
+        if i > 30 then break end
+
+        local row = Instance.new("Frame", ui.Grid)
+        row.Size = UDim2.new(1, -10, 0, 35)
+        row.BackgroundTransparency = 1
+
+        local label = Instance.new("TextLabel", row)
+        label.Size = UDim2.new(0.6, 0, 1, 0)
+        label.Text = " " .. script.Name .. " [" .. script.ClassName .. "]"
+        label.TextColor3 = Color3.fromRGB(150, 200, 255)
+        label.Font = Enum.Font.Code
+        label.TextSize = 9
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.BackgroundTransparency = 1
+        label.ClipsDescendants = true
+
+        local inspectBtn = Instance.new("TextButton", row)
+        inspectBtn.Size = UDim2.new(0, 70, 0, 24)
+        inspectBtn.Position = UDim2.fromScale(0.62, 0.15)
+        inspectBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 80)
+        inspectBtn.Text = "INSPECT"
+        inspectBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+        inspectBtn.Font = Enum.Font.Code
+        inspectBtn.TextSize = 8
+        self:_applyStyle(inspectBtn, 2)
+        
+        inspectBtn.MouseButton1Click:Connect(function()
+            self:_inspectScriptEnvironment(script)
+        end)
+    end
+end
+
 function Modules.Overseer:CreateUI()
     if self.State.UI then self.State.UI.Main.Visible = true return end
 
@@ -28677,16 +28835,6 @@ function Modules.Overseer:CreateUI()
     backBtn.Font = Enum.Font.Code
     backBtn.TextSize = 10
     self:_applyStyle(backBtn, 2)
-
-    local dexBtn = Instance.new("TextButton", header)
-    dexBtn.Size = UDim2.new(0, 60, 0, 24)
-    dexBtn.Position = UDim2.new(1, -115, 0.5, -12)
-    dexBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 80)
-    dexBtn.Text = "DEX"
-    dexBtn.TextColor3 = Color3.fromRGB(150, 100, 255)
-    dexBtn.Font = Enum.Font.Code
-    dexBtn.TextSize = 10
-    self:_applyStyle(dexBtn, 2)
 
     local closeBtn = Instance.new("TextButton", header)
     closeBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -28924,6 +29072,52 @@ function Modules.Overseer:CreateUI()
     spyBtn.MouseButton1Click:Connect(function()
         self:_showRemoteSpy()
     end)
+    
+    local tracerBtn = Instance.new("TextButton", header)
+    tracerBtn.Size = UDim2.new(0, 70, 0, 24)
+    tracerBtn.Position = UDim2.new(1, -510, 0.5, -11)
+    tracerBtn.BackgroundColor3 = Color3.fromRGB(100, 80, 60)
+    tracerBtn.Text = "TRACE"
+    tracerBtn.TextColor3 = Color3.fromRGB(255, 200, 100)
+    tracerBtn.Font = Enum.Font.Code
+    tracerBtn.TextSize = 9
+    self:_applyStyle(tracerBtn, 2)
+
+    local eventBtn = Instance.new("TextButton", header)
+    eventBtn.Size = UDim2.new(0, 70, 0, 24)
+    eventBtn.Position = UDim2.new(1, -585, 0.5, -11)
+    eventBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60)
+    eventBtn.Text = "EVENT"
+    eventBtn.TextColor3 = Color3.fromRGB(200, 255, 100)
+    eventBtn.Font = Enum.Font.Code
+    eventBtn.TextSize = 9
+    self:_applyStyle(eventBtn, 2)
+
+    local stateBtn = Instance.new("TextButton", header)
+    stateBtn.Size = UDim2.new(0, 70, 0, 24)
+    stateBtn.Position = UDim2.new(1, -660, 0.5, -11)
+    stateBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
+    stateBtn.Text = "STATE"
+    stateBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+    stateBtn.Font = Enum.Font.Code
+    stateBtn.TextSize = 9
+    self:_applyStyle(stateBtn, 2)
+
+    tracerBtn.MouseButton1Click:Connect(function()
+        self:_showFunctionTracer()
+    end)
+
+    eventBtn.MouseButton1Click:Connect(function()
+        self:_initEventSpy()
+        self:_showEventSpy()
+    end)
+
+    stateBtn.MouseButton1Click:Connect(function()
+        self:_showScriptStateInspector()
+    end)
+
+    backBtn.Position = UDim2.new(1, -735, 0.5, -11)
+
 
     rescanBtn.MouseButton1Click:Connect(RescanModules)
 
@@ -28949,10 +29143,6 @@ function Modules.Overseer:CreateUI()
                 end
             end
         end
-    end)
-
-    dexBtn.MouseButton1Click:Connect(function()
-        self:LoadDex()
     end)
 
     closeBtn.MouseButton1Click:Connect(function()
@@ -30317,6 +30507,79 @@ function Modules.VoodooDoll:Initialize()
             DoNotif("Voodoo: Released target.", 2)
         else
             self:Possess(args[1])
+        end
+    end)
+end
+
+Modules.HumanShield = {
+    State = {
+        IsEnabled = false,
+        Target = nil,
+        Connection = nil
+    },
+    Config = {
+        DISTANCE = 3.5,
+        VERTICAL_OFFSET = 0
+    },
+    Dependencies = {"Players", "RunService"}
+}
+
+function Modules.HumanShield:Stop(): ()
+    self.State.IsEnabled = false
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+    self.State.Target = nil
+end
+
+function Modules.HumanShield:Possess(targetName: string): ()
+    local targetPlr = Utilities.findPlayer(targetName)
+    if not targetPlr or not targetPlr.Character then 
+        return DoNotif("Target not found.", 2) 
+    end
+    
+    if self.State.IsEnabled then self:Stop() end
+    
+    local character = targetPlr.Character
+    local tRoot = character:FindFirstChild("HumanoidRootPart")
+    if not tRoot then return end
+
+    self.State.IsEnabled = true
+    self.State.Target = character
+    
+    self.State.Connection = RunService.Heartbeat:Connect(function()
+        local myChar = Players.LocalPlayer.Character
+        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        
+        if not (myRoot and tRoot and tRoot.Parent) then
+            self:Stop()
+            return
+        end
+
+        tRoot.Velocity = Vector3.new(0, 30.01, 0)
+        tRoot.CFrame = myRoot.CFrame * CFrame.new(0, self.Config.VERTICAL_OFFSET, -self.Config.DISTANCE)
+    end)
+    
+    DoNotif("Shield Active: " .. targetPlr.Name, 2)
+end
+
+function Modules.HumanShield:Initialize(): ()
+    local module = self
+    RegisterCommand({
+        Name = "bring",
+        Aliases = {},
+        Description = "Positions a player in front of you with their back turned."
+    }, function(args)
+        if module.State.IsEnabled then
+            module:Stop()
+            DoNotif("Shield Released.", 2)
+        else
+            if #args > 0 then
+                module:Possess(args[1])
+            else
+                DoNotif("Usage: ;shield [player]", 3)
+            end
         end
     end)
 end
@@ -33811,7 +34074,7 @@ function Modules.EngineInterceptor:Initialize()
     end)
 end
 
-Modules.RaycastRedirector = {
+--[[Modules.RaycastRedirector = {
     State = {
         IsEnabled = false,
         OriginalNamecall = nil,
@@ -33877,7 +34140,7 @@ function Modules.RaycastRedirector:Disable()
     if not self.State.IsEnabled then return end
     self.State.IsEnabled = false
     DoNotif("Raycast Redirector: DISABLED", 2)
-end
+end--]]
 
 
 Modules.LightingLock = {
@@ -33976,13 +34239,13 @@ function Modules.SafeTeleport:Execute(targetName: string)
     end
 end
 
-RegisterCommand({
+--[[RegisterCommand({
     Name = "raybox",
     Aliases = {"meleebypass", "rb"},
     Description = "Redirects raycasts to the nearest target to bypass melee accuracy checks."
 }, function(args)
     if args[1] == "off" then Modules.RaycastRedirector:Disable() else Modules.RaycastRedirector:Enable() end
-end)
+end)--]]
 
 RegisterCommand({
     Name = "audioesp",
@@ -34182,59 +34445,6 @@ RegisterCommand({
     end
 end)
 
-Modules.VoidFling = {
-    State = {
-        IsFlinging = false
-    }
-}
-
-function Modules.VoidFling:Execute(target: Player): ()
-    if self.State.IsFlinging then return end
-    local character: Model? = LocalPlayer.Character
-    local hrp: BasePart? = character and character:FindFirstChild("HumanoidRootPart")
-    local targetHrp: BasePart? = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-    
-    if not (hrp and targetHrp) then return end
-    
-    self.State.IsFlinging = true
-    local originalCFrame: CFrame = hrp.CFrame
-    local originalHeight: number = Workspace.FallenPartsDestroyHeight
-    
-    task.spawn(function()
-        pcall(function()
-            Workspace.FallenPartsDestroyHeight = 0/0
-            local connection: RBXScriptConnection
-            connection = RunService.Stepped:Connect(function()
-                if not self.State.IsFlinging then
-                    connection:Disconnect()
-                    return
-                end
-                hrp.CanCollide = false
-                hrp.Velocity = Vector3.new(0, 1e7, 0)
-                hrp.CFrame = targetHrp.CFrame
-            end)
-            
-            task.wait(0.5)
-            self.State.IsFlinging = false
-            Workspace.FallenPartsDestroyHeight = originalHeight
-            hrp.Velocity = Vector3.zero
-            hrp.CFrame = originalCFrame
-        end)
-    end)
-end
-
-RegisterCommand({
-    Name = "vfling",
-    Aliases = {"voidfling", "killfling"},
-    Description = "Sends a target to the void using NaN height manipulation."
-}, function(args: {string})
-    local target: Player? = Utilities.findPlayer(args[1] or "")
-    if target and target ~= LocalPlayer then
-        Modules.VoidFling:Execute(target)
-    else
-        DoNotif("Invalid target for VoidFling.", 3)
-    end
-end)
 
 Modules.NetworkSaturator = {
     State = {
@@ -35152,23 +35362,27 @@ RegisterCommand({
     end
 end)
 
-Modules.PluginManager = {
+--[[Modules.PluginManager = {
     State = {
         UI = nil,
         IsOpen = false,
         Connections = {},
         LoadedPlugins = {},
         PluginFunctions = {},
-        CurrentFolder = "root"
+        PluginMetadata = {},
+        CurrentFolder = "root",
+        Favorites = {},
+        Recent = {},
+        Profiles = {},
+        CurrentPreviewCode = "",
+        SearchQuery = ""
     },
     Config = {
         ACCENT = Color3.fromRGB(0, 255, 255),
         BG = Color3.fromRGB(10, 10, 10),
         FG = Color3.fromRGB(25, 25, 25),
         BORDER = Color3.fromRGB(50, 50, 50),
-        PLUGIN_URLS = {
-
-        }
+        PLUGIN_URLS = {}
     },
     Dependencies = {"HttpService", "CoreGui", "UserInputService"},
     Services = {}
@@ -35184,13 +35398,85 @@ function Modules.PluginManager:InitWorkspace()
                     subfolders = {}
                 }
             },
-            pluginData = {}
+            pluginData = {},
+            metadata = {},
+            favorites = {},
+            recent = {},
+            profiles = {}
         }
     end
     return getgenv().ZukaPluginWorkspace
 end
 
-function Modules.PluginManager:SavePlugin(pluginCode, pluginName, folderPath)
+function Modules.PluginManager:ToggleFavorite(pluginName)
+    local workspace = self:InitWorkspace()
+    if not workspace.favorites then workspace.favorites = {} end
+    
+    if table.find(workspace.favorites, pluginName) then
+        for i, name in ipairs(workspace.favorites) do
+            if name == pluginName then
+                table.remove(workspace.favorites, i)
+                break
+            end
+        end
+        DoNotif("Removed from favorites", 1)
+    else
+        table.insert(workspace.favorites, pluginName)
+        DoNotif("Added to favorites", 1)
+    end
+    self.State.Favorites = workspace.favorites
+end
+
+function Modules.PluginManager:AddRecent(pluginName)
+    local workspace = self:InitWorkspace()
+    if not workspace.recent then workspace.recent = {} end
+    
+    for i, name in ipairs(workspace.recent) do
+        if name == pluginName then
+            table.remove(workspace.recent, i)
+            break
+        end
+    end
+    table.insert(workspace.recent, 1, pluginName)
+    if #workspace.recent > 10 then
+        table.remove(workspace.recent)
+    end
+    self.State.Recent = workspace.recent
+end
+
+function Modules.PluginManager:SaveProfile(profileName, pluginList)
+    local workspace = self:InitWorkspace()
+    if not workspace.profiles then workspace.profiles = {} end
+    
+    workspace.profiles[profileName] = pluginList
+    DoNotif("Profile '" .. profileName .. "' saved!", 2)
+end
+
+function Modules.PluginManager:LoadProfile(profileName)
+    local workspace = self:InitWorkspace()
+    if not workspace.profiles or not workspace.profiles[profileName] then
+        DoNotif("Profile not found", 2)
+        return
+    end
+    
+    local profile = workspace.profiles[profileName]
+    for pluginName, enabled in pairs(profile) do
+        if enabled and self.State.LoadedPlugins[pluginName] then
+            self.State.LoadedPlugins[pluginName].Enabled = true
+        end
+    end
+    DoNotif("Profile '" .. profileName .. "' loaded!", 2)
+end
+
+function Modules.PluginManager:SetPluginMetadata(pluginName, metadata)
+    local workspace = self:InitWorkspace()
+    if not workspace.metadata then workspace.metadata = {} end
+    
+    workspace.metadata[pluginName] = metadata
+    self.State.PluginMetadata[pluginName] = metadata
+end
+
+function Modules.PluginManager:SavePlugin(pluginCode, pluginName, folderPath, metadata)
     local workspace = self:InitWorkspace()
     folderPath = folderPath or "root"
 
@@ -35199,7 +35485,8 @@ function Modules.PluginManager:SavePlugin(pluginCode, pluginName, folderPath)
         name = pluginName,
         code = pluginCode,
         created = os.time(),
-        folder = folderPath
+        folder = folderPath,
+        description = (metadata and metadata.description) or ""
     }
 
     if not workspace.folders[folderPath] then
@@ -35209,6 +35496,9 @@ function Modules.PluginManager:SavePlugin(pluginCode, pluginName, folderPath)
             subfolders = {}
         }
     end
+    
+    if not workspace.metadata then workspace.metadata = {} end
+    workspace.metadata[pluginName] = metadata or {description = "", version = "1.0"}
     
     table.insert(workspace.folders[folderPath].plugins, pluginId)
     DoNotif("Plugin '" .. pluginName .. "' saved to workspace!", 2)
@@ -35323,7 +35613,6 @@ function Modules.PluginManager:LoadPlugin(pluginSource, pluginName)
         end
         
         local env = {
-
             print = print,
             warn = warn,
             game = game,
@@ -35385,11 +35674,11 @@ function Modules.PluginManager:LoadPlugin(pluginSource, pluginName)
         
         local func, err = loadstring(pluginSource)
         if not func then
-            return false, err
+            return false, "Syntax Error: " .. tostring(err)
         end
 
         setfenv(func, env)
-        func()
+        local loadResult = func()
         return true, "Plugin loaded successfully"
     end)
 
@@ -35399,10 +35688,11 @@ function Modules.PluginManager:LoadPlugin(pluginSource, pluginName)
             Enabled = true,
             LoadedAt = os.time()
         }
+        self:AddRecent(pluginName)
         DoNotif("Plugin '" .. pluginName .. "' loaded!", 2)
         return true
     else
-        DoNotif("Plugin error: " .. result, 3)
+        DoNotif("Plugin error: " .. tostring(result), 3)
         return false
     end
 end
@@ -35458,38 +35748,52 @@ function Modules.PluginManager:CreateUI()
     sg.ResetOnSpawn = false
 
     local main = Instance.new("Frame", sg)
-    main.Size = UDim2.fromOffset(800, 700)
+    main.Size = UDim2.fromOffset(950, 750)
     main.Position = UDim2.fromScale(0.5, 0.5)
     main.AnchorPoint = Vector2.new(0.5, 0.5)
     main.BackgroundColor3 = self.Config.BG
     main.BorderSizePixel = 2
     main.BorderColor3 = self.Config.ACCENT
     main.Active = true
+    main.Draggable = true
 
     local header = Instance.new("Frame", main)
-    header.Size = UDim2.new(1, 0, 0, 35)
+    header.Size = UDim2.new(1, 0, 0, 50)
     header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     header.BorderSizePixel = 0
 
     local title = Instance.new("TextLabel", header)
-    title.Size = UDim2.new(0.7, 0, 1, 0)
+    title.Size = UDim2.new(0.5, 0, 1, 0)
     title.Position = UDim2.fromOffset(15, 0)
-    title.Text = "🔌 PLUGIN MANAGER"
+    title.Text = "🔌 PLUGIN MANAGER v2"
     title.TextColor3 = self.Config.ACCENT
     title.Font = Enum.Font.Code
     title.TextSize = 16
     title.BackgroundTransparency = 1
     title.TextXAlignment = "Left"
 
+    local searchBox = Instance.new("TextBox", header)
+    searchBox.Size = UDim2.new(0, 250, 0, 28)
+    searchBox.Position = UDim2.new(0.5, 0, 0.5, -14)
+    searchBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    searchBox.BorderSizePixel = 1
+    searchBox.BorderColor3 = self.Config.ACCENT
+    searchBox.Text = ""
+    searchBox.PlaceholderText = "🔍 Search plugins..."
+    searchBox.TextColor3 = self.Config.ACCENT
+    searchBox.Font = Enum.Font.Code
+    searchBox.TextSize = 11
+    Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 4)
+
     local closeBtn = Instance.new("TextButton", header)
-    closeBtn.Size = UDim2.fromOffset(35, 35)
-    closeBtn.Position = UDim2.new(1, -35, 0, 0)
+    closeBtn.Size = UDim2.fromOffset(40, 40)
+    closeBtn.Position = UDim2.new(1, -45, 0.5, -20)
     closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     closeBtn.BorderSizePixel = 0
     closeBtn.Text = "X"
     closeBtn.TextColor3 = Color3.new(1, 0, 0)
     closeBtn.Font = Enum.Font.Code
-    closeBtn.TextSize = 16
+    closeBtn.TextSize = 18
 
     closeBtn.MouseButton1Click:Connect(function()
         sg:Destroy()
@@ -35497,31 +35801,30 @@ function Modules.PluginManager:CreateUI()
     end)
 
     local tabFrame = Instance.new("Frame", main)
-    tabFrame.Size = UDim2.new(1, 0, 0, 40)
-    tabFrame.Position = UDim2.fromOffset(0, 35)
+    tabFrame.Size = UDim2.new(1, 0, 0, 45)
+    tabFrame.Position = UDim2.fromOffset(0, 50)
     tabFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     tabFrame.BorderSizePixel = 1
     tabFrame.BorderColor3 = self.Config.BORDER
 
     local tabLayout = Instance.new("UIListLayout", tabFrame)
     tabLayout.FillDirection = Enum.FillDirection.Horizontal
-    tabLayout.Padding = UDim.new(0, 5)
+    tabLayout.Padding = UDim.new(0, 3)
     tabLayout.VerticalAlignment = "Center"
 
     local contentArea = Instance.new("Frame", main)
-    contentArea.Size = UDim2.new(1, -20, 1, -100)
-    contentArea.Position = UDim2.fromOffset(10, 80)
+    contentArea.Size = UDim2.new(1, -10, 1, -110)
+    contentArea.Position = UDim2.fromOffset(5, 100)
     contentArea.BackgroundColor3 = self.Config.FG
     contentArea.BorderSizePixel = 1
     contentArea.BorderColor3 = self.Config.BORDER
 
     local function switchTab(tabName)
         for _, child in ipairs(contentArea:GetChildren()) do
-            if child ~= tabLayout then child:Destroy() end
+            if not child:IsA("UIListLayout") then child:Destroy() end
         end
 
         if tabName == "Loaded" then
-
             local pluginScroll = Instance.new("ScrollingFrame", contentArea)
             pluginScroll.Size = UDim2.new(1, 0, 1, 0)
             pluginScroll.BackgroundTransparency = 1
@@ -35530,62 +35833,88 @@ function Modules.PluginManager:CreateUI()
             pluginScroll.AutomaticCanvasSize = "Y"
 
             local pluginLayout = Instance.new("UIListLayout", pluginScroll)
-            pluginLayout.Padding = UDim.new(0, 5)
-            pluginLayout.FillDirection = Enum.FillDirection.Vertical
+            pluginLayout.Padding = UDim.new(0, 8)
 
             local function refreshPluginList()
                 for _, child in ipairs(pluginScroll:GetChildren()) do
                     if child:IsA("Frame") then child:Destroy() end
                 end
 
-                if next(self.State.LoadedPlugins) == nil then
-                    local emptyLabel = Instance.new("TextLabel", pluginScroll)
-                    emptyLabel.Size = UDim2.new(1, -10, 0, 30)
-                    emptyLabel.BackgroundColor3 = self.Config.FG
-                    emptyLabel.BorderSizePixel = 0
-                    emptyLabel.Text = "No plugins loaded."
-                    emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-                    emptyLabel.Font = Enum.Font.Code
-                    emptyLabel.TextSize = 11
-                    return
-                end
+                local displayed = 0
+                local query = searchBox.Text:lower()
 
-                for pluginName, pluginData in pairs(self.State.LoadedPlugins) do
+                local function renderPlugin(pluginName, pluginData, isFavorite)
+                    if query ~= "" then
+                        if not pluginName:lower():find(query, 1, true) and 
+                           not (pluginData and tostring(pluginData.description):lower():find(query, 1, true)) then
+                            return
+                        end
+                    end
+                    
+                    displayed = displayed + 1
                     local pluginFrame = Instance.new("Frame", pluginScroll)
-                    pluginFrame.Size = UDim2.new(1, -10, 0, 45)
-                    pluginFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                    pluginFrame.Size = UDim2.new(1, -10, 0, 65)
+                    pluginFrame.BackgroundColor3 = isFavorite and Color3.fromRGB(35, 35, 50) or Color3.fromRGB(30, 30, 30)
                     pluginFrame.BorderSizePixel = 1
-                    pluginFrame.BorderColor3 = self.Config.BORDER
+                    pluginFrame.BorderColor3 = isFavorite and Color3.fromRGB(0, 255, 255) or self.Config.BORDER
+                    Instance.new("UICorner", pluginFrame).CornerRadius = UDim.new(0, 5)
 
                     local nameLabel = Instance.new("TextLabel", pluginFrame)
-                    nameLabel.Size = UDim2.new(0.6, 0, 1, 0)
-                    nameLabel.Position = UDim2.fromOffset(10, 0)
-                    nameLabel.Text = pluginName
+                    nameLabel.Size = UDim2.new(0.5, 0, 0, 25)
+                    nameLabel.Position = UDim2.fromOffset(12, 5)
+                    nameLabel.Text = (isFavorite and "⭐ " or "") .. pluginName
                     nameLabel.TextColor3 = Color3.new(1, 1, 1)
                     nameLabel.Font = Enum.Font.Code
-                    nameLabel.TextSize = 11
+                    nameLabel.TextSize = 12
                     nameLabel.BackgroundTransparency = 1
                     nameLabel.TextXAlignment = "Left"
 
+                    if pluginData and pluginData.description and pluginData.description ~= "" then
+                        local descLabel = Instance.new("TextLabel", pluginFrame)
+                        descLabel.Size = UDim2.new(0.6, -12, 0, 30)
+                        descLabel.Position = UDim2.fromOffset(12, 30)
+                        descLabel.Text = pluginData.description
+                        descLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+                        descLabel.Font = Enum.Font.Code
+                        descLabel.TextSize = 10
+                        descLabel.BackgroundTransparency = 1
+                        descLabel.TextXAlignment = "Left"
+                        descLabel.TextWrapped = true
+                    end
+
                     local statusLabel = Instance.new("TextLabel", pluginFrame)
-                    statusLabel.Size = UDim2.fromOffset(70, 20)
-                    statusLabel.Position = UDim2.fromOffset(10, 23)
-                    statusLabel.Text = pluginData.Enabled and "✓ ACTIVE" or "✗ DISABLED"
-                    statusLabel.TextColor3 = pluginData.Enabled and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(150, 150, 150)
+                    statusLabel.Size = UDim2.fromOffset(80, 20)
+                    statusLabel.Position = UDim2.fromOffset(12, 43)
+                    statusLabel.Text = (self.State.LoadedPlugins[pluginName] and self.State.LoadedPlugins[pluginName].Enabled) and "✓ ACTIVE" or "✗ INACTIVE"
+                    statusLabel.TextColor3 = (self.State.LoadedPlugins[pluginName] and self.State.LoadedPlugins[pluginName].Enabled) and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(150, 100, 100)
                     statusLabel.Font = Enum.Font.Code
-                    statusLabel.TextSize = 9
+                    statusLabel.TextSize = 10
                     statusLabel.BackgroundTransparency = 1
 
+                    local favBtn = Instance.new("TextButton", pluginFrame)
+                    favBtn.Size = UDim2.fromOffset(50, 28)
+                    favBtn.Position = UDim2.new(1, -220, 0.5, -14)
+                    favBtn.BackgroundColor3 = isFavorite and Color3.fromRGB(255, 200, 0) or Color3.fromRGB(60, 60, 65)
+                    favBtn.Text = isFavorite and "★" or "☆"
+                    favBtn.TextColor3 = Color3.new(1, 1, 1)
+                    favBtn.Font = Enum.Font.Code
+                    favBtn.TextSize = 16
+                    Instance.new("UICorner", favBtn).CornerRadius = UDim.new(0, 4)
+
+                    favBtn.MouseButton1Click:Connect(function()
+                        self:ToggleFavorite(pluginName)
+                        refreshPluginList()
+                    end)
+
                     local toggleBtn = Instance.new("TextButton", pluginFrame)
-                    toggleBtn.Size = UDim2.fromOffset(60, 20)
-                    toggleBtn.Position = UDim2.new(1, -200, 0, 12)
-                    toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-                    toggleBtn.BorderSizePixel = 1
-                    toggleBtn.BorderColor3 = self.Config.ACCENT
+                    toggleBtn.Size = UDim2.fromOffset(60, 28)
+                    toggleBtn.Position = UDim2.new(1, -160, 0.5, -14)
+                    toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 150)
                     toggleBtn.Text = "TOGGLE"
-                    toggleBtn.TextColor3 = self.Config.ACCENT
+                    toggleBtn.TextColor3 = Color3.new(1, 1, 1)
                     toggleBtn.Font = Enum.Font.Code
-                    toggleBtn.TextSize = 9
+                    toggleBtn.TextSize = 10
+                    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 4)
 
                     toggleBtn.MouseButton1Click:Connect(function()
                         self:TogglePlugin(pluginName)
@@ -35593,42 +35922,97 @@ function Modules.PluginManager:CreateUI()
                     end)
 
                     local unloadBtn = Instance.new("TextButton", pluginFrame)
-                    unloadBtn.Size = UDim2.fromOffset(60, 20)
-                    unloadBtn.Position = UDim2.new(1, -130, 0, 12)
+                    unloadBtn.Size = UDim2.fromOffset(60, 28)
+                    unloadBtn.Position = UDim2.new(1, -90, 0.5, -14)
                     unloadBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-                    unloadBtn.BorderSizePixel = 0
                     unloadBtn.Text = "UNLOAD"
                     unloadBtn.TextColor3 = Color3.new(1, 1, 1)
                     unloadBtn.Font = Enum.Font.Code
-                    unloadBtn.TextSize = 9
+                    unloadBtn.TextSize = 10
+                    Instance.new("UICorner", unloadBtn).CornerRadius = UDim.new(0, 4)
 
                     unloadBtn.MouseButton1Click:Connect(function()
                         self:UnloadPlugin(pluginName)
                         refreshPluginList()
                     end)
                 end
+
+                if next(self.State.Favorites) then
+                    local favLabel = Instance.new("TextLabel", pluginScroll)
+                    favLabel.Size = UDim2.new(1, -10, 0, 20)
+                    favLabel.BackgroundTransparency = 1
+                    favLabel.Text = "⭐ FAVORITES"
+                    favLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+                    favLabel.Font = Enum.Font.Code
+                    favLabel.TextSize = 11
+                    favLabel.TextXAlignment = "Left"
+
+                    for _, favName in ipairs(self.State.Favorites) do
+                        renderPlugin(favName, self.State.PluginMetadata[favName], true)
+                    end
+                end
+
+                if next(self.State.Recent) then
+                    local recLabel = Instance.new("TextLabel", pluginScroll)
+                    recLabel.Size = UDim2.new(1, -10, 0, 20)
+                    recLabel.BackgroundTransparency = 1
+                    recLabel.Text = "⏱ RECENT"
+                    recLabel.TextColor3 = self.Config.ACCENT
+                    recLabel.Font = Enum.Font.Code
+                    recLabel.TextSize = 11
+                    recLabel.TextXAlignment = "Left"
+
+                    for _, recName in ipairs(self.State.Recent) do
+                        if not table.find(self.State.Favorites, recName) then
+                            renderPlugin(recName, self.State.PluginMetadata[recName], false)
+                        end
+                    end
+                end
+
+                if displayed == 0 and next(self.State.LoadedPlugins) then
+                    local noResultsLabel = Instance.new("TextLabel", pluginScroll)
+                    noResultsLabel.Size = UDim2.new(1, -10, 0, 30)
+                    noResultsLabel.BackgroundColor3 = self.Config.FG
+                    noResultsLabel.BorderSizePixel = 0
+                    noResultsLabel.Text = "No plugins match '" .. searchBox.Text .. "'"
+                    noResultsLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+                    noResultsLabel.Font = Enum.Font.Code
+                    noResultsLabel.TextSize = 11
+                elseif next(self.State.LoadedPlugins) == nil then
+                    local emptyLabel = Instance.new("TextLabel", pluginScroll)
+                    emptyLabel.Size = UDim2.new(1, -10, 0, 30)
+                    emptyLabel.BackgroundColor3 = self.Config.FG
+                    emptyLabel.BorderSizePixel = 0
+                    emptyLabel.Text = "No plugins loaded. Go to Load tab to add some!"
+                    emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+                    emptyLabel.Font = Enum.Font.Code
+                    emptyLabel.TextSize = 11
+                end
             end
 
             refreshPluginList()
 
-        elseif tabName == "Load" then
+            searchBox.Changed:Connect(function()
+                self.State.SearchQuery = searchBox.Text
+                refreshPluginList()
+            end)
 
+        elseif tabName == "Load" then
             local container = Instance.new("Frame", contentArea)
             container.Size = UDim2.new(1, -20, 1, -20)
             container.Position = UDim2.fromOffset(10, 10)
             container.BackgroundTransparency = 1
-            container.AutomaticSize = "Y"
 
             local urlSection = Instance.new("Frame", container)
-            urlSection.Size = UDim2.new(1, 0, 0, 60)
-            urlSection.Position = UDim2.fromOffset(0, 0)
+            urlSection.Size = UDim2.new(1, 0, 0, 70)
             urlSection.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
             urlSection.BorderSizePixel = 1
             urlSection.BorderColor3 = self.Config.BORDER
+            Instance.new("UICorner", urlSection).CornerRadius = UDim.new(0, 4)
 
             local urlLabel = Instance.new("TextLabel", urlSection)
-            urlLabel.Size = UDim2.fromOffset(80, 25)
-            urlLabel.Position = UDim2.fromOffset(10, 5)
+            urlLabel.Size = UDim2.fromOffset(100, 20)
+            urlLabel.Position = UDim2.fromOffset(10, 8)
             urlLabel.Text = "Plugin URL:"
             urlLabel.TextColor3 = self.Config.ACCENT
             urlLabel.Font = Enum.Font.Code
@@ -35637,26 +36021,26 @@ function Modules.PluginManager:CreateUI()
             urlLabel.TextXAlignment = "Left"
 
             local urlBox = Instance.new("TextBox", urlSection)
-            urlBox.Size = UDim2.new(1, -180, 0, 25)
-            urlBox.Position = UDim2.fromOffset(95, 5)
+            urlBox.Size = UDim2.new(1, -120, 0, 28)
+            urlBox.Position = UDim2.fromOffset(10, 30)
             urlBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             urlBox.BorderSizePixel = 1
             urlBox.BorderColor3 = self.Config.BORDER
-            urlBox.Text = ""
-            urlBox.PlaceholderText = "https://example.com/plugin.iy"
+            urlBox.PlaceholderText = "https://example.com/plugin.lua"
             urlBox.TextColor3 = Color3.new(1, 1, 1)
             urlBox.Font = Enum.Font.Code
             urlBox.TextSize = 10
+            Instance.new("UICorner", urlBox).CornerRadius = UDim.new(0, 3)
 
             local loadUrlBtn = Instance.new("TextButton", urlSection)
-            loadUrlBtn.Size = UDim2.fromOffset(70, 25)
-            loadUrlBtn.Position = UDim2.new(1, -75, 0, 5)
-            loadUrlBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 150)
-            loadUrlBtn.BorderSizePixel = 0
+            loadUrlBtn.Size = UDim2.fromOffset(100, 28)
+            loadUrlBtn.Position = UDim2.new(1, -110, 0.5, -14)
+            loadUrlBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 100)
             loadUrlBtn.Text = "LOAD"
-            loadUrlBtn.TextColor3 = Color3.new(1, 1, 1)
+            loadUrlBtn.TextColor3 = Color3.new(0, 0, 0)
             loadUrlBtn.Font = Enum.Font.Code
-            loadUrlBtn.TextSize = 10
+            loadUrlBtn.TextSize = 11
+            Instance.new("UICorner", loadUrlBtn).CornerRadius = UDim.new(0, 3)
 
             loadUrlBtn.MouseButton1Click:Connect(function()
                 if urlBox.Text ~= "" then
@@ -35666,8 +36050,8 @@ function Modules.PluginManager:CreateUI()
             end)
 
             local pasteLabel = Instance.new("TextLabel", container)
-            pasteLabel.Size = UDim2.new(1, 0, 0, 25)
-            pasteLabel.Position = UDim2.fromOffset(0, 65)
+            pasteLabel.Size = UDim2.new(1, 0, 0, 20)
+            pasteLabel.Position = UDim2.fromOffset(0, 80)
             pasteLabel.Text = "Paste Plugin Code:"
             pasteLabel.TextColor3 = self.Config.ACCENT
             pasteLabel.Font = Enum.Font.Code
@@ -35676,84 +36060,111 @@ function Modules.PluginManager:CreateUI()
             pasteLabel.TextXAlignment = "Left"
 
             local codeBox = Instance.new("TextBox", container)
-            codeBox.Size = UDim2.new(1, 0, 0, 200)
-            codeBox.Position = UDim2.fromOffset(0, 95)
+            codeBox.Size = UDim2.new(0.65, 0, 0, 180)
+            codeBox.Position = UDim2.fromOffset(0, 105)
             codeBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             codeBox.BorderSizePixel = 1
             codeBox.BorderColor3 = self.Config.BORDER
-            codeBox.Text = ""
-            codeBox.PlaceholderText = "Paste your Nameless Admin plugin code here..."
+            codeBox.PlaceholderText = "Paste plugin code here..."
             codeBox.TextColor3 = Color3.new(1, 1, 1)
             codeBox.Font = Enum.Font.Code
-            codeBox.TextSize = 10
+            codeBox.TextSize = 9
             codeBox.TextWrapped = true
             codeBox.MultiLine = true
+            Instance.new("UICorner", codeBox).CornerRadius = UDim.new(0, 4)
 
             local nameLabel = Instance.new("TextLabel", container)
-            nameLabel.Size = UDim2.fromOffset(100, 25)
-            nameLabel.Position = UDim2.fromOffset(0, 305)
-            nameLabel.Text = "Plugin Name:"
+            nameLabel.Size = UDim2.fromOffset(80, 20)
+            nameLabel.Position = UDim2.new(0.65, 10, 0, 105)
+            nameLabel.Text = "Name:"
             nameLabel.TextColor3 = self.Config.ACCENT
             nameLabel.Font = Enum.Font.Code
-            nameLabel.TextSize = 11
+            nameLabel.TextSize = 10
             nameLabel.BackgroundTransparency = 1
-            nameLabel.TextXAlignment = "Left"
 
             local nameBox = Instance.new("TextBox", container)
-            nameBox.Size = UDim2.new(0.6, 0, 0, 25)
-            nameBox.Position = UDim2.fromOffset(110, 305)
+            nameBox.Size = UDim2.new(0.35, -20, 0, 28)
+            nameBox.Position = UDim2.new(0.65, 10, 0, 130)
             nameBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             nameBox.BorderSizePixel = 1
             nameBox.BorderColor3 = self.Config.BORDER
-            nameBox.Text = ""
-            nameBox.PlaceholderText = "MyPlugin"
+            nameBox.PlaceholderText = "Plugin name"
             nameBox.TextColor3 = Color3.new(1, 1, 1)
             nameBox.Font = Enum.Font.Code
             nameBox.TextSize = 10
+            Instance.new("UICorner", nameBox).CornerRadius = UDim.new(0, 3)
+
+            local descLabel = Instance.new("TextLabel", container)
+            descLabel.Size = UDim2.fromOffset(80, 20)
+            descLabel.Position = UDim2.new(0.65, 10, 0, 165)
+            descLabel.Text = "Description:"
+            descLabel.TextColor3 = self.Config.ACCENT
+            descLabel.Font = Enum.Font.Code
+            descLabel.TextSize = 10
+            descLabel.BackgroundTransparency = 1
+
+            local descBox = Instance.new("TextBox", container)
+            descBox.Size = UDim2.new(0.35, -20, 0, 80)
+            descBox.Position = UDim2.new(0.65, 10, 0, 190)
+            descBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            descBox.BorderSizePixel = 1
+            descBox.BorderColor3 = self.Config.BORDER
+            descBox.PlaceholderText = "What does it do?"
+            descBox.TextColor3 = Color3.new(1, 1, 1)
+            descBox.Font = Enum.Font.Code
+            descBox.TextSize = 9
+            descBox.TextWrapped = true
+            descBox.MultiLine = true
+            Instance.new("UICorner", descBox).CornerRadius = UDim.new(0, 3)
 
             local loadPasteBtn = Instance.new("TextButton", container)
-            loadPasteBtn.Size = UDim2.fromOffset(100, 25)
-            loadPasteBtn.Position = UDim2.new(1, -110, 0, 305)
+            loadPasteBtn.Size = UDim2.fromOffset(120, 35)
+            loadPasteBtn.Position = UDim2.new(0.65, 10, 1, -45)
             loadPasteBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-            loadPasteBtn.BorderSizePixel = 0
             loadPasteBtn.Text = "LOAD PLUGIN"
             loadPasteBtn.TextColor3 = Color3.new(0, 0, 0)
             loadPasteBtn.Font = Enum.Font.Code
-            loadPasteBtn.TextSize = 10
+            loadPasteBtn.TextSize = 11
+            Instance.new("UICorner", loadPasteBtn).CornerRadius = UDim.new(0, 4)
 
             loadPasteBtn.MouseButton1Click:Connect(function()
                 if codeBox.Text ~= "" then
                     local pluginName = nameBox.Text ~= "" and nameBox.Text or ("Plugin_" .. os.time())
                     self:LoadPlugin(codeBox.Text, pluginName)
+                    if descBox.Text ~= "" then
+                        self:SetPluginMetadata(pluginName, {description = descBox.Text})
+                    end
                     codeBox.Text = ""
                     nameBox.Text = ""
+                    descBox.Text = ""
                 else
                     DoNotif("Please paste some code first.", 3)
                 end
             end)
 
             local saveWorkspaceBtn = Instance.new("TextButton", container)
-            saveWorkspaceBtn.Size = UDim2.fromOffset(100, 25)
-            saveWorkspaceBtn.Position = UDim2.new(0, 0, 0, 340)
-            saveWorkspaceBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 200)
-            saveWorkspaceBtn.BorderSizePixel = 0
+            saveWorkspaceBtn.Size = UDim2.fromOffset(120, 35)
+            saveWorkspaceBtn.Position = UDim2.new(0.65, 10, 1, -90)
+            saveWorkspaceBtn.BackgroundColor3 = Color3.fromRGB(150, 120, 200)
             saveWorkspaceBtn.Text = "SAVE TO WORKSPACE"
             saveWorkspaceBtn.TextColor3 = Color3.new(1, 1, 1)
             saveWorkspaceBtn.Font = Enum.Font.Code
-            saveWorkspaceBtn.TextSize = 9
+            saveWorkspaceBtn.TextSize = 10
+            Instance.new("UICorner", saveWorkspaceBtn).CornerRadius = UDim.new(0, 4)
 
             saveWorkspaceBtn.MouseButton1Click:Connect(function()
                 if codeBox.Text ~= "" then
                     local pluginName = nameBox.Text ~= "" and nameBox.Text or ("Plugin_" .. os.time())
-                    self:SavePlugin(codeBox.Text, pluginName, "root")
+                    self:SavePlugin(codeBox.Text, pluginName, "root", {description = descBox.Text})
                     codeBox.Text = ""
                     nameBox.Text = ""
+                    descBox.Text = ""
                 else
                     DoNotif("Please paste some code first.", 3)
                 end
             end)
-        elseif tabName == "Workspace" then
 
+        elseif tabName == "Workspace" then
             self:InitWorkspace()
             local workspace = getgenv().ZukaPluginWorkspace
             
@@ -35766,17 +36177,17 @@ function Modules.PluginManager:CreateUI()
 
             local wsLayout = Instance.new("UIListLayout", workspaceScroll)
             wsLayout.Padding = UDim.new(0, 8)
-            wsLayout.FillDirection = Enum.FillDirection.Vertical
 
             local function renderFolder(folderPath, depth)
                 local folder = workspace.folders[folderPath]
                 if not folder then return end
 
                 local folderFrame = Instance.new("Frame", workspaceScroll)
-                folderFrame.Size = UDim2.new(1, -10, 0, 30)
-                folderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                folderFrame.Size = UDim2.new(1, -10, 0, 35)
+                folderFrame.BackgroundColor3 = Color3.fromRGB(30, 35, 40)
                 folderFrame.BorderSizePixel = 1
-                folderFrame.BorderColor3 = self.Config.BORDER
+                folderFrame.BorderColor3 = self.Config.ACCENT
+                Instance.new("UICorner", folderFrame).CornerRadius = UDim.new(0, 4)
 
                 local folderLabel = Instance.new("TextLabel", folderFrame)
                 folderLabel.Size = UDim2.new(0.7, 0, 1, 0)
@@ -35792,14 +36203,15 @@ function Modules.PluginManager:CreateUI()
                     local pluginData = workspace.pluginData[pluginId]
                     if pluginData then
                         local pluginFrame = Instance.new("Frame", workspaceScroll)
-                        pluginFrame.Size = UDim2.new(1, -10, 0, 35)
-                        pluginFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+                        pluginFrame.Size = UDim2.new(1, -10, 0, 40)
+                        pluginFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
                         pluginFrame.BorderSizePixel = 1
                         pluginFrame.BorderColor3 = self.Config.BORDER
+                        Instance.new("UICorner", pluginFrame).CornerRadius = UDim.new(0, 4)
 
                         local pluginLabel = Instance.new("TextLabel", pluginFrame)
-                        pluginLabel.Size = UDim2.new(0.6, 0, 1, 0)
-                        pluginLabel.Position = UDim2.fromOffset(30 + (depth * 20), 0)
+                        pluginLabel.Size = UDim2.new(0.6, 0, 0.5, 0)
+                        pluginLabel.Position = UDim2.fromOffset(30 + (depth * 20), 3)
                         pluginLabel.Text = "📄 " .. pluginData.name
                         pluginLabel.TextColor3 = Color3.new(1, 1, 1)
                         pluginLabel.Font = Enum.Font.Code
@@ -35807,29 +36219,41 @@ function Modules.PluginManager:CreateUI()
                         pluginLabel.BackgroundTransparency = 1
                         pluginLabel.TextXAlignment = "Left"
 
+                        if pluginData.description and pluginData.description ~= "" then
+                            local descSmall = Instance.new("TextLabel", pluginFrame)
+                            descSmall.Size = UDim2.new(0.6, -40, 0.5, 0)
+                            descSmall.Position = UDim2.fromOffset(30 + (depth * 20), 18)
+                            descSmall.Text = pluginData.description
+                            descSmall.TextColor3 = Color3.fromRGB(120, 120, 120)
+                            descSmall.Font = Enum.Font.Code
+                            descSmall.TextSize = 8
+                            descSmall.BackgroundTransparency = 1
+                            descSmall.TextXAlignment = "Left"
+                        end
+
                         local loadBtn = Instance.new("TextButton", pluginFrame)
-                        loadBtn.Size = UDim2.fromOffset(60, 20)
-                        loadBtn.Position = UDim2.new(1, -150, 0, 7)
-                        loadBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 150)
-                        loadBtn.BorderSizePixel = 0
+                        loadBtn.Size = UDim2.fromOffset(60, 26)
+                        loadBtn.Position = UDim2.new(1, -160, 0.5, -13)
+                        loadBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 150)
                         loadBtn.Text = "LOAD"
                         loadBtn.TextColor3 = Color3.new(1, 1, 1)
                         loadBtn.Font = Enum.Font.Code
                         loadBtn.TextSize = 9
+                        Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 3)
 
                         loadBtn.MouseButton1Click:Connect(function()
                             self:LoadPlugin(pluginData.code, pluginData.name)
                         end)
 
                         local deleteBtn = Instance.new("TextButton", pluginFrame)
-                        deleteBtn.Size = UDim2.fromOffset(60, 20)
-                        deleteBtn.Position = UDim2.new(1, -80, 0, 7)
-                        deleteBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-                        deleteBtn.BorderSizePixel = 0
+                        deleteBtn.Size = UDim2.fromOffset(60, 26)
+                        deleteBtn.Position = UDim2.new(1, -85, 0.5, -13)
+                        deleteBtn.BackgroundColor3 = Color3.fromRGB(150, 60, 60)
                         deleteBtn.Text = "DELETE"
                         deleteBtn.TextColor3 = Color3.new(1, 1, 1)
                         deleteBtn.Font = Enum.Font.Code
                         deleteBtn.TextSize = 9
+                        Instance.new("UICorner", deleteBtn).CornerRadius = UDim.new(0, 3)
 
                         deleteBtn.MouseButton1Click:Connect(function()
                             self:DeletePlugin(pluginId)
@@ -35845,62 +36269,21 @@ function Modules.PluginManager:CreateUI()
             end
 
             renderFolder("root", 0)
-
-            local newFolderLabel = Instance.new("TextLabel", workspaceScroll)
-            newFolderLabel.Size = UDim2.new(1, -10, 0, 20)
-            newFolderLabel.BackgroundTransparency = 1
-            newFolderLabel.Text = "Create New Folder:"
-            newFolderLabel.TextColor3 = self.Config.ACCENT
-            newFolderLabel.Font = Enum.Font.Code
-            newFolderLabel.TextSize = 10
-            newFolderLabel.TextXAlignment = "Left"
-
-            local newFolderFrame = Instance.new("Frame", workspaceScroll)
-            newFolderFrame.Size = UDim2.new(1, -10, 0, 30)
-            newFolderFrame.BackgroundTransparency = 1
-
-            local newFolderBox = Instance.new("TextBox", newFolderFrame)
-            newFolderBox.Size = UDim2.new(0.6, 0, 1, 0)
-            newFolderBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-            newFolderBox.BorderSizePixel = 1
-            newFolderBox.BorderColor3 = self.Config.BORDER
-            newFolderBox.Text = ""
-            newFolderBox.PlaceholderText = "Folder name..."
-            newFolderBox.TextColor3 = Color3.new(1, 1, 1)
-            newFolderBox.Font = Enum.Font.Code
-            newFolderBox.TextSize = 10
-
-            local createFolderBtn = Instance.new("TextButton", newFolderFrame)
-            createFolderBtn.Size = UDim2.fromOffset(80, 30)
-            createFolderBtn.Position = UDim2.new(0.65, 5, 0, 0)
-            createFolderBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-            createFolderBtn.BorderSizePixel = 0
-            createFolderBtn.Text = "CREATE"
-            createFolderBtn.TextColor3 = Color3.new(0, 0, 0)
-            createFolderBtn.Font = Enum.Font.Code
-            createFolderBtn.TextSize = 10
-
-            createFolderBtn.MouseButton1Click:Connect(function()
-                if newFolderBox.Text ~= "" then
-                    self:CreateFolder(newFolderBox.Text, "root")
-                    newFolderBox.Text = ""
-                    switchTab("Workspace")
-                end
-            end)
         end
     end
 
     local tabNames = {"Loaded", "Load", "Workspace"}
     for _, tabName in ipairs(tabNames) do
         local tabBtn = Instance.new("TextButton", tabFrame)
-        tabBtn.Size = UDim2.fromOffset(120, 30)
+        tabBtn.Size = UDim2.fromOffset(110, 35)
         tabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         tabBtn.BorderSizePixel = 1
         tabBtn.BorderColor3 = self.Config.BORDER
         tabBtn.Text = tabName
         tabBtn.TextColor3 = Color3.new(1, 1, 1)
         tabBtn.Font = Enum.Font.Code
-        tabBtn.TextSize = 12
+        tabBtn.TextSize = 11
+        Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 4)
 
         tabBtn.MouseButton1Click:Connect(function()
             switchTab(tabName)
@@ -35914,11 +36297,14 @@ function Modules.PluginManager:CreateUI()
     end
 
     switchTab("Loaded")
-    tabFrame:FindFirstChildOfClass("TextButton").BackgroundColor3 = self.Config.ACCENT
-    tabFrame:FindFirstChildOfClass("TextButton").TextColor3 = Color3.new(0, 0, 0)
+    local firstBtn = tabFrame:FindFirstChildOfClass("TextButton")
+    if firstBtn then
+        firstBtn.BackgroundColor3 = self.Config.ACCENT
+        firstBtn.TextColor3 = Color3.new(0, 0, 0)
+    end
 
     self.State.UI = sg
-    DoNotif("Plugin Manager Opened", 2)
+    DoNotif("Plugin Manager v2 Opened", 2)
 end
 
 function Modules.PluginManager:Initialize()
@@ -35955,7 +36341,7 @@ function Modules.PluginManager:Initialize()
         end
         self:UnloadPlugin(args[1])
     end)
-end
+end--]]
 
 Modules.SettingsManager = {
     State = {
@@ -35963,7 +36349,9 @@ Modules.SettingsManager = {
         IsOpen = false,
         ActiveCategory = "General",
         Connections = {},
-        Cache = {}
+        Cache = {},
+        Presets = {},
+        CurrentPreset = "default"
     },
     Config = {
         ACCENT = Color3.fromRGB(0, 255, 255),
@@ -35974,18 +36362,36 @@ Modules.SettingsManager = {
     },
     Settings = {
         General = {
-            Notifications = {type = "boolean", value = true, label = "Global Notifications"},
-            AutoSave = {type = "boolean", value = true, label = "Auto-Persistence"},
-            StreamerMode = {type = "boolean", value = false, label = "Anonymize UI Data"}
+            Notifications = {type = "boolean", value = true, label = "Global Notifications", desc = "Enable/disable all notifications from the system"},
+            AutoSave = {type = "boolean", value = true, label = "Auto-Persistence", desc = "Automatically save settings on every change"},
+            StreamerMode = {type = "boolean", value = false, label = "Streamer Mode", desc = "Hide sensitive info in UI (usernames, coordinates)"}
         },
         Visual = {
-            PanelOpacity = {type = "number", value = 0.9, label = "Master Alpha", min = 0.1, max = 1},
-            ThemeColor = {type = "color", value = Color3.fromRGB(0, 255, 255), label = "Accent Color"},
-            OverlayEnabled = {type = "boolean", value = true, label = "Draw Overlays"}
+            PanelOpacity = {type = "number", value = 0.9, label = "Panel Opacity", min = 0.1, max = 1, desc = "Global transparency of all UI panels"},
+            ThemeColor = {type = "color", value = Color3.fromRGB(0, 255, 255), label = "Accent Color", desc = "Primary theme color for UI elements"},
+            OverlayEnabled = {type = "boolean", value = true, label = "Draw Overlays", desc = "Display visual ESP and highlight overlays"},
+            FontSize = {type = "number", value = 13, label = "Font Size", min = 10, max = 20, desc = "Text size in UI panels"}
+        },
+        Performance = {
+            FPSCap = {type = "number", value = 0, label = "FPS Limiter (0=off)", min = 0, max = 240, desc = "Cap framerate for reduced CPU usage"},
+            UpdateFrequency = {type = "number", value = 1, label = "Update Rate (Hz)", min = 1, max = 60, desc = "ESP and visual update frequency"},
+            MemoryOptimize = {type = "boolean", value = true, label = "Memory Optimization", desc = "Clean up unused objects periodically"}
+        },
+        Notifications = {
+            ModuleToggle = {type = "boolean", value = true, label = "Module Toggles", desc = "Notify when modules enable/disable"},
+            CommandExecution = {type = "boolean", value = false, label = "Command Execution", desc = "Notify when commands are run"},
+            Errors = {type = "boolean", value = true, label = "Show Errors", desc = "Display error messages"},
+            Duration = {type = "number", value = 2, label = "Default Duration (sec)", min = 0.5, max = 10, desc = "How long notifications stay visible"}
         },
         Keybinds = {
-            MenuToggle = {type = "keybind", value = Enum.KeyCode.RightControl, label = "Primary Dashboard"},
-            SettingsToggle = {type = "keybind", value = Enum.KeyCode.RightShift, label = "Config Terminal"}
+            MenuToggle = {type = "keybind", value = Enum.KeyCode.RightControl, label = "Primary Dashboard", desc = "Open main menu"},
+            SettingsToggle = {type = "keybind", value = Enum.KeyCode.RightShift, label = "Settings Panel", desc = "Toggle this window"},
+            CommandPrefix = {type = "string", value = ";", label = "Command Prefix", desc = "Character(s) to trigger commands"}
+        },
+        Advanced = {
+            DebugMode = {type = "boolean", value = false, label = "Debug Mode", desc = "Enable logging to console"},
+            LogLevel = {type = "string", value = "warn", label = "Log Level", options = {"info", "warn", "error"}, desc = "Console output verbosity"},
+            EnableMetatableHooks = {type = "boolean", value = false, label = "Metatable Inspection", desc = "Allow inspection of protected metatables"}
         }
     }
 }
@@ -36047,7 +36453,7 @@ end
 
 function Modules.SettingsManager:_createControl(parent: Instance, cat: string, key: string, data: table): ()
     local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, -10, 0, 45)
+    container.Size = UDim2.new(1, -10, 0, 50)
     container.BackgroundColor3 = self.Config.SECONDARY
     container.BorderSizePixel = 0
     container.Parent = parent
@@ -36056,14 +36462,26 @@ function Modules.SettingsManager:_createControl(parent: Instance, cat: string, k
     corner.CornerRadius = UDim.new(0, 4)
     
     local label = Instance.new("TextLabel", container)
-    label.Size = UDim2.new(0.5, 0, 1, 0)
-    label.Position = UDim2.fromOffset(12, 0)
+    label.Size = UDim2.new(0.6, 0, 0, 25)
+    label.Position = UDim2.fromOffset(12, 5)
     label.Text = data.label
     label.TextColor3 = self.Config.TEXT
     label.Font = Enum.Font.Code
     label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.BackgroundTransparency = 1
+
+    if data.desc then
+        local desc = Instance.new("TextLabel", container)
+        desc.Size = UDim2.new(0.6, -24, 0, 18)
+        desc.Position = UDim2.fromOffset(12, 28)
+        desc.Text = "• " .. data.desc
+        desc.TextColor3 = Color3.fromRGB(150, 150, 150)
+        desc.Font = Enum.Font.Code
+        desc.TextSize = 10
+        desc.TextXAlignment = Enum.TextXAlignment.Left
+        desc.BackgroundTransparency = 1
+    end
 
     if data.type == "boolean" then
         local btn = Instance.new("TextButton", container)
@@ -36079,6 +36497,7 @@ function Modules.SettingsManager:_createControl(parent: Instance, cat: string, k
         btn.MouseButton1Click:Connect(function()
             data.value = not data.value
             btn.Text = data.value and "ON" or "OFF"
+            local TweenService = game:GetService("TweenService")
             TweenService:Create(btn, TweenInfo.new(0.2), {
                 BackgroundColor3 = data.value and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 65)
             }):Play()
@@ -36107,6 +36526,75 @@ function Modules.SettingsManager:_createControl(parent: Instance, cat: string, k
                 box.Text = tostring(data.value)
             end
         end)
+        
+    elseif data.type == "color" then
+        local colorDisplay = Instance.new("Frame", container)
+        colorDisplay.Size = UDim2.fromOffset(35, 26)
+        colorDisplay.Position = UDim2.new(1, -115, 0.5, -13)
+        colorDisplay.BackgroundColor3 = data.value
+        colorDisplay.BorderSizePixel = 1
+        colorDisplay.BorderColor3 = self.Config.ACCENT
+        Instance.new("UICorner", colorDisplay).CornerRadius = UDim.new(0, 4)
+        
+        local colorBtn = Instance.new("TextButton", container)
+        colorBtn.Size = UDim2.fromOffset(70, 26)
+        colorBtn.Position = UDim2.new(1, -72, 0.5, -13)
+        colorBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+        colorBtn.Text = "Pick"
+        colorBtn.TextColor3 = self.Config.ACCENT
+        colorBtn.Font = Enum.Font.Code
+        colorBtn.TextSize = 11
+        Instance.new("UICorner", colorBtn).CornerRadius = UDim.new(0, 4)
+        
+        colorBtn.MouseButton1Click:Connect(function()
+            local r = math.floor(data.value.R * 255)
+            local g = math.floor(data.value.G * 255)
+            local b = math.floor(data.value.B * 255)
+            local newColor = Color3.fromRGB(
+                math.clamp(r + math.random(-10, 10), 0, 255),
+                math.clamp(g + math.random(-10, 10), 0, 255),
+                math.clamp(b + math.random(-10, 10), 0, 255)
+            )
+            data.value = newColor
+            colorDisplay.BackgroundColor3 = newColor
+            if self.Settings.General.AutoSave.value then self:Save() end
+        end)
+
+    elseif data.type == "string" then
+        if data.options then
+            local dropdownBtn = Instance.new("TextButton", container)
+            dropdownBtn.Size = UDim2.fromOffset(80, 26)
+            dropdownBtn.Position = UDim2.new(1, -92, 0.5, -13)
+            dropdownBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+            dropdownBtn.Text = data.value:upper()
+            dropdownBtn.TextColor3 = self.Config.ACCENT
+            dropdownBtn.Font = Enum.Font.Code
+            dropdownBtn.TextSize = 11
+            Instance.new("UICorner", dropdownBtn).CornerRadius = UDim.new(0, 4)
+            
+            dropdownBtn.MouseButton1Click:Connect(function()
+                local idx = table.find(data.options, data.value) or 1
+                idx = (idx % #data.options) + 1
+                data.value = data.options[idx]
+                dropdownBtn.Text = data.value:upper()
+                if self.Settings.General.AutoSave.value then self:Save() end
+            end)
+        else
+            local textBox = Instance.new("TextBox", container)
+            textBox.Size = UDim2.fromOffset(80, 26)
+            textBox.Position = UDim2.new(1, -92, 0.5, -13)
+            textBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            textBox.Text = tostring(data.value)
+            textBox.TextColor3 = self.Config.ACCENT
+            textBox.Font = Enum.Font.Code
+            textBox.TextSize = 12
+            Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 4)
+            
+            textBox.FocusLost:Connect(function()
+                data.value = textBox.Text
+                if self.Settings.General.AutoSave.value then self:Save() end
+            end)
+        end
         
     elseif data.type == "keybind" then
         local btn = Instance.new("TextButton", container)
@@ -36162,7 +36650,7 @@ function Modules.SettingsManager:CreateUI(): ()
     self.State.UI = sg
     
     local main = Instance.new("Frame", sg)
-    main.Size = UDim2.fromOffset(650, 450)
+    main.Size = UDim2.fromOffset(750, 550)
     main.Position = UDim2.fromScale(0.5, 0.5)
     main.AnchorPoint = Vector2.new(0.5, 0.5)
     main.BackgroundColor3 = self.Config.BG
@@ -36175,45 +36663,105 @@ function Modules.SettingsManager:CreateUI(): ()
     stroke.Thickness = 1.5
     Instance.new("UICorner", main).CornerRadius = UDim.new(0, 6)
     
-    local sidebar = Instance.new("Frame", main)
-    sidebar.Size = UDim2.new(0, 160, 1, -40)
-    sidebar.Position = UDim2.fromOffset(0, 40)
-    sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
-    sidebar.BorderSizePixel = 0
-    
-    local content = Instance.new("ScrollingFrame", main)
-    content.Size = UDim2.new(1, -170, 1, -50)
-    content.Position = UDim2.fromOffset(165, 45)
-    content.BackgroundTransparency = 1
-    content.BorderSizePixel = 0
-    content.ScrollBarThickness = 2
-    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    
-    local layout = Instance.new("UIListLayout", content)
-    layout.Padding = UDim.new(0, 8)
-    
     local header = Instance.new("Frame", main)
-    header.Size = UDim2.new(1, 0, 0, 35)
+    header.Size = UDim2.new(1, 0, 0, 50)
     header.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     header.BorderSizePixel = 0
     
     local title = Instance.new("TextLabel", header)
-    title.Size = UDim2.new(1, -40, 1, 0)
+    title.Size = UDim2.new(0.6, 0, 1, 0)
     title.Position = UDim2.fromOffset(15, 0)
-    title.Text = "SYSTEM CONFIGURATION"
+    title.Text = "⚙️ SYSTEM SETTINGS"
     title.TextColor3 = self.Config.ACCENT
     title.Font = Enum.Font.Code
-    title.TextSize = 14
+    title.TextSize = 16
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.BackgroundTransparency = 1
+    
+    local presetLabel = Instance.new("TextLabel", header)
+    presetLabel.Size = UDim2.new(0, 100, 0, 20)
+    presetLabel.Position = UDim2.new(0.6, 0, 0.15, 0)
+    presetLabel.Text = "Preset:"
+    presetLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    presetLabel.Font = Enum.Font.Code
+    presetLabel.TextSize = 11
+    presetLabel.BackgroundTransparency = 1
+    
+    local presetBox = Instance.new("TextBox", header)
+    presetBox.Size = UDim2.new(0, 100, 0, 22)
+    presetBox.Position = UDim2.new(0.72, 0, 0.14, 0)
+    presetBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    presetBox.Text = self.State.CurrentPreset
+    presetBox.TextColor3 = self.Config.ACCENT
+    presetBox.Font = Enum.Font.Code
+    presetBox.TextSize = 11
+    Instance.new("UICorner", presetBox).CornerRadius = UDim.new(0, 3)
+    
+    local savePresetBtn = Instance.new("TextButton", header)
+    savePresetBtn.Size = UDim2.fromOffset(50, 22)
+    savePresetBtn.Position = UDim2.new(0.87, 0, 0.14, 0)
+    savePresetBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+    savePresetBtn.Text = "Save"
+    savePresetBtn.TextColor3 = Color3.new(1, 1, 1)
+    savePresetBtn.Font = Enum.Font.Code
+    savePresetBtn.TextSize = 10
+    Instance.new("UICorner", savePresetBtn).CornerRadius = UDim.new(0, 3)
+    
+    savePresetBtn.MouseButton1Click:Connect(function()
+        local presetName = presetBox.Text
+        if presetName:len() > 0 then
+            self:SavePreset(presetName)
+            self.State.CurrentPreset = presetName
+            DoNotif("Preset saved: " .. presetName, 2)
+        end
+    end)
+    
+    local resetBtn = Instance.new("TextButton", header)
+    resetBtn.Size = UDim2.fromOffset(80, 22)
+    resetBtn.Position = UDim2.new(1, -95, 0.5, -11)
+    resetBtn.BackgroundColor3 = self.Config.DANGER
+    resetBtn.Text = "Reset All"
+    resetBtn.TextColor3 = Color3.new(1, 1, 1)
+    resetBtn.Font = Enum.Font.Code
+    resetBtn.TextSize = 10
+    Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 3)
+    
+    resetBtn.MouseButton1Click:Connect(function()
+        self:ResetDefaults()
+        DoNotif("Settings reset to defaults", 2)
+        sg:Destroy()
+        self.State.UI = nil
+        task.wait(0.1)
+        self:CreateUI()
+    end)
     
     local close = Instance.new("TextButton", header)
     close.Size = UDim2.fromOffset(35, 35)
     close.Position = UDim2.new(1, -35, 0, 0)
-    close.Text = "X"; close.TextColor3 = self.Config.DANGER
+    close.Text = "X"
+    close.TextColor3 = self.Config.DANGER
     close.BackgroundTransparency = 1
     close.Font = Enum.Font.Code
+    close.TextSize = 16
     close.MouseButton1Click:Connect(function() sg.Enabled = false end)
+    
+    local sidebar = Instance.new("Frame", main)
+    sidebar.Size = UDim2.new(0, 150, 1, -55)
+    sidebar.Position = UDim2.fromOffset(0, 50)
+    sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+    sidebar.BorderSizePixel = 0
+    
+    local content = Instance.new("ScrollingFrame", main)
+    content.Size = UDim2.new(1, -160, 1, -60)
+    content.Position = UDim2.fromOffset(155, 55)
+    content.BackgroundTransparency = 1
+    content.BorderSizePixel = 0
+    content.ScrollBarThickness = 3
+    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    
+    local layout = Instance.new("UIListLayout", content)
+    layout.Padding = UDim.new(0, 10)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
     
     local sideLayout = Instance.new("UIListLayout", sidebar)
     sideLayout.Padding = UDim.new(0, 2)
@@ -36237,23 +36785,148 @@ function Modules.SettingsManager:CreateUI(): ()
         b.TextColor3 = Color3.fromRGB(150, 150, 150)
         b.Font = Enum.Font.Code
         b.TextSize = 11
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
         
         b.MouseButton1Click:Connect(function()
             loadCategory(catName)
             for _, other in ipairs(sidebar:GetChildren()) do
                 if other:IsA("TextButton") then
                     other.TextColor3 = Color3.fromRGB(150, 150, 150)
+                    other.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
                 end
             end
-            b.TextColor3 = self.Config.ACCENT
+            b.TextColor3 = Color3.new(0, 0, 0)
+            b.BackgroundColor3 = self.Config.ACCENT
         end)
     end
     
     loadCategory("General")
+    local firstBtn = sidebar:FindFirstChildOfClass("TextButton")
+    if firstBtn then
+        firstBtn.BackgroundColor3 = self.Config.ACCENT
+        firstBtn.TextColor3 = Color3.new(0, 0, 0)
+    end
+end
+
+function Modules.SettingsManager:ResetDefaults(): ()
+    self.Settings = {
+        General = {
+            Notifications = {type = "boolean", value = true, label = "Global Notifications", desc = "Enable/disable all notifications from the system"},
+            AutoSave = {type = "boolean", value = true, label = "Auto-Persistence", desc = "Automatically save settings on every change"},
+            StreamerMode = {type = "boolean", value = false, label = "Streamer Mode", desc = "Hide sensitive info in UI (usernames, coordinates)"}
+        },
+        Visual = {
+            PanelOpacity = {type = "number", value = 0.9, label = "Panel Opacity", min = 0.1, max = 1, desc = "Global transparency of all UI panels"},
+            ThemeColor = {type = "color", value = Color3.fromRGB(0, 255, 255), label = "Accent Color", desc = "Primary theme color for UI elements"},
+            OverlayEnabled = {type = "boolean", value = true, label = "Draw Overlays", desc = "Display visual ESP and highlight overlays"},
+            FontSize = {type = "number", value = 13, label = "Font Size", min = 10, max = 20, desc = "Text size in UI panels"}
+        },
+        Performance = {
+            FPSCap = {type = "number", value = 0, label = "FPS Limiter (0=off)", min = 0, max = 240, desc = "Cap framerate for reduced CPU usage"},
+            UpdateFrequency = {type = "number", value = 1, label = "Update Rate (Hz)", min = 1, max = 60, desc = "ESP and visual update frequency"},
+            MemoryOptimize = {type = "boolean", value = true, label = "Memory Optimization", desc = "Clean up unused objects periodically"}
+        },
+        Notifications = {
+            ModuleToggle = {type = "boolean", value = true, label = "Module Toggles", desc = "Notify when modules enable/disable"},
+            CommandExecution = {type = "boolean", value = false, label = "Command Execution", desc = "Notify when commands are run"},
+            Errors = {type = "boolean", value = true, label = "Show Errors", desc = "Display error messages"},
+            Duration = {type = "number", value = 2, label = "Default Duration (sec)", min = 0.5, max = 10, desc = "How long notifications stay visible"}
+        },
+        Keybinds = {
+            MenuToggle = {type = "keybind", value = Enum.KeyCode.RightControl, label = "Primary Dashboard", desc = "Open main menu"},
+            SettingsToggle = {type = "keybind", value = Enum.KeyCode.RightShift, label = "Settings Panel", desc = "Toggle this window"},
+            CommandPrefix = {type = "string", value = ";", label = "Command Prefix", desc = "Character(s) to trigger commands"}
+        },
+        Advanced = {
+            DebugMode = {type = "boolean", value = false, label = "Debug Mode", desc = "Enable logging to console"},
+            LogLevel = {type = "string", value = "warn", label = "Log Level", options = {"info", "warn", "error"}, desc = "Console output verbosity"},
+            EnableMetatableHooks = {type = "boolean", value = false, label = "Metatable Inspection", desc = "Allow inspection of protected metatables"}
+        }
+    }
+    self:Save()
+end
+
+function Modules.SettingsManager:SavePreset(name: string): ()
+    local presetData = {}
+    for cat, settings in pairs(self.Settings) do
+        presetData[cat] = {}
+        for key, data in pairs(settings) do
+            if data.type == "color" then
+                presetData[cat][key] = {r = data.value.R, g = data.value.G, b = data.value.B}
+            elseif data.type == "keybind" then
+                presetData[cat][key] = data.value.Name
+            else
+                presetData[cat][key] = data.value
+            end
+        end
+    end
+    
+    self.State.Presets[name] = presetData
+    
+    if writefile then
+        pcall(function()
+            writefile("ZukaV10_Presets.json", HttpService:JSONEncode(self.State.Presets))
+        end)
+    end
+end
+
+function Modules.SettingsManager:LoadPreset(name: string): ()
+    if not self.State.Presets[name] then
+        DoNotif("Preset not found: " .. name, 2)
+        return
+    end
+    
+    local presetData = self.State.Presets[name]
+    for cat, settings in pairs(presetData) do
+        if self.Settings[cat] then
+            for key, val in pairs(settings) do
+                local target = self.Settings[cat][key]
+                if target then
+                    if target.type == "color" and type(val) == "table" then
+                        target.value = Color3.new(val.r, val.g, val.b)
+                    elseif target.type == "keybind" and type(val) == "string" then
+                        target.value = Enum.KeyCode[val] or target.value
+                    else
+                        target.value = val
+                    end
+                end
+            end
+        end
+    end
+    
+    self.State.CurrentPreset = name
+    self:Save()
+    DoNotif("Preset loaded: " .. name, 2)
+end
+
+function Modules.SettingsManager:ExportSettings(): string
+    local exported = {}
+    for cat, settings in pairs(self.Settings) do
+        exported[cat] = {}
+        for key, data in pairs(settings) do
+            if data.type == "color" then
+                exported[cat][key] = {r = math.floor(data.value.R * 255), g = math.floor(data.value.G * 255), b = math.floor(data.value.B * 255)}
+            elseif data.type == "keybind" then
+                exported[cat][key] = data.value.Name
+            else
+                exported[cat][key] = data.value
+            end
+        end
+    end
+    return HttpService:JSONEncode(exported)
 end
 
 function Modules.SettingsManager:Initialize(): ()
     self:Load()
+    
+    if writefile and isfile("ZukaV10_Presets.json") then
+        local success, presets = pcall(function()
+            return HttpService:JSONDecode(readfile("ZukaV10_Presets.json"))
+        end)
+        if success then
+            self.State.Presets = presets
+        end
+    end
     
     RegisterCommand({
         Name = "settings",
@@ -36261,6 +36934,30 @@ function Modules.SettingsManager:Initialize(): ()
         Description = "Opens the settings menu"
     }, function()
         self:CreateUI()
+    end)
+    
+    RegisterCommand({
+        Name = "loadpreset",
+        Aliases = {"preset"},
+        Description = "Loads a saved preset. Usage: ;loadpreset [name]"
+    }, function(args)
+        if args[1] then
+            self:LoadPreset(args[1])
+        else
+            DoNotif("Available presets: " .. table.concat(Object.keys(self.State.Presets), ", "), 3)
+        end
+    end)
+    
+    RegisterCommand({
+        Name = "exportcfg",
+        Aliases = {},
+        Description = "Exports current settings as JSON (check clipboard)"
+    }, function()
+        local json = self:ExportSettings()
+        if setclipboard then
+            setclipboard(json)
+            DoNotif("Settings exported to clipboard", 2)
+        end
     end)
     
     UserInputService.InputBegan:Connect(function(input, gpe)
@@ -38405,7 +39102,9 @@ Modules.ScriptSearcher = {
         SearchHistory = {},
         SortMode = "newest",
         ActiveFilters = {},
-        CurrentSource = "scriptblox"
+        CurrentSource = "scriptblox",
+        GameInfo = {},
+        GameScripts = {}
     },
     Config = {
         ACCENT = Color3.fromRGB(0, 255, 255),
@@ -38419,6 +39118,70 @@ Modules.ScriptSearcher = {
     Dependencies = {"HttpService", "Players", "CoreGui", "UserInputService", "RunService"},
     Services = {}
 }
+
+function Modules.ScriptSearcher:SearchGameScripts()
+    if self.State.IsSearching then return end
+    self.State.IsSearching = true
+    self.State.CurrentPage = 1
+    self.State.LastResults = {}
+    local gameId = game.GameId
+    self.State.LastQuery = "game:" .. gameId
+
+    local scroll = self.State.UI.ResultScroll
+    for _, v in ipairs(scroll:GetChildren()) do
+        if not v:IsA("UIListLayout") then v:Destroy() end
+    end
+
+    local status = Instance.new("TextLabel", scroll)
+    status.Size = UDim2.new(1, 0, 0, 30); status.BackgroundTransparency = 1
+    status.Text = "Searching scripts for game " .. gameId .. "..."; status.TextColor3 = self.Config.ACCENT
+    status.Font = Enum.Font.Code; status.TextSize = 14
+
+    task.spawn(function()
+        local requestFunc = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
+        if not requestFunc then
+            status.Text = "ERR: NO HTTP CAPABILITY"
+            self.State.IsSearching = false
+            return
+        end
+
+        local apiUrl = self.Config.APIs[self.State.CurrentSource] or self.Config.APIs.scriptblox
+        local url = apiUrl:format(self.Services.HttpService:UrlEncode("game:" .. gameId))
+        local success, res = pcall(function() return requestFunc({Url = url, Method = "GET"}) end)
+
+        if success and res.StatusCode == 200 then
+            status:Destroy()
+            local data = self.Services.HttpService:JSONDecode(res.Body)
+            if data.result and data.result.scripts then
+                self.State.LastResults = data.result.scripts
+                self.State.GameScripts = self.State.LastResults
+                self:_displayPage(1)
+                DoNotif("Found " .. #self.State.LastResults .. " scripts for this game.", 2)
+            else
+                status.Text = "No scripts found for this game."
+            end
+        else
+            status.Text = "API Link Failed."
+        end
+        self.State.IsSearching = false
+    end)
+end
+
+function Modules.ScriptSearcher:FetchGameInfo()
+    local gameId = game.GameId
+    local players = self.Services.Players:GetPlayers()
+    
+    self.State.GameInfo = {
+        GameId = gameId,
+        GameName = game:GetService("MarketplaceService"):GetProductInfo(gameId).Name,
+        Creator = "Unknown",
+        PlayerCount = #players,
+        MaxPlayers = self.Services.Players.MaxPlayers,
+        Description = game:GetService("MarketplaceService"):GetProductInfo(gameId).Description
+    }
+    
+    return self.State.GameInfo
+end
 
 function Modules.ScriptSearcher:PerformSearch(query)
     if self.State.IsSearching then return end
@@ -38612,7 +39375,12 @@ function Modules.ScriptSearcher:_createResultCard(data)
         else warn(err); DoNotif("Syntax Error in script.", 3) end
     end)
 
-    mkBtn("VIEW", -170, Color3.fromRGB(200, 100, 255), function()
+    mkBtn("COPY", -170, Color3.fromRGB(200, 150, 100), function()
+        setclipboard(data.script)
+        DoNotif("Script copied to clipboard.", 2)
+    end)
+
+    mkBtn("VIEW", -255, Color3.fromRGB(200, 100, 255), function()
         print("--- [SOURCE: " .. data.title .. "] ---")
         print(data.script)
         print("--------------------------------------")
@@ -38652,8 +39420,14 @@ function Modules.ScriptSearcher:CreateUI()
     searchBar.PlaceholderText = "Enter keywords..."; searchBar.Text = ""
     searchBar.TextColor3 = Color3.new(1,1,1); searchBar.Font = Enum.Font.Code; searchBar.TextSize = 14
 
+    local gameSearchBtn = Instance.new("TextButton", main)
+    gameSearchBtn.Size = UDim2.fromOffset(80, 30); gameSearchBtn.Position = UDim2.new(1, -300, 0, 40)
+    gameSearchBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); gameSearchBtn.BorderSizePixel = 1; gameSearchBtn.BorderColor3 = Color3.fromRGB(100, 200, 150)
+    gameSearchBtn.Text = "GAME"; gameSearchBtn.TextColor3 = Color3.fromRGB(100, 255, 150); gameSearchBtn.Font = Enum.Font.Code; gameSearchBtn.TextSize = 10
+    gameSearchBtn.MouseButton1Click:Connect(function() self:SearchGameScripts() end)
+
     local searchBtn = Instance.new("TextButton", main)
-    searchBtn.Size = UDim2.fromOffset(70, 30); searchBtn.Position = UDim2.new(1, -220, 0, 40)
+    searchBtn.Size = UDim2.fromOffset(70, 30); searchBtn.Position = UDim2.new(1, -210, 0, 40)
     searchBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); searchBtn.BorderSizePixel = 1; searchBtn.BorderColor3 = self.Config.ACCENT
     searchBtn.Text = "SEARCH"; searchBtn.TextColor3 = self.Config.ACCENT; searchBtn.Font = Enum.Font.Code; searchBtn.TextSize = 10
     searchBtn.MouseButton1Click:Connect(function() self:PerformSearch(searchBar.Text) end)
@@ -38739,8 +39513,51 @@ function Modules.ScriptSearcher:CreateUI()
     nextPageBtn.Text = "NEXT ►"; nextPageBtn.TextColor3 = self.Config.ACCENT; nextPageBtn.Font = Enum.Font.Code; nextPageBtn.TextSize = 9
     nextPageBtn.MouseButton1Click:Connect(function() self:NextPage() end)
 
+    local gameInfoPanel = Instance.new("Frame", main)
+    gameInfoPanel.Size = UDim2.new(1, -20, 0, 85); gameInfoPanel.Position = UDim2.fromOffset(10, 105)
+    gameInfoPanel.BackgroundColor3 = Color3.fromRGB(25, 35, 40); gameInfoPanel.BorderSizePixel = 1; gameInfoPanel.BorderColor3 = Color3.fromRGB(100, 200, 150)
+    
+    local gameNameLabel = Instance.new("TextLabel", gameInfoPanel)
+    gameNameLabel.Size = UDim2.new(1, -10, 0, 20); gameNameLabel.Position = UDim2.fromOffset(5, 3)
+    gameNameLabel.Text = "🎮 Game: Loading..."; gameNameLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+    gameNameLabel.Font = Enum.Font.Code; gameNameLabel.TextSize = 11; gameNameLabel.TextXAlignment = "Left"; gameNameLabel.BackgroundTransparency = 1
+    
+    local gameIdLabel = Instance.new("TextLabel", gameInfoPanel)
+    gameIdLabel.Size = UDim2.new(1, -10, 0, 15); gameIdLabel.Position = UDim2.fromOffset(5, 23)
+    gameIdLabel.Text = "ID: " .. game.GameId; gameIdLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    gameIdLabel.Font = Enum.Font.Code; gameIdLabel.TextSize = 9; gameIdLabel.TextXAlignment = "Left"; gameIdLabel.BackgroundTransparency = 1
+    
+    local playerCountLabel = Instance.new("TextLabel", gameInfoPanel)
+    playerCountLabel.Size = UDim2.new(0.5, -5, 0, 15); playerCountLabel.Position = UDim2.fromOffset(5, 38)
+    playerCountLabel.Text = "👥 Players: " .. #self.Services.Players:GetPlayers() .. "/" .. self.Services.Players.MaxPlayers
+    playerCountLabel.TextColor3 = Color3.fromRGB(150, 150, 150); playerCountLabel.Font = Enum.Font.Code
+    playerCountLabel.TextSize = 9; playerCountLabel.TextXAlignment = "Left"; playerCountLabel.BackgroundTransparency = 1
+    
+    local scriptCountLabel = Instance.new("TextLabel", gameInfoPanel)
+    scriptCountLabel.Size = UDim2.new(0.5, -5, 0, 15); scriptCountLabel.Position = UDim2.new(0.5, 5, 0, 38)
+    scriptCountLabel.Text = "📄 Scripts: Searching..."; scriptCountLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    scriptCountLabel.Font = Enum.Font.Code; scriptCountLabel.TextSize = 9; scriptCountLabel.TextXAlignment = "Left"; scriptCountLabel.BackgroundTransparency = 1
+    
+    local descLabel = Instance.new("TextLabel", gameInfoPanel)
+    descLabel.Size = UDim2.new(1, -10, 0, 20); descLabel.Position = UDim2.fromOffset(5, 53)
+    descLabel.Text = "Description: Loading..."; descLabel.TextColor3 = Color3.fromRGB(130, 130, 130)
+    descLabel.Font = Enum.Font.Code; descLabel.TextSize = 8; descLabel.TextXAlignment = "Left"; descLabel.TextWrapped = true
+    descLabel.BackgroundTransparency = 1
+
+    task.spawn(function()
+        local success, gameInfo = pcall(function() return self:FetchGameInfo() end)
+        if success and gameInfo then
+            gameNameLabel.Text = "🎮 Game: " .. (gameInfo.GameName or "Unknown")
+            scriptCountLabel.Text = "📄 Scripts: " .. #self.State.GameScripts .. " available"
+            descLabel.Text = "📝 " .. (gameInfo.Description or "No description available"):sub(1, 120)
+        else
+            gameNameLabel.Text = "🎮 Game: " .. tostring(game.GameId)
+            descLabel.Text = "📝 Could not fetch game info"
+        end
+    end)
+
     local scroll = Instance.new("ScrollingFrame", main)
-    scroll.Size = UDim2.new(1, -20, 1, -120); scroll.Position = UDim2.fromOffset(10, 110)
+    scroll.Size = UDim2.new(1, -20, 1, -205); scroll.Position = UDim2.fromOffset(10, 195)
     scroll.BackgroundColor3 = Color3.fromRGB(15, 15, 15); scroll.BorderSizePixel = 1; scroll.BorderColor3 = Color3.fromRGB(50, 50, 50)
     scroll.ScrollBarThickness = 3; scroll.ScrollBarImageColor3 = self.Config.ACCENT; scroll.AutomaticCanvasSize = "Y"
 
@@ -39673,18 +40490,18 @@ local function loadstringCmd(url, notif)
     end)
     DoNotif(notif, 3)
 end
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {" "}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+--RegisterCommand({Name = " ", Aliases = {}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+RegisterCommand({Name = "freezeani", Aliases = {}, Description = "Pauses/Removes All animations for the player."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/animationremover.lua", " Loading.. ") end)
+RegisterCommand({Name = "gunlagger2", Aliases = {}, Description = "For Protect the house from Monsters."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/machinegun.lua", " Loading.. ") end)
+RegisterCommand({Name = "gunlagger", Aliases = {}, Description = "For Protect the house from Monsters."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Lagger.lua", " Loading.. ") end)
+RegisterCommand({Name = "lagserv", Aliases = {"spayload"}, Description = "WIP"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/gamelagger.lua", " Loading.. ") end)
+RegisterCommand({Name = "doomshammer", Aliases = {}, Description = "For Dumb bossfights"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/doomshammer.lua", " Loading.. ") end)
+RegisterCommand({Name = "tptoswords", Aliases = {}, Description = "For Dumb bossfights"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/SwordGrabberBossfightGame.lua", " Loading.. ") end)
+RegisterCommand({Name = "removeff", Aliases = {}, Description = "Removes Forcefields on the client, can be useful with low security"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/removeforcefield.txt", " Loading.. ") end)
+RegisterCommand({Name = "AttachHub", Aliases = {}, Description = "Anthony's Script 2"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AttachHub.lua", " Loading.. ") end)
+RegisterCommand({Name = "controltool", Aliases = {}, Description = "Anthony's Script"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Control%20Tool.lua", " Loading.. ") end)
 RegisterCommand({Name = "mk18", Aliases = {}, Description = "For backrooms."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/mk18.lua", " Loading.. ") end)
 RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin") end)
 RegisterCommand({Name = "autofling", Aliases = {"pwned"}, Description = "Pwned Flinger"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Ultimatefling.lua", "Loaded!") end)
@@ -39699,7 +40516,7 @@ RegisterCommand({Name = "zgui", Aliases = {"upd3", "zui"}, Description = "For ht
 RegisterCommand({Name = "creepyanim", Aliases = {"canim"}, Description = "Uncanny Animation GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/uncannyanim.lua", "Loaded GUI") end)
 RegisterCommand({Name = "swordbot", Aliases = {"sf", "sfbot"}, Description = "Auto Sword Fighter, use E and R"}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/swordnpc", "Bot loaded.") end)
 RegisterCommand({Name = "touchfling", Aliases = {}, Description = "Loads the touchfling GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SimpleTouchFlingGui.lua", "Loaded") end)
-RegisterCommand({Name = "zoneui", Aliases = {}, Description = "For https://www.roblox.com/games/99381597249674/Zombie-Zone" }, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/Nice.lua", "Loaded") end)
+RegisterCommand({Name = "umpff", Aliases = {}, Description = "For Backrooms." }, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/UMPteamkiller.lua", "Loaded") end)
 RegisterCommand({Name = "unglue", Aliases = {}, Description = "Anti Attacher" }, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AntiAttacherUpdated.lua", "Loaded") end)
 RegisterCommand({Name = "ibtools", Aliases = {"btools"}, Description = "Upgraded Gui For Btools"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/buildtools.lua", "Loading Revamped Btools Gui") end)
 RegisterCommand({Name = "ketamine", Aliases = {}, Description = "Updated remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/remotes.lua", "Loading rSpy...") end)
@@ -39719,6 +40536,424 @@ RegisterCommand({Name = "reachfix", Aliases = {"fix"}, Description = "Makes your
 RegisterCommand({Name = "worldofstands", Aliases = {"wos"}, Description = "For https://www.roblox.com/games/6728870912/World-of-Stands - Removes dash cooldown"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/WOS.lua", "Loading, Wait a sec.") end)
 RegisterCommand({Name = "zfucker", Aliases = {}, Description = "zfucker for the zl series."}, function() loadstringCmd("https://raw.githubusercontent.com/osukfcdays/zlfucker/refs/heads/main/main.luau", "Loading, Wait a sec.") end)
 RegisterCommand({Name = "calesp", Aliases = {}, Description = "Selective ESP UI Made by the Callum-AI."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AIESP.lua", "Loading, Wait a sec.") end)
+
+-- Infinite Yield Plugin Support Module
+Modules.InfiniteYieldPlugins = {
+    State = {
+        LoadedPlugins = {},
+        PluginCache = {},
+        IsEnabled = true
+    },
+    
+    Config = {
+        PLUGIN_DIR = "",
+        PLUGIN_EXT = ".iy"
+    },
+    
+    Dependencies = {"HttpService"}
+}
+
+function Modules.InfiniteYieldPlugins:LoadPluginFile(filePath: string): (boolean, string)
+    local success, result = pcall(function()
+        if not filePath:lower():find(self.Config.PLUGIN_EXT, 1, true) then
+            return false, "File must be a .iy file"
+        end
+        
+        if readfile then
+            local fileContent = readfile(filePath)
+            if not fileContent or fileContent == "" then
+                return false, "File is empty or cannot be read"
+            end
+            return true, fileContent
+        else
+            return false, "readfile not available"
+        end
+    end)
+    
+    if not success then
+        return false, result
+    end
+    
+    return true, result
+end
+
+function Modules.InfiniteYieldPlugins:ExecutePluginCode(pluginName: string, code: string)
+    local success, result = pcall(function()
+        local pluginEnv = setmetatable({
+            print = print, warn = warn, task = task, 
+            DoNotif = DoNotif, Player = LocalPlayer
+        }, {__index = getgenv()})
+        
+        local pluginFunc = loadstring(code)
+        if not pluginFunc then return false, "Syntax Error" end
+        
+        setfenv(pluginFunc, pluginEnv)
+        local pluginTable = pluginFunc() -- Standard IY plugins return a table
+
+        -- Check if the plugin is in the standard IY format (Table -> Commands)
+        if type(pluginTable) == "table" and pluginTable.Commands then
+            for cmdName, cmdData in pairs(pluginTable.Commands) do
+                RegisterCommand({
+                    Name = cmdName,
+                    Aliases = cmdData.Aliases or {},
+                    Description = cmdData.Description or "IY Plugin Command"
+                }, function(args)
+                    -- IY commands expect (args, speaker)
+                    pcall(cmdData.Function, args, LocalPlayer)
+                end)
+            end
+            return true, "Commands Registered"
+        end
+        
+        return true, "Raw script executed"
+    end)
+    
+    return success, result
+end
+
+function Modules.InfiniteYieldPlugins:LoadPlugin(pluginPath: string)
+    if not self.State.IsEnabled then return end
+    
+    -- Extract clean name from path
+    local fileName = pluginPath:match("([^/\\ ]+)$") or pluginPath
+    local pluginName = fileName:gsub(self.Config.PLUGIN_EXT, "")
+    
+    if self.State.LoadedPlugins[pluginName] then return end
+    
+    local success, content = self:LoadPluginFile(pluginPath)
+    if not success then return end
+    
+    local execSuccess, execMsg = self:ExecutePluginCode(pluginName, content)
+    
+    if execSuccess then
+        self.State.LoadedPlugins[pluginName] = true
+        DoNotif("Integrated: " .. pluginName, 2)
+    else
+        warn("--> [IY_PLUGIN] Failed to integrate " .. pluginName .. ": " .. tostring(execMsg))
+    end
+end
+
+-- New command to scan the workspace folder
+RegisterCommand({
+    Name = "iyscan",
+    Aliases = {"refreshplugins", "iyr"},
+    Description = "Scans the executor's workspace/plugins folder and integrates all .iy files."
+}, function()
+    if not listfiles then 
+        return DoNotif("Executor does not support 'listfiles'", 3) 
+    end
+    
+    local files = listfiles("plugins") -- Assumes your plugins are in a folder named 'plugins'
+    local count = 0
+    
+    for _, file in ipairs(files) do
+        if file:lower():match("%.iy$") then
+            Modules.InfiniteYieldPlugins:LoadPlugin(file)
+            count = count + 1
+        end
+    end
+    
+    DoNotif("Scan Complete. Integrated " .. count .. " plugins.", 3)
+end)
+
+Modules.CommandAdapter = {
+    State = {
+        AdaptedCommands = {}
+    }
+}
+
+function Modules.CommandAdapter:CreateCompatibleEnvironment(frameworkName)
+    local framework = frameworkName or "universal"
+    local cmdAPI = {}
+    local loadedCount = 0
+    
+    -- Supports both Nameless Admin and Infinite Yield formats
+
+    function cmdAPI:add(nameOrAliases, descOrFunc, funcOrNil)
+        local name, aliases, description, func
+        
+        if type(nameOrAliases) == "string" then
+            name = nameOrAliases
+            aliases = {}
+            description = type(descOrFunc) == "string" and descOrFunc or ""
+            func = funcOrNil or descOrFunc
+        elseif type(nameOrAliases) == "table" then
+            aliases = nameOrAliases
+            name = aliases[1] or "unknown"
+            description = type(descOrFunc) == "string" and descOrFunc or ""
+            func = funcOrNil or descOrFunc
+        end
+        
+        if type(func) ~= "function" then
+            warn("CommandAdapter: Invalid function for command '" .. tostring(name) .. "'")
+            return
+        end
+        
+        RegisterCommand({
+            Name = name,
+            Aliases = aliases,
+            Description = description or ("Command from " .. framework)
+        }, func)
+        
+        loadedCount = loadedCount + 1
+    end
+    
+    return cmdAPI, loadedCount
+end
+
+function Modules.CommandAdapter:ExecuteCommandScript(scriptCode, frameworkName, scriptName)
+    frameworkName = frameworkName or "universal"
+    scriptName = scriptName or "UnnamedScript_" .. os.time()
+    
+    local success, result = pcall(function()
+        local cmdAPI, _ = self:CreateCompatibleEnvironment(frameworkName)
+        
+        local env = {
+            print = print,
+            warn = warn,
+            game = game,
+            script = script,
+            Instance = Instance,
+            Vector3 = Vector3,
+            Color3 = Color3,
+            CFrame = CFrame,
+            task = task,
+            table = table,
+            string = string,
+            math = math,
+            ipairs = ipairs,
+            pairs = pairs,
+            next = next,
+            type = type,
+            tostring = tostring,
+            tonumber = tonumber,
+            assert = assert,
+            
+            -- Command API
+            cmd = cmdAPI,
+            
+            -- Common shortcuts from other frameworks
+            Add = function(name, desc, func) cmdAPI:add(name, desc, func) end,
+            register = function(name, desc, func) cmdAPI:add(name, desc, func) end,
+            
+            -- Services and common utilities
+            DoNotif = DoNotif,
+            Players = Players,
+            Workspace = Workspace,
+            RunService = RunService,
+            UserInputService = UserInputService,
+            CoreGui = CoreGui,
+            LocalPlayer = LocalPlayer,
+            Mouse = PlayerMouse,
+            Camera = CurrentCamera,
+        }
+        
+        setmetatable(env, {__index = _G})
+        
+        -- Parse and load the script
+        local func, err = loadstring(scriptCode)
+        if not func then
+            return false, "Syntax Error: " .. tostring(err)
+        end
+        
+        setfenv(func, env)
+        func()
+        
+        return true, "Script loaded successfully"
+    end)
+    
+    if success then
+        self.State.AdaptedCommands[scriptName] = true
+        DoNotif("Loaded commands from '" .. scriptName .. "' (" .. frameworkName .. ")", 2)
+        return true
+    else
+        warn("CommandAdapter Error: " .. tostring(result))
+        DoNotif("Error loading commands: " .. tostring(result), 4)
+        return false
+    end
+end
+
+function Modules.CommandAdapter:Initialize()
+    RegisterCommand({
+        Name = "pastecommands",
+        Aliases = {"paste", "importcmds"},
+        Description = "Paste Nameless Admin or Infinite Yield commands. Usage: ;pastecommands [framework] (nameless/infinite/universal)"
+    }, function(args)
+        -- This will be used with the UI to paste commands
+        DoNotif("Use the Command Adapter UI (type ;cmdui) to paste commands.", 2)
+    end)
+    
+    RegisterCommand({
+        Name = "cmdui",
+        Aliases = {"cmdadapter", "adaptcmds"},
+        Description = "Opens the Command Adapter UI to paste external commands"
+    }, function()
+        self:CreateUI()
+    end)
+    
+    print("--> Command Adapter System initialized")
+end
+
+function Modules.CommandAdapter:CreateUI()
+    local CoreGui = game:GetService("CoreGui")
+    
+    if CoreGui:FindFirstChild("CommandAdapterUI") then
+        CoreGui:FindFirstChild("CommandAdapterUI"):Destroy()
+    end
+    
+    local sg = Instance.new("ScreenGui", CoreGui)
+    sg.Name = "CommandAdapterUI"
+    sg.ResetOnSpawn = false
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    
+    local main = Instance.new("Frame", sg)
+    main.Size = UDim2.fromOffset(700, 600)
+    main.Position = UDim2.fromScale(0.5, 0.5)
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    main.BorderSizePixel = 2
+    main.BorderColor3 = Color3.fromRGB(0, 255, 255)
+    main.Active = true
+    main.Draggable = true
+    
+    local header = Instance.new("TextLabel", main)
+    header.Size = UDim2.new(1, 0, 0, 40)
+    header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    header.BorderSizePixel = 0
+    header.Text = "⚙️ COMMAND ADAPTER - Paste External Commands"
+    header.TextColor3 = Color3.fromRGB(0, 255, 255)
+    header.Font = Enum.Font.Code
+    header.TextSize = 14
+    header.TextXAlignment = "Left"
+    header.TextScaled = false
+    
+    local padding = Instance.new("UIPadding", header)
+    padding.PaddingLeft = UDim.new(0, 15)
+    
+    local closeBtn = Instance.new("TextButton", header)
+    closeBtn.Size = UDim2.fromOffset(35, 35)
+    closeBtn.Position = UDim2.new(1, -40, 0.5, -17)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1, 0, 0)
+    closeBtn.Font = Enum.Font.Code
+    closeBtn.TextSize = 16
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        sg:Destroy()
+    end)
+    
+    local frameworkLabel = Instance.new("TextLabel", main)
+    frameworkLabel.Size = UDim2.new(1, -20, 0, 20)
+    frameworkLabel.Position = UDim2.fromOffset(10, 50)
+    frameworkLabel.BackgroundTransparency = 1
+    frameworkLabel.Text = "Framework (nameless/infinite/universal):"
+    frameworkLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    frameworkLabel.Font = Enum.Font.Code
+    frameworkLabel.TextSize = 11
+    frameworkLabel.TextXAlignment = "Left"
+    
+    local frameworkBox = Instance.new("TextBox", main)
+    frameworkBox.Size = UDim2.new(0.3, -5, 0, 28)
+    frameworkBox.Position = UDim2.fromOffset(10, 75)
+    frameworkBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    frameworkBox.BorderSizePixel = 1
+    frameworkBox.BorderColor3 = Color3.fromRGB(0, 255, 255)
+    frameworkBox.Text = "universal"
+    frameworkBox.TextColor3 = Color3.new(1, 1, 1)
+    frameworkBox.Font = Enum.Font.Code
+    frameworkBox.TextSize = 10
+    Instance.new("UICorner", frameworkBox).CornerRadius = UDim.new(0, 3)
+    
+    local scriptNameLabel = Instance.new("TextLabel", main)
+    scriptNameLabel.Size = UDim2.new(1, -20, 0, 20)
+    scriptNameLabel.Position = UDim2.fromOffset(10, 110)
+    scriptNameLabel.BackgroundTransparency = 1
+    scriptNameLabel.Text = "Script Name (optional):"
+    scriptNameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    scriptNameLabel.Font = Enum.Font.Code
+    scriptNameLabel.TextSize = 11
+    scriptNameLabel.TextXAlignment = "Left"
+    
+    local scriptNameBox = Instance.new("TextBox", main)
+    scriptNameBox.Size = UDim2.new(0.3, -5, 0, 28)
+    scriptNameBox.Position = UDim2.fromOffset(10, 135)
+    scriptNameBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    scriptNameBox.BorderSizePixel = 1
+    scriptNameBox.BorderColor3 = Color3.fromRGB(0, 255, 255)
+    scriptNameBox.PlaceholderText = "MyScript"
+    scriptNameBox.TextColor3 = Color3.new(1, 1, 1)
+    scriptNameBox.Font = Enum.Font.Code
+    scriptNameBox.TextSize = 10
+    Instance.new("UICorner", scriptNameBox).CornerRadius = UDim.new(0, 3)
+    
+    local codeLabel = Instance.new("TextLabel", main)
+    codeLabel.Size = UDim2.new(1, -20, 0, 20)
+    codeLabel.Position = UDim2.fromOffset(10, 170)
+    codeLabel.BackgroundTransparency = 1
+    codeLabel.Text = "Paste Command Code:"
+    codeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    codeLabel.Font = Enum.Font.Code
+    codeLabel.TextSize = 11
+    codeLabel.TextXAlignment = "Left"
+    
+    local codeBox = Instance.new("TextBox", main)
+    codeBox.Size = UDim2.new(1, -20, 0, 280)
+    codeBox.Position = UDim2.fromOffset(10, 195)
+    codeBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    codeBox.BorderSizePixel = 1
+    codeBox.BorderColor3 = Color3.fromRGB(0, 255, 255)
+    codeBox.PlaceholderText = "Paste your cmd.add() commands here..."
+    codeBox.TextColor3 = Color3.new(1, 1, 1)
+    codeBox.Font = Enum.Font.Code
+    codeBox.TextSize = 9
+    codeBox.TextWrapped = true
+    codeBox.MultiLine = true
+    Instance.new("UICorner", codeBox).CornerRadius = UDim.new(0, 4)
+    
+    local loadBtn = Instance.new("TextButton", main)
+    loadBtn.Size = UDim2.fromOffset(150, 35)
+    loadBtn.Position = UDim2.fromOffset(10, 555)
+    loadBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
+    loadBtn.BorderSizePixel = 0
+    loadBtn.Text = "LOAD COMMANDS"
+    loadBtn.TextColor3 = Color3.new(0, 0, 0)
+    loadBtn.Font = Enum.Font.Code
+    loadBtn.TextSize = 11
+    Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 4)
+    
+    loadBtn.MouseButton1Click:Connect(function()
+        if codeBox.Text ~= "" then
+            local framework = frameworkBox.Text:lower() or "universal"
+            local scriptName = scriptNameBox.Text ~= "" and scriptNameBox.Text or "PastedCommands"
+            self:ExecuteCommandScript(codeBox.Text, framework, scriptName)
+            codeBox.Text = ""
+        else
+            DoNotif("Please paste some code first.", 3)
+        end
+    end)
+    
+    local clearBtn = Instance.new("TextButton", main)
+    clearBtn.Size = UDim2.fromOffset(100, 35)
+    clearBtn.Position = UDim2.fromOffset(170, 555)
+    clearBtn.BackgroundColor3 = Color3.fromRGB(150, 60, 60)
+    clearBtn.BorderSizePixel = 0
+    clearBtn.Text = "CLEAR"
+    clearBtn.TextColor3 = Color3.new(1, 1, 1)
+    clearBtn.Font = Enum.Font.Code
+    clearBtn.TextSize = 11
+    Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0, 4)
+    
+    clearBtn.MouseButton1Click:Connect(function()
+        codeBox.Text = ""
+        frameworkBox.Text = "universal"
+        scriptNameBox.Text = ""
+    end)
+    
+    DoNotif("Command Adapter UI Opened", 2)
+end
+
 function processCommand(message)
     if not (message:sub(1, #Prefix) == Prefix) then
         return false
@@ -39761,12 +40996,11 @@ function processCommand(message)
 end
 
 for moduleName, module in pairs(Modules) do
-    if type(module) == "table" and type(module.Initialize) == "function" then
-        pcall(function()
-        module:Initialize()
-        print("Initialized module:", moduleName)
-    end)
-end
+       if type(module) == "table" and type(module.Initialize) == "function" then
+           pcall(function()
+           module:Initialize()
+        end)
+    end
 end
 
 local function CreateMobileCommandButton()
@@ -39847,7 +41081,6 @@ end
 
 CreateMobileCommandButton()
 Modules.CommandList:Initialize()
-local TextChatService = game:GetService("TextChatService")
 if TextChatService then
     TextChatService.SendingMessage:Connect(function(messageObject)
     local wasCommand = processCommand(messageObject.Text)
