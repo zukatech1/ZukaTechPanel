@@ -1623,22 +1623,131 @@ Modules.CommandBar = {
         PrefixKey = Enum.KeyCode.Semicolon,
         IsAnimating = false,
         IsEnabled = false,
-        MaxLogs = 500,
+        MaxLogs = 900,
         CurrentSuggestion = "",
         MinSize = Vector2.new(400, 250),
         SelectionStart = nil,
         SelectionEnd = nil,
-        IsSelecting = false
+        IsSelecting = false,
+        IsMinimized = false,
+        IsMaximized = false,
+        PreMaximizeSize = nil,
+        PreMaximizePosition = nil,
+        StartupShown = false
     },
 
     Theme = {
-        Background = Color3.fromRGB(10, 10, 10),
-        Accent = Color3.fromRGB(255, 105, 180),
-        Text = Color3.fromRGB(220, 220, 220),
-        Suggestion = Color3.fromRGB(120, 120, 120),
+        Background = Color3.fromRGB(0, 0, 0),
+        WindowGray = Color3.fromRGB(192, 192, 192),
+        DarkGray = Color3.fromRGB(128, 128, 128),
+        LightGray = Color3.fromRGB(223, 223, 223),
+        White = Color3.fromRGB(255, 255, 255),
+        Blue = Color3.fromRGB(0, 0, 128),
+        Accent = Color3.fromRGB(0, 255, 0),
+        Text = Color3.fromRGB(192, 192, 192),
+        Suggestion = Color3.fromRGB(0, 128, 0),
         Font = Enum.Font.Code
-    }
+    },
+    
+    Dependencies = {"UserInputService", "TweenService", "SoundService"}
 }
+
+-- System beep sound
+function Modules.CommandBar:PlayBeep(): ()
+    local beep = Instance.new("Sound")
+    beep.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+    beep.Volume = 0.5
+    beep.Parent = game:GetService("SoundService")
+    beep:Play()
+    beep.Ended:Connect(function() beep:Destroy() end)
+end
+
+-- Startup sound
+function Modules.CommandBar:PlayStartupSound(): ()
+    local startup = Instance.new("Sound")
+    startup.SoundId = "rbxassetid://6026984224" -- Windows 95 startup sound
+    startup.Volume = 0.3
+    startup.Parent = game:GetService("SoundService")
+    startup:Play()
+    startup.Ended:Connect(function() startup:Destroy() end)
+end
+
+function Modules.CommandBar:ShowStartupScreen(): ()
+    if self.State.StartupShown then return end
+    self.State.StartupShown = true
+    
+    local StartupGui = Instance.new("ScreenGui")
+    StartupGui.Name = "Win95Startup"
+    StartupGui.Parent = CoreGui
+    StartupGui.IgnoreGuiInset = true
+    StartupGui.DisplayOrder = 999
+    
+    local Background = Instance.new("Frame", StartupGui)
+    Background.Size = UDim2.new(1, 0, 1, 0)
+    Background.BackgroundColor3 = Color3.fromRGB(0, 128, 128) -- Teal Win95 background
+    Background.BackgroundTransparency = 0.3
+    Background.BorderSizePixel = 0
+    
+    local Logo = Instance.new("ImageLabel", Background)
+    Logo.Position = UDim2.new(0.5, -150, 0.5, -100)
+    Logo.Size = UDim2.new(0, 300, 0, 100)
+    Logo.BackgroundTransparency = 1
+    Logo.Image = "" -- We'll use text instead
+    
+    local Win95Text = Instance.new("TextLabel", Background)
+    Win95Text.Position = UDim2.new(0.5, -200, 0.4, 0)
+    Win95Text.Size = UDim2.new(0, 400, 0, 80)
+    Win95Text.BackgroundTransparency = 1
+    Win95Text.Font = Enum.Font.SourceSansBold
+    Win95Text.Text = "Windows"
+    Win95Text.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Win95Text.TextSize = 60
+    Win95Text.TextStrokeTransparency = 0.5
+    
+    local SubText = Instance.new("TextLabel", Background)
+    SubText.Position = UDim2.new(0.5, -200, 0.5, 20)
+    SubText.Size = UDim2.new(0, 400, 0, 40)
+    SubText.BackgroundTransparency = 1
+    SubText.Font = Enum.Font.SourceSans
+    SubText.Text = "95"
+    SubText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SubText.TextSize = 48
+    
+    local LoadingBar = Instance.new("Frame", Background)
+    LoadingBar.Position = UDim2.new(0.5, -150, 0.65, 0)
+    LoadingBar.Size = UDim2.new(0, 300, 0, 20)
+    LoadingBar.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
+    LoadingBar.BorderSizePixel = 2
+    LoadingBar.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    
+    local LoadingFill = Instance.new("Frame", LoadingBar)
+    LoadingFill.Size = UDim2.new(0, 0, 1, 0)
+    LoadingFill.BackgroundColor3 = Color3.fromRGB(0, 0, 128)
+    LoadingFill.BorderSizePixel = 0
+    
+    local LoadingText = Instance.new("TextLabel", Background)
+    LoadingText.Position = UDim2.new(0.5, -100, 0.7, 0)
+    LoadingText.Size = UDim2.new(0, 200, 0, 30)
+    LoadingText.BackgroundTransparency = 1
+    LoadingText.Font = Enum.Font.SourceSans
+    LoadingText.Text = "Starting Windows..."
+    LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    LoadingText.TextSize = 16
+    
+    -- Play startup sound
+    self:PlayStartupSound()
+    
+    -- Animate loading bar
+    local tween = TweenService:Create(LoadingFill, TweenInfo.new(2, Enum.EasingStyle.Linear), {
+        Size = UDim2.new(1, 0, 1, 0)
+    })
+    tween:Play()
+    
+    tween.Completed:Connect(function()
+        task.wait(0.3)
+        StartupGui:Destroy()
+    end)
+end
 
 function Modules.CommandBar:CopyOutputToClipboard(): ()
     if not self.State.LogFrame then return end
@@ -1684,21 +1793,79 @@ function Modules.CommandBar:CopySelectedText(): ()
     self:CopyOutputToClipboard()
 end
 
+function Modules.CommandBar:Minimize(): ()
+    if self.State.IsMinimized then return end
+    self.State.IsMinimized = true
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(self.State.Container, tweenInfo, {
+        Position = UDim2.new(0.5, -self.State.Container.Size.X.Offset/2, 1, 50),
+        Size = UDim2.new(0, self.State.Container.Size.X.Offset, 0, 30)
+    })
+    tween:Play()
+end
+
+function Modules.CommandBar:Restore(): ()
+    if not self.State.IsMinimized then return end
+    self.State.IsMinimized = false
+    
+    local targetSize = self.State.PreMaximizeSize or UDim2.new(0, 600, 0, 400)
+    local targetPos = self.State.PreMaximizePosition or UDim2.new(0.5, -300, 0.5, -200)
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(self.State.Container, tweenInfo, {
+        Position = targetPos,
+        Size = targetSize
+    })
+    tween:Play()
+end
+
+function Modules.CommandBar:Maximize(): ()
+    if self.State.IsMaximized then
+        -- Restore
+        self.State.IsMaximized = false
+        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = TweenService:Create(self.State.Container, tweenInfo, {
+            Position = self.State.PreMaximizePosition,
+            Size = self.State.PreMaximizeSize
+        })
+        tween:Play()
+    else
+        -- Maximize
+        self.State.PreMaximizeSize = self.State.Container.Size
+        self.State.PreMaximizePosition = self.State.Container.Position
+        self.State.IsMaximized = true
+        
+        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = TweenService:Create(self.State.Container, tweenInfo, {
+            Position = UDim2.new(0, 0, 0, 0),
+            Size = UDim2.new(1, 0, 1, 0)
+        })
+        tween:Play()
+    end
+end
+
 function Modules.CommandBar:Toggle(): ()
     if self.State.IsAnimating then return end
     self.State.IsAnimating = true
     self.State.IsEnabled = not self.State.IsEnabled
     
     local isOpening: boolean = self.State.IsEnabled
-    local tweenInfo: TweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local tweenInfo: TweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
     
     if isOpening then
+        -- Show startup screen first time
+        if not self.State.StartupShown then
+            self:ShowStartupScreen()
+            task.wait(2.3)
+        end
+        
         self.State.UI.Enabled = true
         local goalPosition: UDim2 = UDim2.new(0.5, -self.State.Container.Size.X.Offset/2, 0.5, -self.State.Container.Size.Y.Offset/2)
         
         local anim = TweenService:Create(self.State.Container, tweenInfo, {
             Position = goalPosition,
-            BackgroundTransparency = 0.3
+            BackgroundTransparency = 0
         })
         anim:Play()
         self.State.TextBox:CaptureFocus()
@@ -1735,9 +1902,9 @@ function Modules.CommandBar:AddOutput(text: string, color: Color3?): ()
     line.Size = UDim2.new(1, -15, 0, 0)
     line.AutomaticSize = Enum.AutomaticSize.Y
     line.Font = self.Theme.Font
-    line.Text = " " .. text
-    line.TextColor3 = color or self.Theme.Text
-    line.TextSize = 13
+    line.Text = text
+    line.TextColor3 = color or self.Theme.Accent
+    line.TextSize = 14
     line.TextXAlignment = Enum.TextXAlignment.Left
     line.RichText = true
     line.TextWrapped = true
@@ -1757,9 +1924,10 @@ function Modules.CommandBar:AddOutput(text: string, color: Color3?): ()
 end
 
 function Modules.CommandBar:ListCommands(): ()
-    self:AddOutput("--------------------------------------------", self.Theme.Accent)
-    self:AddOutput("READING_LOCAL_SYSTEM_REGISTRY...", self.Theme.Accent)
-    self:AddOutput("--------------------------------------------", self.Theme.Accent)
+    self:AddOutput("════════════════════════════════════════════", self.Theme.Accent)
+    self:AddOutput("MS-DOS Version 6.22 (C)Copyright Microslop Corp 1981-1994.", self.Theme.Text)
+    self:AddOutput("════════════════════════════════════════════", self.Theme.Accent)
+    self:AddOutput("")
 
     local sorted: {any} = {}
     for _, info in ipairs(CommandInfo) do
@@ -1770,15 +1938,17 @@ function Modules.CommandBar:ListCommands(): ()
     for _, info in ipairs(sorted) do
         local aliasStr: string = ""
         if info.Aliases and #info.Aliases > 0 then
-            aliasStr = " <font color='#888888'>[" .. table.concat(info.Aliases, ", ") .. "]</font>"
+            aliasStr = " [" .. table.concat(info.Aliases, ", ") .. "]"
         end
         
-        local desc: string = info.Description or "no_description_provided"
-        self:AddOutput(string.format("<font color='#FF69B4'>%s</font>%s - %s", info.Name, aliasStr, desc))
+        local desc: string = info.Description or "No description"
+        self:AddOutput(string.format("%s%s", info.Name:upper(), aliasStr), self.Theme.Accent)
+        self:AddOutput("  " .. desc, self.Theme.Text)
     end
     
-    self:AddOutput("--------------------------------------------", self.Theme.Accent)
-    self:AddOutput("ACTIVE_MODULES_FOUND: " .. #sorted, self.Theme.Accent)
+    self:AddOutput("")
+    self:AddOutput("════════════════════════════════════════════", self.Theme.Accent)
+    self:AddOutput(#sorted .. " command(s) available.", self.Theme.Text)
 end
 
 function Modules.CommandBar:UpdateSuggestions(): ()
@@ -1808,148 +1978,292 @@ end
 
 function Modules.CommandBar:Initialize(): ()
     local CommandBarUI: ScreenGui = Instance.new("ScreenGui")
-    CommandBarUI.Name = "Welcome Player!"
+    CommandBarUI.Name = "CommandPrompt"
     CommandBarUI.Parent = CoreGui
     CommandBarUI.ResetOnSpawn = false
     CommandBarUI.Enabled = false
     
     local MainContainer: Frame = Instance.new("Frame")
-    MainContainer.Name = "ShellFrame"
+    MainContainer.Name = "WindowFrame"
     MainContainer.Parent = CommandBarUI
-    MainContainer.Size = UDim2.new(0, 600, 0, 350)
+    MainContainer.Size = UDim2.new(0, 600, 0, 400)
     MainContainer.Position = UDim2.new(0.5, -300, 1, 50)
-    MainContainer.BackgroundColor3 = self.Theme.Background
-    MainContainer.BackgroundTransparency = 0.4
+    MainContainer.BackgroundColor3 = self.Theme.WindowGray
+    MainContainer.BackgroundTransparency = 0
     MainContainer.BorderSizePixel = 0
     MainContainer.Active = true
+    MainContainer.ClipsDescendants = false
     
-    Instance.new("UICorner", MainContainer).CornerRadius = UDim.new(0, 4)
-    local UIStroke: UIStroke = Instance.new("UIStroke", MainContainer)
-    UIStroke.Color = self.Theme.Accent
-    UIStroke.Thickness = 1.2
-    UIStroke.Transparency = 0.5
-
-    local GlowEffect: UIStroke = Instance.new("UIStroke", MainContainer)
-    GlowEffect.Color = self.Theme.Accent
-    GlowEffect.Thickness = 2
-    GlowEffect.Transparency = 0.4
+    -- Helper function to create Win95 3D border effect
+    local function CreateWin95Border(parent: Frame, isInset: boolean): ()
+        local topColor = isInset and self.Theme.DarkGray or self.Theme.White
+        local bottomColor = isInset and self.Theme.White or self.Theme.DarkGray
+        
+        local topBorder = Instance.new("Frame", parent)
+        topBorder.Name = "TopBorder"
+        topBorder.Size = UDim2.new(1, 0, 0, 2)
+        topBorder.Position = UDim2.new(0, 0, 0, 0)
+        topBorder.BackgroundColor3 = topColor
+        topBorder.BorderSizePixel = 0
+        topBorder.ZIndex = parent.ZIndex + 1
+        
+        local leftBorder = Instance.new("Frame", parent)
+        leftBorder.Name = "LeftBorder"
+        leftBorder.Size = UDim2.new(0, 2, 1, 0)
+        leftBorder.Position = UDim2.new(0, 0, 0, 0)
+        leftBorder.BackgroundColor3 = topColor
+        leftBorder.BorderSizePixel = 0
+        leftBorder.ZIndex = parent.ZIndex + 1
+        
+        local bottomBorder = Instance.new("Frame", parent)
+        bottomBorder.Name = "BottomBorder"
+        bottomBorder.Size = UDim2.new(1, 0, 0, 2)
+        bottomBorder.Position = UDim2.new(0, 0, 1, -2)
+        bottomBorder.BackgroundColor3 = bottomColor
+        bottomBorder.BorderSizePixel = 0
+        bottomBorder.ZIndex = parent.ZIndex + 1
+        
+        local rightBorder = Instance.new("Frame", parent)
+        rightBorder.Name = "RightBorder"
+        rightBorder.Size = UDim2.new(0, 2, 1, 0)
+        rightBorder.Position = UDim2.new(1, -2, 0, 0)
+        rightBorder.BackgroundColor3 = bottomColor
+        rightBorder.BorderSizePixel = 0
+        rightBorder.ZIndex = parent.ZIndex + 1
+    end
+    
+    CreateWin95Border(MainContainer, false)
 
     local TitleBar: Frame = Instance.new("Frame", MainContainer)
     TitleBar.Name = "TitleBar"
-    TitleBar.Position = UDim2.new(0, 0, 0, 0)
-    TitleBar.Size = UDim2.new(1, 0, 0, 30)
-    TitleBar.BackgroundColor3 = self.Theme.Background
-    TitleBar.BackgroundTransparency = 0.5
+    TitleBar.Position = UDim2.new(0, 3, 0, 3)
+    TitleBar.Size = UDim2.new(1, -6, 0, 22)
+    TitleBar.BackgroundColor3 = self.Theme.Blue
     TitleBar.BorderSizePixel = 0
-    TitleBar.ZIndex = 8
+    TitleBar.ZIndex = 2
+
+    local TitleGradient = Instance.new("UIGradient", TitleBar)
+    TitleGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 168)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 132, 208))
+    }
+    TitleGradient.Rotation = 90
 
     local TitleLabel: TextLabel = Instance.new("TextLabel", TitleBar)
     TitleLabel.Name = "Title"
-    TitleLabel.Position = UDim2.new(0, 10, 0, 0)
-    TitleLabel.Size = UDim2.new(1, -60, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 4, 0, 0)
+    TitleLabel.Size = UDim2.new(1, -70, 1, 0)
     TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Font = self.Theme.Font
-    TitleLabel.Text = "Gamer."
-    TitleLabel.TextColor3 = self.Theme.Accent
-    TitleLabel.TextSize = 12
+    TitleLabel.Font = Enum.Font.SourceSansBold
+    TitleLabel.Text = "C:\\ROBLOX\\system32\\cmd.exe"
+    TitleLabel.TextColor3 = self.Theme.White
+    TitleLabel.TextSize = 13
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    TitleLabel.ZIndex = 3
 
-    local ResizeHandle = Instance.new("ImageButton")
-    ResizeHandle.Name = "ResizeHandle"
-    ResizeHandle.Size = UDim2.fromOffset(16, 16)
-    ResizeHandle.Position = UDim2.new(1, -16, 1, -16)
-    ResizeHandle.BackgroundTransparency = 1
-    ResizeHandle.Image = "rbxassetid://12134015093"
-    ResizeHandle.ImageColor3 = self.Theme.Accent
-    ResizeHandle.ZIndex = 10
-    ResizeHandle.Parent = MainContainer
+    -- Minimize button
+    local MinimizeButton: TextButton = Instance.new("TextButton", TitleBar)
+    MinimizeButton.Name = "MinimizeButton"
+    MinimizeButton.Position = UDim2.new(1, -54, 0, 2)
+    MinimizeButton.Size = UDim2.new(0, 16, 0, 16)
+    MinimizeButton.BackgroundColor3 = self.Theme.WindowGray
+    MinimizeButton.BorderSizePixel = 0
+    MinimizeButton.Font = Enum.Font.SourceSansBold
+    MinimizeButton.Text = "_"
+    MinimizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    MinimizeButton.TextSize = 14
+    MinimizeButton.TextYAlignment = Enum.TextYAlignment.Top
+    MinimizeButton.ZIndex = 4
+    
+    CreateWin95Border(MinimizeButton, false)
+    
+    MinimizeButton.MouseButton1Click:Connect(function()
+        if self.State.IsMinimized then
+            self:Restore()
+        else
+            self:Minimize()
+        end
+    end)
 
+    -- Maximize button
+    local MaximizeButton: TextButton = Instance.new("TextButton", TitleBar)
+    MaximizeButton.Name = "MaximizeButton"
+    MaximizeButton.Position = UDim2.new(1, -36, 0, 2)
+    MaximizeButton.Size = UDim2.new(0, 16, 0, 16)
+    MaximizeButton.BackgroundColor3 = self.Theme.WindowGray
+    MaximizeButton.BorderSizePixel = 0
+    MaximizeButton.Font = Enum.Font.SourceSansBold
+    MaximizeButton.Text = "□"
+    MaximizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    MaximizeButton.TextSize = 14
+    MaximizeButton.ZIndex = 4
+    
+    CreateWin95Border(MaximizeButton, false)
+    
+    MaximizeButton.MouseButton1Click:Connect(function()
+        self:Maximize()
+    end)
+
+    -- Close button
+    local CloseButton: TextButton = Instance.new("TextButton", TitleBar)
+    CloseButton.Name = "CloseButton"
+    CloseButton.Position = UDim2.new(1, -18, 0, 2)
+    CloseButton.Size = UDim2.new(0, 16, 0, 16)
+    CloseButton.BackgroundColor3 = self.Theme.WindowGray
+    CloseButton.BorderSizePixel = 0
+    CloseButton.Font = Enum.Font.SourceSansBold
+    CloseButton.Text = "×"
+    CloseButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    CloseButton.TextSize = 16
+    CloseButton.ZIndex = 4
+    
+    CreateWin95Border(CloseButton, false)
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        self:Toggle()
+    end)
+
+    local TerminalContainer: Frame = Instance.new("Frame", MainContainer)
+    TerminalContainer.Name = "TerminalContainer"
+    TerminalContainer.Position = UDim2.new(0, 6, 0, 28)
+    TerminalContainer.Size = UDim2.new(1, -12, 1, -34)
+    TerminalContainer.BackgroundColor3 = self.Theme.Background
+    TerminalContainer.BorderSizePixel = 0
+    TerminalContainer.ZIndex = 1
+    
+    CreateWin95Border(TerminalContainer, true)
+
+    -- CRT Scanline effect overlay
+    local ScanlineOverlay = Instance.new("Frame", TerminalContainer)
+    ScanlineOverlay.Name = "Scanlines"
+    ScanlineOverlay.Size = UDim2.new(1, 0, 1, 0)
+    ScanlineOverlay.BackgroundTransparency = 0.95
+    ScanlineOverlay.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    ScanlineOverlay.BorderSizePixel = 0
+    ScanlineOverlay.ZIndex = 10
+    
+    -- Create scanline pattern
+    for i = 0, 50 do
+        local line = Instance.new("Frame", ScanlineOverlay)
+        line.Size = UDim2.new(1, 0, 0, 1)
+        line.Position = UDim2.new(0, 0, i / 50, 0)
+        line.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        line.BackgroundTransparency = 0.8
+        line.BorderSizePixel = 0
+    end
+    
+    -- Animated scanline that moves down
+    local AnimatedScanline = Instance.new("Frame", ScanlineOverlay)
+    AnimatedScanline.Name = "AnimatedScan"
+    AnimatedScanline.Size = UDim2.new(1, 0, 0, 3)
+    AnimatedScanline.Position = UDim2.new(0, 0, 0, 0)
+    AnimatedScanline.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    AnimatedScanline.BackgroundTransparency = 0.7
+    AnimatedScanline.BorderSizePixel = 0
+    
     task.spawn(function()
-        while RunService.RenderStepped:Wait() do
-            if not MainContainer or not MainContainer.Parent then break end
-            local sine: number = math.sin(os.clock() * 3)
-            GlowEffect.Transparency = 0.7 + (sine * 0.2)
-            GlowEffect.Thickness = 2 + (sine * 0.8)
+        while task.wait(0.05) do
+            if not AnimatedScanline or not AnimatedScanline.Parent then break end
+            AnimatedScanline.Position = UDim2.new(0, 0, (AnimatedScanline.Position.Y.Scale + 0.02) % 1, 0)
         end
     end)
 
     local OutputLog: ScrollingFrame = Instance.new("ScrollingFrame")
     OutputLog.Name = "Buffer"
-    OutputLog.Parent = MainContainer
-    OutputLog.Position = UDim2.new(0, 10, 0, 40)
-    OutputLog.Size = UDim2.new(1, -20, 1, -85)
+    OutputLog.Parent = TerminalContainer
+    OutputLog.Position = UDim2.new(0, 4, 0, 4)
+    OutputLog.Size = UDim2.new(1, -8, 1, -32)
     OutputLog.BackgroundTransparency = 1
     OutputLog.BorderSizePixel = 0
-    OutputLog.ScrollBarThickness = 2
-    OutputLog.ScrollBarImageColor3 = self.Theme.Accent
+    OutputLog.ScrollBarThickness = 16
+    OutputLog.ScrollBarImageColor3 = self.Theme.WindowGray
     OutputLog.CanvasSize = UDim2.new(0, 0, 0, 0)
     OutputLog.AutomaticCanvasSize = Enum.AutomaticSize.Y
     OutputLog.ScrollingDirection = Enum.ScrollingDirection.Y
+    OutputLog.ZIndex = 2
     
     local LogLayout: UIListLayout = Instance.new("UIListLayout", OutputLog)
-    LogLayout.Padding = UDim.new(0, 2)
+    LogLayout.Padding = UDim.new(0, 0)
     LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    local CopyButton: TextButton = Instance.new("TextButton", MainContainer)
-    CopyButton.Name = "CopyButton"
-    CopyButton.Position = UDim2.new(1, -90, 0, 37)
-    CopyButton.Size = UDim2.new(0, 75, 0, 20)
-    CopyButton.BackgroundColor3 = self.Theme.Accent
-    CopyButton.BackgroundTransparency = 0.3
-    CopyButton.BorderSizePixel = 0
-    CopyButton.Font = self.Theme.Font
-    CopyButton.Text = "Copy All"
-    CopyButton.TextColor3 = self.Theme.Text
-    CopyButton.TextSize = 11
-    CopyButton.ZIndex = 5
-    
-    Instance.new("UICorner", CopyButton).CornerRadius = UDim.new(0, 3)
-    
-    CopyButton.MouseButton1Click:Connect(function()
-        self:CopyOutputToClipboard()
-        CopyButton.Text = "Copied!"
-        task.wait(1)
-        CopyButton.Text = "Copy All"
-    end)
-
-    local InputArea: Frame = Instance.new("Frame", MainContainer)
-    InputArea.Position = UDim2.new(0, 10, 1, -35)
-    InputArea.Size = UDim2.new(1, -20, 0, 25)
-    InputArea.BackgroundTransparency = 0.8
+    local InputArea: Frame = Instance.new("Frame", TerminalContainer)
+    InputArea.Position = UDim2.new(0, 4, 1, -24)
+    InputArea.Size = UDim2.new(1, -8, 0, 20)
+    InputArea.BackgroundTransparency = 1
+    InputArea.ZIndex = 2
 
     local Prompt: TextLabel = Instance.new("TextLabel", InputArea)
-    Prompt.Size = UDim2.new(0, 130, 1, 0)
+    Prompt.Size = UDim2.new(0, 40, 1, 0)
     Prompt.BackgroundTransparency = 1
     Prompt.Font = self.Theme.Font
-    Prompt.Text = "zuka@kernel:~$ "
+    Prompt.Text = "C:\\>"
     Prompt.TextColor3 = self.Theme.Accent
     Prompt.TextSize = 14
     Prompt.TextXAlignment = Enum.TextXAlignment.Left
+    Prompt.ZIndex = 3
 
     local SuggestionLabel: TextLabel = Instance.new("TextLabel", InputArea)
     SuggestionLabel.Name = "Suggestion"
-    SuggestionLabel.Position = UDim2.new(0, 135, 0, 0)
-    SuggestionLabel.Size = UDim2.new(1, -140, 1, 0)
+    SuggestionLabel.Position = UDim2.new(0, 40, 0, 0)
+    SuggestionLabel.Size = UDim2.new(1, -40, 1, 0)
     SuggestionLabel.BackgroundTransparency = 1
     SuggestionLabel.Font = self.Theme.Font
     SuggestionLabel.Text = ""
     SuggestionLabel.TextColor3 = self.Theme.Suggestion
     SuggestionLabel.TextSize = 14
     SuggestionLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SuggestionLabel.ZIndex = 3
 
     local InputField: TextBox = Instance.new("TextBox", InputArea)
     InputField.Name = "Prompt"
-    InputField.Position = UDim2.new(0, 135, 0, 0)
-    InputField.Size = UDim2.new(1, -140, 1, 0)
+    InputField.Position = UDim2.new(0, 40, 0, 0)
+    InputField.Size = UDim2.new(1, -40, 1, 0)
     InputField.BackgroundTransparency = 1
     InputField.Font = self.Theme.Font
     InputField.Text = ""
-    InputField.TextColor3 = self.Theme.Text
+    InputField.TextColor3 = self.Theme.Accent
     InputField.TextSize = 14
     InputField.TextXAlignment = Enum.TextXAlignment.Left
     InputField.ClearTextOnFocus = false
-    InputField.ZIndex = 2
+    InputField.ZIndex = 4
+
+    local Cursor: Frame = Instance.new("Frame", InputArea)
+    Cursor.Name = "Cursor"
+    Cursor.Size = UDim2.new(0, 8, 0, 16)
+    Cursor.Position = UDim2.new(0, 40, 0, 2)
+    Cursor.BackgroundColor3 = self.Theme.Accent
+    Cursor.BorderSizePixel = 0
+    Cursor.ZIndex = 5
+    
+    task.spawn(function()
+        while task.wait(0.5) do
+            if not Cursor or not Cursor.Parent then break end
+            if InputField:IsFocused() then
+                Cursor.BackgroundTransparency = Cursor.BackgroundTransparency == 0 and 1 or 0
+            else
+                Cursor.BackgroundTransparency = 1
+            end
+        end
+    end)
+
+    local ResizeHandle = Instance.new("Frame")
+    ResizeHandle.Name = "ResizeHandle"
+    ResizeHandle.Size = UDim2.fromOffset(16, 16)
+    ResizeHandle.Position = UDim2.new(1, -16, 1, -16)
+    ResizeHandle.BackgroundColor3 = self.Theme.WindowGray
+    ResizeHandle.BorderSizePixel = 0
+    ResizeHandle.ZIndex = 10
+    ResizeHandle.Parent = MainContainer
+    
+    for i = 0, 2 do
+        local line = Instance.new("Frame", ResizeHandle)
+        line.Size = UDim2.new(0, 2, 1, -4 * i)
+        line.Position = UDim2.new(0, 4 + (4 * i), 0, 4 * i)
+        line.BackgroundColor3 = self.Theme.DarkGray
+        line.BorderSizePixel = 0
+        line.Rotation = 45
+    end
 
     self.State.UI = CommandBarUI
     self.State.Container = MainContainer
@@ -2047,10 +2361,12 @@ function Modules.CommandBar:Initialize(): ()
                                 local startIdx = math.min(self.State.SelectionStart, self.State.SelectionEnd)
                                 local endIdx = math.max(self.State.SelectionStart, self.State.SelectionEnd)
                                 if j >= startIdx and j <= endIdx then
-                                    c.BackgroundTransparency = 0.5
+                                    c.BackgroundTransparency = 0
                                     c.BackgroundColor3 = self.Theme.Accent
+                                    c.TextColor3 = self.Theme.Background
                                 else
                                     c.BackgroundTransparency = 1
+                                    c.TextColor3 = self.Theme.Accent
                                 end
                             end
                         end
@@ -2063,6 +2379,14 @@ function Modules.CommandBar:Initialize(): ()
 
     InputField:GetPropertyChangedSignal("Text"):Connect(function()
         self:UpdateSuggestions()
+        local textService = game:GetService("TextService")
+        local textWidth = textService:GetTextSize(
+            InputField.Text, 
+            14, 
+            self.Theme.Font, 
+            Vector2.new(10000, 20)
+        ).X
+        Cursor.Position = UDim2.new(0, 40 + textWidth, 0, 2)
     end)
 
     InputField.FocusLost:Connect(function(enter: boolean)
@@ -2070,14 +2394,19 @@ function Modules.CommandBar:Initialize(): ()
             local raw: string = InputField.Text
             local cmd: string = string.match(raw, "^%s*(.-)%s*$")
             if cmd ~= "" then
-                self:AddOutput("~$ " .. cmd, self.Theme.Text)
+                self:AddOutput("C:\\>" .. cmd, self.Theme.Accent)
                 
-                if cmd:lower() == "cmds" or cmd:lower() == "help" then
+                if cmd:lower() == "cmds" or cmd:lower() == "help" or cmd:lower() == "dir" then
                     self:ListCommands()
+                elseif cmd:lower() == "cls" or cmd:lower() == "clear" then
+                    for _, child in ipairs(OutputLog:GetChildren()) do
+                        if child:IsA("TextLabel") then child:Destroy() end
+                    end
                 else
                     local wasProcessed: boolean = processCommand(Prefix .. cmd)
                     if not wasProcessed then
-                        self:AddOutput("ERR: command_not_found: " .. cmd, Color3.fromRGB(255, 80, 80))
+                        self:AddOutput("Bad command or file name", Color3.fromRGB(255, 255, 255))
+                        self:PlayBeep() -- Play error beep
                     end
                 end
                 
@@ -2098,22 +2427,25 @@ function Modules.CommandBar:Initialize(): ()
         if not gpe and input.KeyCode == Enum.KeyCode.C and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
             if self.State.IsEnabled then
                 self:CopySelectedText()
-                self:AddOutput("[SYS]: Text copied to clipboard", self.Theme.Accent)
+                self:AddOutput("Copied to clipboard.", self.Theme.Text)
             end
         end
 
-        if not gpe and input.KeyCode == self.State.PrefixKey then self:Toggle() end
+        if not gpe and input.KeyCode == self.State.PrefixKey then 
+            self:Toggle() 
+        end
     end)
 
-    self:AddOutput("ZUKATECH_V10_INITIALIZED", self.Theme.Accent)
-    self:AddOutput("VIBE_ACCEPTED: " .. Players.LocalPlayer.Name, self.Theme.Accent)
-    self:AddOutput("Type 'cmds' for documentation or ';' to toggle shell.", self.Theme.Text)
+    self:AddOutput("Microslop(R) Windows DOS", self.Theme.Text)
+    self:AddOutput("(C)Copyright Microslop Corp 1990-1994.", self.Theme.Text)
+    self:AddOutput("")
+    self:AddOutput("C:\\WINDOWS>", self.Theme.Accent)
 end
 
 function DoNotif(text: string, duration: number?): ()
     NotificationManager.Send(text, duration)
     if Modules.CommandBar and Modules.CommandBar.AddOutput then
-        Modules.CommandBar:AddOutput("[SYS]: " .. tostring(text), Modules.CommandBar.Theme.Accent)
+        Modules.CommandBar:AddOutput(tostring(text), Modules.CommandBar.Theme.Text)
     end
 end
 
@@ -10655,8 +10987,8 @@ function Modules.ZexLoader:Initialize()
     local module = self
     
     RegisterCommand({
-        Name = "zexplus",
-        Aliases = {},
+        Name = "Zexplus",
+        Aliases = {"dex"},
         Description = "Loads the Zex Forensic Explorer Suite."
     }, function()
         if module.State.IsLoaded then
@@ -29515,10 +29847,10 @@ function Modules.ApexCounter:Initialize()
         Description = "Bypasses gun fire rates."
     }, function()
         local shop = game:GetService("ReplicatedStorage").Remotes.Shop.EquipWeapon
-        shop:InvokeServer("Shotgun")
-        find.Shotgun(true)
+        shop:InvokeServer("Sniper")
+        find.Sniper(true)
         task.wait(0.2)
-        local gun = localplayer.Character:FindFirstChild("Shotgun") or localplayer.Backpack:FindFirstChild("Shotgun")
+        local gun = localplayer.Character:FindFirstChild("Sniper") or localplayer.Backpack:FindFirstChild("Sniper")
         if gun then
             local scr = getsenv(gun:FindFirstChildOfClass("LocalScript"))
             if scr and scr.FireGun then
@@ -29801,7 +30133,7 @@ end
 function Modules.ModuleEditor:Initialize()
     local module = self
     RegisterCommand({
-        Name = "Modui",
+        Name = "modui",
         Aliases = {},
         Description = "Opens the Module Table Editor to live-patch constants."
     }, function()
@@ -30472,7 +30804,7 @@ end
 Modules.VoodooDoll = {
     State = { IsActive = false, Target = nil, Connection = nil },
     Config = { OFFSET = Vector3.new(0, 5, 0) },
-    Dependencies = {"Players", "RunService"}
+    Dependencies = {"Players", "RunService", "Workspace"}
 }
 
 function Modules.VoodooDoll:Possess(targetName)
@@ -30497,8 +30829,8 @@ end
 
 function Modules.VoodooDoll:Initialize()
     RegisterCommand({
-        Name = "voodoo",
-        Aliases = {"possess", "control"},
+        Name = "netbring",
+        Aliases = {},
         Description = "Locally possess an unanchored character/object."
     }, function(args)
         if self.State.IsActive then
@@ -30518,7 +30850,7 @@ Modules.HumanShield = {
         Connection = nil
     },
     Config = {
-        DISTANCE = 3.5,
+        DISTANCE = 1.5,
         VERTICAL_OFFSET = 0
     },
     Dependencies = {"Players", "RunService"}
@@ -30578,8 +30910,86 @@ function Modules.HumanShield:Initialize(): ()
             if #args > 0 then
                 module:Possess(args[1])
             else
-                DoNotif("Usage: ;shield [player]", 3)
+                DoNotif("Usage: ;bring [player]", 3)
             end
+        end
+    end)
+end
+
+Modules.NetworkOwnership = {
+    State = {
+        IsEnabled = false,
+        TargetPart = nil,
+        Connection = nil,
+        OriginalVelocity = nil
+    },
+    Config = {
+        NETWORK_VELOCITY = Vector3.new(0, 30.01, 0),
+        SEARCH_RADIUS = 50
+    },
+    Dependencies = {"RunService", "Players", "Workspace"},
+    Services = {}
+}
+function Modules.NetworkOwnership:Claim(part: BasePart)
+    if not part or not part:IsA("BasePart") then
+        return DoNotif("NetworkOwner: Invalid Part Target.", 3)
+    end
+    if part.Anchored then
+        return DoNotif("NetworkOwner: Cannot claim anchored objects.", 3)
+    end
+    self:Release()
+    self.State.TargetPart = part
+    self.State.IsEnabled = true
+    self.State.Connection = self.Services.RunService.Heartbeat:Connect(function()
+        if not self.State.IsEnabled or not part or not part.Parent then
+            self:Release()
+            return
+        end
+        pcall(function()
+            part.AssemblyLinearVelocity = self.Config.NETWORK_VELOCITY
+        end)
+    end)
+    DoNotif("NetworkOwner: Claimed " .. part.Name, 2)
+end
+function Modules.NetworkOwnership:Release()
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+    self.State.TargetPart = nil
+    self.State.IsEnabled = false
+end
+function Modules.NetworkOwnership:Initialize()
+    local module = self
+    for _, serviceName in ipairs(module.Dependencies) do
+        module.Services[serviceName] = game:GetService(serviceName)
+    end
+    RegisterCommand({
+        Name = "claim",
+        Aliases = {"netown", "setowner", "take"},
+        Description = "Forcibly claims network ownership of a part. Usage: ;claim [PartName] or ;claim tool"
+    }, function(args)
+        local input = args[1] and args[1]:lower() or "tool"
+        local targetPart = nil
+        if input == "off" or input == "stop" or input == "release" then
+            module:Release()
+            return DoNotif("NetworkOwner: Released control.", 2)
+        end
+        local char = self.Services.Players.LocalPlayer.Character
+        if input == "tool" and char then
+            local tool = char:FindFirstChildOfClass("Tool")
+            if tool then
+                targetPart = tool:FindFirstChild("Handle") or tool:FindFirstChildWhichIsA("BasePart")
+            end
+        end
+        if not targetPart and args[1] then
+            local nameLookup = table.concat(args, " ")
+            targetPart = self.Services.Workspace:FindFirstChild(nameLookup, true)
+        end
+        if targetPart and targetPart:IsA("BasePart") then
+            module:Claim(targetPart)
+        else
+            DoNotif("NetworkOwner: Target part not found.", 3)
         end
     end)
 end
@@ -30595,7 +31005,7 @@ function Modules.MapStripper:Initialize()
 
     RegisterCommand({
         Name = "deltool",
-        Aliases = {"del", "erase"},
+        Aliases = {},
         Description = "Toggle: Click any object to delete it locally."
     }, function()
         self.State.IsEnabled = not self.State.IsEnabled
@@ -30745,272 +31155,6 @@ function Modules.HandleKill:Initialize()
         else
             DoNotif("Player '" .. targetName .. "' not found.", 3)
         end
-    end)
-end
-Modules.RemoteSpy = {
-    State = {
-        IsEnabled = false,
-        UI = nil,
-        OriginalNamecall = nil,
-        BlockedRemotes = {},
-        LoggedRemotes = {},
-        SelectedPath = nil,
-        Minimized = false,
-        IgnoreList = {
-            ["CharacterSoundEvent"] = true,
-            ["MovementUpdate"] = true,
-            ["UpdatePhysics"] = true
-        }
-    },
-    Config = {
-        ACCENT = Color3.fromRGB(255, 105, 180),
-        MAX_LOGS = 15
-    }
-}
-
-function Modules.RemoteSpy:_serialize(value: any, visited: {[table]: boolean}?): string
-    local history = visited or {}
-    local valueType = typeof(value)
-    if history[value] and valueType == "table" then return '"*Circular*"' end
-    if valueType == "string" then return string.format("%q", value)
-    elseif valueType == "number" or valueType == "boolean" or valueType == "nil" then return tostring(value)
-    elseif valueType == "Instance" then return "game." .. value:GetFullName()
-    elseif valueType == "table" then
-        history[value] = true
-        local parts = {}
-        for k, v in pairs(value) do
-            local key = (typeof(k) == "number") and "" or "[" .. self:_serialize(k, history) .. "] = "
-            table.insert(parts, key .. self:_serialize(v, history))
-        end
-        return "{" .. table.concat(parts, ", ") .. "}"
-    end
-    return '"<' .. valueType .. '>"'
-end
-
-function Modules.RemoteSpy:_applyStyle(obj: GuiObject, radius: number)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, radius or 4)
-    c.Parent = obj
-end
-
-function Modules.RemoteSpy:_makeDraggable(frame: Frame, handle: Frame)
-    local dragging, dragStart, startPos
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-end
-
-function Modules.RemoteSpy:_addRemoteToList(remote: Instance)
-    if not self.State.UI then return end
-    local path = remote:GetFullName()
-    if self.State.LoggedRemotes[path] then return end
-    
-    self.State.LoggedRemotes[path] = {Remote = remote, Calls = {}}
-    local btn = Instance.new("TextButton", self.State.UI.RemoteList)
-    btn.Name = path
-    btn.Size = UDim2.new(1, -5, 0, 25)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    btn.Text = " " .. remote.Name
-    btn.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-    btn.Font = Enum.Font.Code
-    btn.TextSize = 10
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.ClipsDescendants = true
-    self:_applyStyle(btn, 2)
-    
-    btn.MouseButton1Click:Connect(function()
-        self.State.SelectedPath = path
-        self.State.UI.SelectedLabel.Text = path
-        self.State.UI.BlockBtn.Text = self.State.BlockedRemotes[path] and "UNBLOCK" or "BLOCK"
-        self.State.UI.BlockBtn.BackgroundColor3 = self.State.BlockedRemotes[path] and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
-        self:_updateHistory()
-    end)
-end
-
-function Modules.RemoteSpy:_updateHistory()
-    local h = self.State.UI.HistoryFrame
-    for _, v in ipairs(h:GetChildren()) do if not v:IsA("UIListLayout") then v:Destroy() end end
-    local data = self.State.LoggedRemotes[self.State.SelectedPath]
-    if not data then return end
-    for i, args in ipairs(data.Calls) do
-        local log = Instance.new("TextButton", h)
-        log.Size = UDim2.new(1, -5, 0, 20)
-        log.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-        log.Text = " Call #" .. i
-        log.TextColor3 = Color3.fromRGB(200, 200, 200)
-        log.Font = Enum.Font.Code
-        log.TextSize = 9
-        log.TextXAlignment = Enum.TextXAlignment.Left
-        self:_applyStyle(log, 2)
-        log.MouseButton1Click:Connect(function() self:_populateInteractor(args) end)
-    end
-end
-
-function Modules.RemoteSpy:_populateInteractor(args: table)
-    local f = self.State.UI.Interactor
-    for _, v in ipairs(f:GetChildren()) do if not v:IsA("UIListLayout") then v:Destroy() end end
-    for _, arg in ipairs(args) do
-        local input = Instance.new("TextBox", f)
-        input.Size = UDim2.new(1, -5, 0, 25)
-        input.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-        input.Text = self:_serialize(arg)
-        input.TextColor3 = self.Config.ACCENT
-        input.Font = Enum.Font.Code
-        input.TextSize = 10
-        input.ClearTextOnFocus = false
-        self:_applyStyle(input, 2)
-    end
-end
-
-function Modules.RemoteSpy:_createUI()
-    if self.State.UI then
-        self.State.UI.Main.Visible = true
-        return
-    end
-    
-    local sg = Instance.new("ScreenGui", CoreGui); sg.Name = "ForensicSpy_V3"
-    local main = Instance.new("Frame", sg); main.Size = UDim2.fromOffset(750, 480); main.Position = UDim2.fromScale(0.5, 0.5); main.AnchorPoint = Vector2.new(0.5, 0.5); main.BackgroundColor3 = Color3.fromRGB(10, 10, 15); main.ClipsDescendants = true
-    self:_applyStyle(main, 6)
-    
-    local header = Instance.new("Frame", main); header.Size = UDim2.new(1, 0, 0, 30); header.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    local title = Instance.new("TextLabel", header); title.Size = UDim2.new(1, -120, 1, 0); title.Position = UDim2.fromOffset(10, 0); title.Text = "FORENSIC REMOTE ANALYZER"; title.TextColor3 = self.Config.ACCENT; title.Font = Enum.Font.Code; title.TextXAlignment = "Left"; title.BackgroundTransparency = 1
-    
-    local exit = Instance.new("TextButton", header); exit.Size = UDim2.fromOffset(25, 25); exit.Position = UDim2.new(1, -30, 0.5, -12); exit.Text = "X"; exit.BackgroundColor3 = Color3.fromRGB(200, 50, 50); exit.TextColor3 = Color3.new(1, 1, 1)
-    local min = Instance.new("TextButton", header); min.Size = UDim2.fromOffset(25, 25); min.Position = UDim2.new(1, -60, 0.5, -12); min.Text = "-"; min.BackgroundColor3 = Color3.fromRGB(50, 50, 60); min.TextColor3 = Color3.new(1, 1, 1)
-    self:_applyStyle(exit, 4); self:_applyStyle(min, 4)
-    
-    local content = Instance.new("Frame", main); content.Size = UDim2.new(1, 0, 1, -30); content.Position = UDim2.fromOffset(0, 30); content.BackgroundTransparency = 1
-    local left = Instance.new("ScrollingFrame", content); left.Size = UDim2.new(0.35, 0, 1, -10); left.Position = UDim2.fromOffset(10, 5); left.BackgroundTransparency = 1; left.AutomaticCanvasSize = "Y"; left.ScrollBarThickness = 2
-    Instance.new("UIListLayout", left).Padding = UDim.new(0, 3)
-    
-    local right = Instance.new("Frame", content); right.Size = UDim2.new(0.6, 0, 1, -10); right.Position = UDim2.fromScale(0.38, 0.01); right.BackgroundTransparency = 1
-    local s_label = Instance.new("TextLabel", right); s_label.Size = UDim2.new(1, 0, 0, 20); s_label.Text = "SELECT REMOTE"; s_label.TextColor3 = Color3.fromRGB(100, 100, 100); s_label.Font = Enum.Font.Code; s_label.BackgroundTransparency = 1; s_label.TextSize = 8; s_label.TextXAlignment = "Left"
-    
-    local history = Instance.new("ScrollingFrame", right); history.Size = UDim2.new(1, 0, 0.35, 0); history.Position = UDim2.fromOffset(0, 25); history.BackgroundColor3 = Color3.fromRGB(15, 15, 20); history.AutomaticCanvasSize = "Y"; history.ScrollBarThickness = 2
-    Instance.new("UIListLayout", history).Padding = UDim.new(0, 2)
-    
-    local interactor = Instance.new("ScrollingFrame", right); interactor.Size = UDim2.new(1, 0, 0.35, 0); interactor.Position = UDim2.fromScale(0, 0.45); interactor.BackgroundColor3 = Color3.fromRGB(15, 15, 20); interactor.AutomaticCanvasSize = "Y"; interactor.ScrollBarThickness = 2
-    Instance.new("UIListLayout", interactor).Padding = UDim.new(0, 4)
-    
-    local fire = Instance.new("TextButton", right); fire.Size = UDim2.new(0.48, 0, 0, 30); fire.Position = UDim2.new(0, 0, 1, -35); fire.BackgroundColor3 = Color3.fromRGB(50, 150, 80); fire.Text = "FIRE"; fire.TextColor3 = Color3.new(1, 1, 1); fire.Font = Enum.Font.Code
-    local block = Instance.new("TextButton", right); block.Size = UDim2.new(0.48, 0, 0, 30); block.Position = UDim2.new(0.52, 0, 1, -35); block.BackgroundColor3 = Color3.fromRGB(150, 50, 50); block.Text = "BLOCK"; block.TextColor3 = Color3.new(1, 1, 1); block.Font = Enum.Font.Code
-    self:_applyStyle(fire, 4); self:_applyStyle(block, 4)
-    
-    self.State.UI = {Main = main, RemoteList = left, HistoryFrame = history, Interactor = interactor, SelectedLabel = s_label, BlockBtn = block}
-    self:_makeDraggable(main, header)
-    
-    exit.MouseButton1Click:Connect(function() main.Visible = false end)
-    min.MouseButton1Click:Connect(function()
-        self.State.Minimized = not self.State.Minimized
-        TweenService:Create(main, TweenInfo.new(0.3), {Size = self.State.Minimized and UDim2.fromOffset(750, 30) or UDim2.fromOffset(750, 480)}):Play()
-        content.Visible = not self.State.Minimized
-    end)
-    
-    block.MouseButton1Click:Connect(function()
-        if not self.State.SelectedPath then return end
-        self.State.BlockedRemotes[self.State.SelectedPath] = not self.State.BlockedRemotes[self.State.SelectedPath]
-        block.Text = self.State.BlockedRemotes[self.State.SelectedPath] and "UNBLOCK" or "BLOCK"
-        block.BackgroundColor3 = self.State.BlockedRemotes[self.State.SelectedPath] and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
-    end)
-    
-    fire.MouseButton1Click:Connect(function()
-        local data = self.State.LoggedRemotes[self.State.SelectedPath]
-        if not data then return end
-        local args = {}
-        for _, box in ipairs(interactor:GetChildren()) do
-            if box:IsA("TextBox") then
-                local success, result = pcall(function()
-                    local func = loadstring("return " .. box.Text)
-                    return func()
-                end)
-                table.insert(args, success and result or box.Text)
-            end
-        end
-        if data.Remote:IsA("RemoteEvent") then
-            data.Remote:FireServer(unpack(args))
-        else
-            task.spawn(function()
-                local res = data.Remote:InvokeServer(unpack(args))
-                print("[INVOKE RESULT]:", self:_serialize(res))
-            end)
-        end
-    end)
-    
-    task.spawn(function()
-        local function scan(container)
-            for _, v in ipairs(container:GetDescendants()) do
-                if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then self:_addRemoteToList(v) end
-                if _ % 100 == 0 then task.wait() end
-            end
-        end
-        scan(ReplicatedStorage)
-        scan(workspace)
-    end)
-end
-
-function Modules.RemoteSpy:_hook()
-    local success, mt = pcall(getrawmetatable, game)
-    if not success then return end
-    local old = mt.__namecall
-    self.State.OriginalNamecall = old
-    setreadonly(mt, false)
-    mt.__namecall = newcclosure(function(selfArg, ...)
-        local method = getnamecallmethod()
-        if (method == "FireServer" or method == "InvokeServer") then
-            local path = selfArg:GetFullName()
-            if Modules.RemoteSpy.State.BlockedRemotes[path] then return nil end
-            if not Modules.RemoteSpy.State.IgnoreList[selfArg.Name] then
-                local args = {...}
-                task.spawn(function() Modules.RemoteSpy:_logRemoteCall(selfArg, args) end)
-            end
-        end
-        return old(selfArg, ...)
-    end)
-    setreadonly(mt, true)
-end
-
-function Modules.RemoteSpy:_logRemoteCall(remote: Instance, args: {any})
-    if not self.State.UI then return end
-    local path = remote:GetFullName()
-    self:_addRemoteToList(remote)
-    local data = self.State.LoggedRemotes[path]
-    table.insert(data.Calls, 1, args)
-    if #data.Calls > self.Config.MAX_LOGS then table.remove(data.Calls) end
-    if self.State.SelectedPath == path then self:_updateHistory() end
-end
-
-function Modules.RemoteSpy:Toggle()
-    self.State.IsEnabled = not self.State.IsEnabled
-    if self.State.IsEnabled then
-        self:_createUI()
-        if not self.State.OriginalNamecall then self:_hook() end
-        DoNotif("Remote Spy Enabled.", 2)
-    else
-        if self.State.UI then self.State.UI.Main.Visible = false end
-    end
-end
-
-function Modules.RemoteSpy:Initialize()
-    local module = self
-    RegisterCommand({
-        Name = "remotespy",
-        Aliases = {"rspy"},
-        Description = "Elite Network Interceptor and Blocker."
-    }, function()
-        module:Toggle()
     end)
 end
 
@@ -31424,7 +31568,7 @@ function Modules.ClickDetectorTools:Initialize()
 
     RegisterCommand({
         Name = "fireclickdetectors",
-        Aliases = {"firecd", "firecds"},
+        Aliases = {"fireclick"},
         Description = "Fires all ClickDetectors in the workspace, or a specific one by name."
     }, function(args)
         if not fireclickdetector then
@@ -32177,7 +32321,7 @@ function Modules.CharacterMorph:Initialize()
 
     RegisterCommand({
         Name = "swapinto",
-        Aliases = {"change"},
+        Aliases = {"morph"},
         Description = "Change your character's appearance to someone else's."
     }, function(args)
         module:Morph(args[1])
@@ -32968,7 +33112,7 @@ Modules.HitboxESP = {
     State = {
         IsEnabled = false,
         EspEnabled = false,
-        HitboxSize = 10,
+        HitboxSize = 15,
         IsMinimized = false,
         CurrentTheme = "dark",
         IsDragging = false,
@@ -33172,7 +33316,7 @@ function Modules.HitboxESP:Initialize()
     local TS = self.Services.TweenService
 
     RegisterCommand({
-        Name = "rootp",
+        Name = "hitboxchanger",
         Aliases = {},
         Description = "Opens the Hitbox Changer & ESP GUI."
     }, function()
@@ -33484,8 +33628,8 @@ function Modules.HitboxESP:CreateUI()
 end
 
 RegisterCommand({
-    Name = "hitgui",
-    Aliases = { "hbesp", "hitboxpanel" },
+    Name = "hitboxgui",
+    Aliases = {},
     Description = "Toggles the advanced Hitbox Changer and ESP interface."
 }, function()
     if not Modules.HitboxESP.State.UI then
@@ -33593,7 +33737,7 @@ end)
 
 RegisterCommand({
     Name = "night",
-    Aliases = {"setnight", "nighttime"},
+    Aliases = {},
     Description = "Sets the time to night on your client."
 }, function(args)
     local Lighting = game:GetService("Lighting")
@@ -33611,7 +33755,7 @@ end)
 
 RegisterCommand({
     Name = "day",
-    Aliases = {"setday", "daytime"},
+    Aliases = {},
     Description = "Sets the time to day on your client."
 }, function(args)
 
@@ -34247,13 +34391,6 @@ end
     if args[1] == "off" then Modules.RaycastRedirector:Disable() else Modules.RaycastRedirector:Enable() end
 end)--]]
 
-RegisterCommand({
-    Name = "audioesp",
-    Aliases = {"soundesp", "ae"},
-    Description = "Visualizes the source of playing sounds in the world."
-}, function()
-    Modules.AudioVisualizer:Toggle()
-end)
 
 RegisterCommand({
     Name = "locklighting",
@@ -37531,7 +37668,7 @@ end)
 Modules.NeuralBridge = {
     State = { IsBusy = false },
     Config = {
-        API_KEY = "AIzaSyA8EmqxU7cgtFu5LIzvzmEjnSBtplYUpR4", -- Use your own api key here, it's easy to make one.
+        API_KEY = "", -- Use your own api key here, it's easy to make one.
         MODEL = "gemini-2.5-flash"
     }
 }
@@ -39595,221 +39732,87 @@ function Modules.ScriptSearcher:Initialize()
     end)
 end
 
-Modules.Toolbox = {
+Modules.HumanShield2 = {
     State = {
         IsEnabled = false,
-        UI = {},
-        CurrentCategory = "Models",
-        IsSearching = false
+        Target = nil,
+        Connection = nil,
+        ModelPath = nil  -- Track which part we're using
     },
     Config = {
-        ACCENT = Color3.fromRGB(0, 255, 255),
-        BG = Color3.fromRGB(15, 15, 15),
-        CATEGORIES = {
-            ["Models"] = "Models",
-            ["Decals"] = "Decals",
-            ["Audio"] = "Audio"
-        },
-        SEARCH_URL = "https://apis.roproxy.com/toolbox-service/v1/marketplace/items?category=%s&keyword=%s&num=20"
+        DISTANCE = 1.5,
+        VERTICAL_OFFSET = 0,
+        DEFAULT_MODEL = "HumanoidRootPart"  -- Default model to use
     },
-    Dependencies = {"HttpService", "Players", "CoreGui", "UserInputService", "RunService", "InsertService"},
-    Services = {}
+    Dependencies = {"Players", "RunService", "Workspace"}
 }
 
-function Modules.Toolbox:InsertAsset(assetId)
-    DoNotif("Processing Asset ID: " .. assetId, 1.5)
-    
-    task.spawn(function()
-        local success, result = pcall(function()
-            return game:GetObjects("rbxassetid://" .. assetId)
-        end)
-
-        if success and result and result[1] then
-            local asset = result[1]
-            asset.Parent = workspace
-            
-            local lp = self.Services.Players.LocalPlayer
-            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-
-                local spawnPos = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10)
-                if asset:IsA("Model") then
-                    asset:PivotTo(spawnPos)
-                elseif asset:IsA("BasePart") then
-                    asset.CFrame = spawnPos
-                end
-            end
-            DoNotif("Asset Spawned Successfully.", 2)
-        else
-
-            setclipboard(tostring(assetId))
-            DoNotif("Insertion blocked. ID copied to clipboard.", 4)
-        end
-    end)
+function Modules.HumanShield2:Stop(): ()
+    self.State.IsEnabled = false
+    if self.State.Connection then
+        self.State.Connection:Disconnect()
+        self.State.Connection = nil
+    end
+    self.State.Target = nil
+    self.State.ModelPath = nil
 end
 
-function Modules.Toolbox:Search(query)
-    if self.State.IsSearching then return end
-    if #query < 2 then return DoNotif("Search query too short.", 2) end
+function Modules.HumanShield2:Possess(targetName: string, modelPath: string?): ()
+    local targetPlr = Utilities.findPlayer(targetName)
+    if not targetPlr or not targetPlr.Character then 
+        return DoNotif("Target not found.", 2) 
+    end
     
-    self.State.IsSearching = true
-    local scroll = self.State.UI.ResultGrid
+    if self.State.IsEnabled then self:Stop() end
     
-    for _, v in ipairs(scroll:GetChildren()) do
-        if v:IsA("Frame") then v:Destroy() end
+    local character = targetPlr.Character
+    
+    -- Use provided model path or default
+    local pathToUse = modelPath or self.Config.DEFAULT_MODEL
+    local tRoot = character:FindFirstChild(pathToUse, true)  -- true = recursive search
+    
+    if not tRoot then 
+        return DoNotif("Model '" .. pathToUse .. "' not found in character.", 3) 
     end
 
-    local status = Instance.new("TextLabel", scroll)
-    status.Size = UDim2.new(1, 0, 0, 30); status.BackgroundTransparency = 1
-    status.Text = "Querying Marketplace..."; status.TextColor3 = self.Config.ACCENT
-    status.Font = Enum.Font.Code; status.TextSize = 12
-
-    task.spawn(function()
-        local requestFunc = (typeof(request) == "function" and request) or (typeof(syn) == "table" and syn.request) or (typeof(http) == "table" and http.request)
-        if not requestFunc then
-            status.Text = "ERR: NO HTTP CAPABILITY"
-            self.State.IsSearching = false
+    self.State.IsEnabled = true
+    self.State.Target = character
+    self.State.ModelPath = pathToUse
+    
+    self.State.Connection = RunService.Heartbeat:Connect(function()
+        local myChar = Players.LocalPlayer.Character
+        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        
+        if not (myRoot and tRoot and tRoot.Parent) then
+            self:Stop()
             return
         end
 
-        local category = self.Config.CATEGORIES[self.State.CurrentCategory]
-        local url = self.Config.SEARCH_URL:format(category, self.Services.HttpService:UrlEncode(query))
-        
-        local success, res = pcall(function() return requestFunc({Url = url, Method = "GET"}) end)
-
-        if success and res.StatusCode == 200 then
-            status:Destroy()
-            local decoded = self.Services.HttpService:JSONDecode(res.Body)
-
-            if decoded and decoded.data then
-                for _, entry in ipairs(decoded.data) do
-                    local item = entry.item
-                    if item then
-                        self:_createItemCard(item.assetId, item.name)
-                    end
-                end
-            else
-                status.Text = "No assets found."
-            end
-        else
-            status.Text = "API Error: " .. (res and res.StatusCode or "Failed")
-            warn("Toolbox API Error:", res and res.Body)
-        end
-        self.State.IsSearching = false
+        tRoot.Velocity = Vector3.new(0, 30.01, 0)
+        tRoot.CFrame = myRoot.CFrame * CFrame.new(0, self.Config.VERTICAL_OFFSET, -self.Config.DISTANCE)
     end)
+    
+    DoNotif("Shield Active: " .. targetPlr.Name .. " (" .. pathToUse .. ")", 2)
 end
 
-function Modules.Toolbox:_createItemCard(id, nameText)
-    local grid = self.State.UI.ResultGrid
-    
-    local card = Instance.new("Frame", grid)
-    card.Size = UDim2.fromOffset(100, 130)
-    card.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    card.BorderSizePixel = 1; card.BorderColor3 = Color3.fromRGB(60, 60, 60)
-    
-    local thumb = Instance.new("ImageLabel", card)
-    thumb.Size = UDim2.fromOffset(90, 90); thumb.Position = UDim2.fromOffset(5, 5)
-    thumb.BackgroundColor3 = Color3.fromRGB(20, 20, 20); thumb.BorderSizePixel = 0
-
-    thumb.Image = "rbxthumb://type=Asset&id=" .. id .. "&w=150&h=150"
-
-    local name = Instance.new("TextLabel", card)
-    name.Size = UDim2.new(1, -10, 0, 15); name.Position = UDim2.fromOffset(5, 95)
-    name.Text = nameText or "Asset"; name.TextColor3 = Color3.new(1,1,1); name.TextSize = 8
-    name.Font = Enum.Font.Code; name.TextXAlignment = "Left"; name.BackgroundTransparency = 1; name.ClipsDescendants = true
-
-    local btn = Instance.new("TextButton", card)
-    btn.Size = UDim2.new(1, -10, 0, 15); btn.Position = UDim2.fromOffset(5, 112)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); btn.BorderSizePixel = 1; btn.BorderColor3 = self.Config.ACCENT
-    btn.Text = "INSERT"; btn.TextColor3 = self.Config.ACCENT; btn.Font = Enum.Font.Code; btn.TextSize = 10
-    
-    btn.MouseButton1Click:Connect(function()
-        self:InsertAsset(id)
-    end)
-end
-
-function Modules.Toolbox:CreateUI()
-    if self.State.UI.Main then self.State.UI.Main.Visible = true return end
-
-    local sg = Instance.new("ScreenGui", self.Services.CoreGui)
-    sg.Name = "Zuka_Toolbox_V3"
-    
-    local main = Instance.new("Frame", sg)
-    main.Size = UDim2.fromOffset(450, 500); main.Position = UDim2.fromScale(0.1, 0.5)
-    main.AnchorPoint = Vector2.new(0, 0.5); main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-    main.BorderSizePixel = 2; main.BorderColor3 = self.Config.ACCENT; main.Active = true
-
-    local header = Instance.new("Frame", main)
-    header.Size = UDim2.new(1, 0, 0, 30); header.BackgroundColor3 = Color3.fromRGB(30, 30, 30); header.BorderSizePixel = 0
-    
-    local title = Instance.new("TextLabel", header)
-    title.Size = UDim2.new(1, -40, 1, 0); title.Position = UDim2.fromOffset(10, 0)
-    title.Text = "FORENSIC TOOLBOX - V3"; title.TextColor3 = self.Config.ACCENT
-    title.Font = Enum.Font.Code; title.TextSize = 14; title.TextXAlignment = "Left"; title.BackgroundTransparency = 1
-
-    local close = Instance.new("TextButton", header)
-    close.Size = UDim2.fromOffset(30, 30); close.Position = UDim2.new(1, -30, 0, 0)
-    close.Text = "X"; close.TextColor3 = Color3.new(1,0,0); close.BackgroundTransparency = 1
-    close.MouseButton1Click:Connect(function() sg:Destroy(); self.State.UI = {} end)
-
-    local searchBar = Instance.new("TextBox", main)
-    searchBar.Size = UDim2.new(1, -120, 0, 25); searchBar.Position = UDim2.fromOffset(10, 40)
-    searchBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25); searchBar.BorderSizePixel = 1; searchBar.BorderColor3 = Color3.fromRGB(80, 80, 80)
-    searchBar.PlaceholderText = "Search Keywords..."; searchBar.TextColor3 = Color3.new(1,1,1); searchBar.Font = Enum.Font.Code; searchBar.Text = ""
-
-    local catBtn = Instance.new("TextButton", main)
-    catBtn.Size = UDim2.fromOffset(90, 25); catBtn.Position = UDim2.new(1, -100, 0, 40)
-    catBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); catBtn.BorderSizePixel = 1; catBtn.BorderColor3 = self.Config.ACCENT
-    catBtn.Text = "MODELS"; catBtn.TextColor3 = self.Config.ACCENT; catBtn.Font = Enum.Font.Code
-
-    local catList = {"Models", "Decals", "Audio"}
-    local catIndex = 1
-    catBtn.MouseButton1Click:Connect(function()
-        catIndex = (catIndex % #catList) + 1
-        self.State.CurrentCategory = catList[catIndex]
-        catBtn.Text = self.State.CurrentCategory:upper()
-        if #searchBar.Text > 1 then self:Search(searchBar.Text) end
-    end)
-
-    searchBar.FocusLost:Connect(function(enter)
-        if enter then self:Search(searchBar.Text) end
-    end)
-
-    local scroll = Instance.new("ScrollingFrame", main)
-    scroll.Size = UDim2.new(1, -20, 1, -85); scroll.Position = UDim2.fromOffset(10, 75)
-    scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 20); scroll.BorderSizePixel = 1; scroll.BorderColor3 = Color3.fromRGB(50, 50, 50)
-    scroll.ScrollBarThickness = 3; scroll.ScrollBarImageColor3 = self.Config.ACCENT; scroll.AutomaticCanvasSize = "Y"
-
-    local layout = Instance.new("UIGridLayout", scroll)
-    layout.CellPadding = UDim2.new(0, 8, 0, 8); layout.CellSize = UDim2.fromOffset(100, 135); layout.HorizontalAlignment = "Center"
-
-    local dragging, dragStart, startPos
-    header.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging, dragStart, startPos = true, input.Position, main.Position
-        end
-    end)
-    self.Services.UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    self.Services.UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-
-    self.State.UI = {Main = main, ResultGrid = scroll}
-    DoNotif("Toolbox V3 Initialized.", 2)
-end
-
-function Modules.Toolbox:Initialize()
-    for _, s in ipairs(self.Dependencies) do self.Services[s] = game:GetService(s) end
+function Modules.HumanShield2:Initialize(): ()
+    local module = self
     RegisterCommand({
-        Name = "toolbox",
-        Aliases = {"toolsearch", "tb"},
-        Description = "Opens the in-game asset searcher (V3 Fixed)."
-    }, function()
-        self:CreateUI()
+        Name = "bring2",
+        Aliases = {},
+        Description = "Positions a player in front of you with their back turned. Usage: ;bring [player] [optional: model_path]"
+    }, function(args)
+        if module.State.IsEnabled then
+            module:Stop()
+            DoNotif("Shield Released.", 2)
+        else
+            if #args > 0 then
+                local modelPath = args[2]  -- Optional second argument
+                module:Possess(args[1], modelPath)
+            else
+                DoNotif("Usage: ;bring [player] [optional: model_path]", 3)
+            end
+        end
     end)
 end
 
@@ -40493,7 +40496,7 @@ end
 --RegisterCommand({Name = " ", Aliases = {}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
 --RegisterCommand({Name = " ", Aliases = {}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
 --RegisterCommand({Name = " ", Aliases = {}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
-RegisterCommand({Name = "freezeani", Aliases = {}, Description = "Pauses/Removes All animations for the player."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/animationremover.lua", " Loading.. ") end)
+RegisterCommand({Name = "noanim", Aliases = {}, Description = "Pauses/Removes All animations for the player."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/animationremover.lua", " Loading.. ") end)
 RegisterCommand({Name = "gunlagger2", Aliases = {}, Description = "For Protect the house from Monsters."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/machinegun.lua", " Loading.. ") end)
 RegisterCommand({Name = "gunlagger", Aliases = {}, Description = "For Protect the house from Monsters."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Lagger.lua", " Loading.. ") end)
 RegisterCommand({Name = "lagserv", Aliases = {"spayload"}, Description = "WIP"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/gamelagger.lua", " Loading.. ") end)
@@ -40505,7 +40508,7 @@ RegisterCommand({Name = "controltool", Aliases = {}, Description = "Anthony's Sc
 RegisterCommand({Name = "mk18", Aliases = {}, Description = "For backrooms."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/mk18.lua", " Loading.. ") end)
 RegisterCommand({Name = "teleporter", Aliases = {"tpui"}, Description = "Loads the Game Universe."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameFinder.lua", "stolen from nameless-admin") end)
 RegisterCommand({Name = "autofling", Aliases = {"pwned"}, Description = "Pwned Flinger"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Ultimatefling.lua", "Loaded!") end)
-RegisterCommand({Name = "ExecCallum", Aliases = {}, Description = "Loads Callum"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Executor.lua", "AI Executor") end)
+RegisterCommand({Name = "wallwalk", Aliases = {}, Description = "walk on walls."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/wallwalk.lua", "Wait a sec.") end)
 RegisterCommand({Name = "npcbreaker", Aliases = {}, Description = "WIP"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/CamFixNPCBreaker.txt", "Anti Gay Shield Activated.") end)
 RegisterCommand({Name = "plag", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/GameLaggerPlauncher.lua", "Loading Modification") end)
 RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "For https://www.roblox.com/games/115286378269814/Protect-The-House-From-Monsters"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/RAPIDFIREPumpkinlauncher.lua", "Loading Modification") end)
