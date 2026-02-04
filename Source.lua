@@ -1,6 +1,6 @@
 --[[
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatechlive/ZukaTechPanel/refs/heads/main/ZukaSPanel.lua"))() --New 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatechlive/ZukaTechPanel/refs/heads/main/ZukaSPanel.lua"))() -- Backup
 loadstring(game:HttpGet("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Source.lua"))()
 
 Made By Zuka. @OverRuka on ROBLOX.
@@ -26,94 +26,7 @@ local function getLocalPlayer()
     end
     return lp
 end
---[[local LocalPlayer = getLocalPlayer()
-local CoreGui = game:GetService("CoreGui")
-repeat task.wait(0.1) until CoreGui:FindFirstChild("RobloxGui")
 
-task.wait(1.5)
-local getgenv = getgenv
-local getrawmetatable = getrawmetatable
-local setreadonly = setreadonly
-local checkcaller = checkcaller
-local newcclosure = newcclosure
-local getnamecallmethod = getnamecallmethod
-local hookmetamethod = hookmetamethod
-
-if getgenv().Vanguard_Active then
-    warn("--> [ZukaTech]: Shield already active. Interception skipped.")
-else
-    getgenv().Vanguard_Active = true
-
-    local ShieldConfig = {
-        Notify = true,
-        CrashCaller = true,
-        Silent = false,
-        SpoofMessage = "Connection timeout due to low bandwidth."
-    }
-
-    local Players = game:GetService("Players")
-    local StarterGui = game:GetService("StarterGui")
-    local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
-
-    local function logInterception(method, caller_info)
-        if ShieldConfig.Silent then return end
-        print("-------------------------------------------")
-        warn("--> [ZukaTech]: KICK BLOCKED")
-        print("--> [METHOD]: " .. tostring(method))
-        print("--> [CALLER]: " .. tostring(caller_info))
-        print("-------------------------------------------")
-        if ShieldConfig.Notify then
-            pcall(function()
-                StarterGui:SetCore("SendNotification", {
-                    Title = "ZukaTech Shield",
-                    Text = "Intercepted and neutralized a client-side kick.",
-                    Duration = 5,
-                    Button1 = "Dismiss"
-                })
-            end)
-        end
-    end
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if (method == "Kick" or method == "kick") and self == LocalPlayer then
-            if not checkcaller() then
-                logInterception("Namecall", "External Script")
-                if ShieldConfig.CrashCaller then
-                    error("Critical Engine Error: Memory access violation at 0x004F2")
-                end
-                return nil
-            end
-        end
-        return oldNamecall(self, ...)
-    end))
-    local mt = getrawmetatable(game)
-    local oldIndex = mt.__index
-    setreadonly(mt, false)
-    mt.__index = newcclosure(function(t, k)
-        if t == LocalPlayer and (k == "Kick" or k == "kick") then
-            if not checkcaller() then
-                logInterception("Index/Direct Call", "Advanced Anti-Cheat")
-                return newcclosure(function()
-                    if ShieldConfig.CrashCaller then
-                        error("ZukaTech: Thread terminated to prevent execution of unauthorized :Kick()")
-                    end
-                    return nil
-                end)
-            end
-        end
-        return oldIndex(t, k)
-    end)
-    setreadonly(mt, true)
-    pcall(function()
-        if setreadonly then setreadonly(LocalPlayer, false) end
-        LocalPlayer.Kick = newcclosure(function()
-            logInterception("Global Override", "Direct Method Call")
-        end)
-        if setreadonly then setreadonly(LocalPlayer, true) end
-    end)
-    print("--> Anti-Kick Success!.")
-end--]]
 
 local _GC_START = collectgarbage("count")
 local _TIMESTAMP = os.clock()
@@ -133,10 +46,6 @@ local function dismantle_readonly(target)
         if mt and set_ro then set_ro(mt, false) end
     end)
 end
-
----dismantle_readonly(getgenv())
----dismantle_readonly(getrenv())
----dismantle_readonly(getreg())
 
 local function protect_interface(instance)
     local protector = (get_hidden_gui or (syn and syn.protect_gui))
@@ -1666,7 +1575,7 @@ end
 function Modules.CommandBar:PlayStartupSound(): ()
     local startup = Instance.new("Sound")
     startup.SoundId = "rbxassetid://6026984224" -- Windows 95 startup sound
-    startup.Volume = 0.3
+    startup.Volume = 0.5
     startup.Parent = game:GetService("SoundService")
     startup:Play()
     startup.Ended:Connect(function() startup:Destroy() end)
@@ -1684,8 +1593,8 @@ function Modules.CommandBar:ShowStartupScreen(): ()
     
     local Background = Instance.new("Frame", StartupGui)
     Background.Size = UDim2.new(1, 0, 1, 0)
-    Background.BackgroundColor3 = Color3.fromRGB(0, 128, 128) -- Teal Win95 background
-    Background.BackgroundTransparency = 0.3
+    Background.BackgroundColor3 = Color3.fromRGB(43, 58, 68)
+    Background.BackgroundTransparency = 0.5
     Background.BorderSizePixel = 0
     
     local Logo = Instance.new("ImageLabel", Background)
@@ -1699,7 +1608,7 @@ function Modules.CommandBar:ShowStartupScreen(): ()
     Win95Text.Size = UDim2.new(0, 400, 0, 80)
     Win95Text.BackgroundTransparency = 1
     Win95Text.Font = Enum.Font.SourceSansBold
-    Win95Text.Text = "Windows"
+    Win95Text.Text = "Thanks for using my script."
     Win95Text.TextColor3 = Color3.fromRGB(255, 255, 255)
     Win95Text.TextSize = 60
     Win95Text.TextStrokeTransparency = 0.5
@@ -1709,7 +1618,7 @@ function Modules.CommandBar:ShowStartupScreen(): ()
     SubText.Size = UDim2.new(0, 400, 0, 40)
     SubText.BackgroundTransparency = 1
     SubText.Font = Enum.Font.SourceSans
-    SubText.Text = "95"
+    SubText.Text = "We lit."
     SubText.TextColor3 = Color3.fromRGB(255, 255, 255)
     SubText.TextSize = 48
     
@@ -1857,7 +1766,7 @@ function Modules.CommandBar:Toggle(): ()
         -- Show startup screen first time
         if not self.State.StartupShown then
             self:ShowStartupScreen()
-            task.wait(2.3)
+            task.wait(1.3)
         end
         
         self.State.UI.Enabled = true
@@ -4917,21 +4826,23 @@ Modules.AdvancedAirwalk = {
         RenderConnection = nil,
         Connections = {},
         GUIs = {},
-
         IsTyping = false,
         Increase = false,
         Decrease = false,
-
-        Offset = 0
+        Offset = 0,
+        LastValidRoot = nil,
+        SmoothOffset = 0
     },
     Config = {
         VerticalSpeed = 1.75,
+        SmoothSpeed = 0.15,
         Keybinds = {
             Increase = Enum.KeyCode.Space,
             Decrease = Enum.KeyCode.LeftControl
-        }
+        },
+        DisableOnDeath = false,
+        ShowPlatform = false
     },
-
     Services = {
         RunService = game:GetService("RunService"),
         UserInputService = game:GetService("UserInputService"),
@@ -4940,57 +4851,48 @@ Modules.AdvancedAirwalk = {
         CoreGui = game:GetService("CoreGui")
     }
 }
-
 function Modules.AdvancedAirwalk:Disable()
     if not self.State.IsEnabled then
         return
     end
-
     if self.State.RenderConnection then
         self.State.RenderConnection:Disconnect()
         self.State.RenderConnection = nil
     end
-
     if self.State.AirwalkPart and self.State.AirwalkPart.Parent then
         self.State.AirwalkPart:Destroy()
     end
     self.State.AirwalkPart = nil
-
     for key, conn in pairs(self.State.Connections) do
         if conn then
             conn:Disconnect()
         end
         self.State.Connections[key] = nil
     end
-
     for key, gui in pairs(self.State.GUIs) do
         if gui and gui.Parent then
             gui:Destroy()
         end
         self.State.GUIs[key] = nil
     end
-
     self.State.IsEnabled = false
     self.State.IsTyping = false
     self.State.Increase = false
     self.State.Decrease = false
     self.State.Offset = 0
-
+    self.State.SmoothOffset = 0
+    self.State.LastValidRoot = nil
     DoNotif("Advanced Airwalk: OFF", 2)
 end
-
 function Modules.AdvancedAirwalk:Enable()
     if self.State.IsEnabled then
         self:Disable()
     end
     self.State.IsEnabled = true
-
     local localPlayer = self.Services.Players.LocalPlayer
     local uis = self.Services.UserInputService
     local isMobile = uis.TouchEnabled
-
     DoNotif(isMobile and "Advanced Airwalk: ON" or "Advanced Airwalk: ON (Space & LCtrl)", 2)
-
     local function createMobileButton(parent, text, position, callbackDown, callbackUp)
         local button = Instance.new("TextButton")
         button.Parent = parent
@@ -5001,80 +4903,95 @@ function Modules.AdvancedAirwalk:Enable()
         button.Text = text
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
         button.TextScaled = true
-
         Instance.new("UICorner", button).CornerRadius = UDim.new(0.2, 0)
         local stroke = Instance.new("UIStroke", button)
         stroke.Color = Color3.fromRGB(255, 255, 255)
         stroke.Thickness = 1.5
-
         button.MouseButton1Down:Connect(callbackDown)
         button.MouseButton1Up:Connect(callbackUp)
         button.TouchTap:Connect(callbackDown)
         button.TouchEnded:Connect(callbackUp)
-
         return button
     end
-
     if isMobile then
         local mobileGui = Instance.new("ScreenGui", self.Services.CoreGui)
         mobileGui.Name = "AdvancedAirwalkMobileControls"
         mobileGui.ResetOnSpawn = false
         self.State.GUIs.MobileControls = mobileGui
-
         createMobileButton(mobileGui, "UP", UDim2.new(0.9, 0, 0.55, 0),
             function() self.State.Increase = true end,
             function() self.State.Increase = false end)
-
         createMobileButton(mobileGui, "DOWN", UDim2.new(0.9, 0, 0.7, 0),
             function() self.State.Decrease = true end,
             function() self.State.Decrease = false end)
     else
-
         self.State.Connections.Focused = uis.TextBoxFocused:Connect(function() self.State.IsTyping = true end)
         self.State.Connections.Released = uis.TextBoxFocusReleased:Connect(function() self.State.IsTyping = false end)
-
         self.State.Connections.InputBegan = uis.InputBegan:Connect(function(input, gpe)
             if gpe or self.State.IsTyping then return end
             if input.KeyCode == self.Config.Keybinds.Increase then self.State.Increase = true end
             if input.KeyCode == self.Config.Keybinds.Decrease then self.State.Decrease = true end
         end)
-
         self.State.Connections.InputEnded = uis.InputEnded:Connect(function(input)
             if input.KeyCode == self.Config.Keybinds.Increase then self.State.Increase = false end
             if input.KeyCode == self.Config.Keybinds.Decrease then self.State.Decrease = false end
         end)
     end
-
     local awPart = Instance.new("Part")
     awPart.Name = "Zuka_AirwalkPart"
     awPart.Size = Vector3.new(8, 1.5, 8)
-    awPart.Transparency = 1
+    awPart.Transparency = self.Config.ShowPlatform and 0.7 or 1
     awPart.Anchored = true
     awPart.CanCollide = true
     awPart.CanQuery = false
     awPart.Parent = self.Services.Workspace
+    if self.Config.ShowPlatform then
+        awPart.Color = Color3.fromRGB(100, 150, 255)
+        awPart.Material = Enum.Material.Neon
+    end
     self.State.AirwalkPart = awPart
-
-    self.State.RenderConnection = self.Services.RunService.RenderStepped:Connect(function()
-        if not (self.State.IsEnabled and self.State.AirwalkPart and self.State.AirwalkPart.Parent) then
-
+    if not self.Config.DisableOnDeath then
+        self.State.Connections.CharacterAdded = localPlayer.CharacterAdded:Connect(function(newChar)
+            task.wait(0.5)
+            self.State.Offset = 0
+            self.State.SmoothOffset = 0
+        end)
+    end
+    self.State.RenderConnection = self.Services.RunService.RenderStepped:Connect(function(deltaTime)
+        if not self.State.IsEnabled then
             self:Disable()
             return
         end
-
+        if not (self.State.AirwalkPart and self.State.AirwalkPart.Parent) then
+            self:Disable()
+            return
+        end
         local success, char, root, hum = pcall(function()
             local c = localPlayer.Character
             return c, c and c:FindFirstChild("HumanoidRootPart"), c and c:FindFirstChildOfClass("Humanoid")
         end)
-
-        if not (success and char and root and hum and hum.Health > 0) then
-
-            self.State.AirwalkPart.CanCollide = false
+        if not (success and char and root and hum) then
+            if self.State.LastValidRoot then
+                self.State.AirwalkPart.CanCollide = false
+            else
+                if self.Config.DisableOnDeath then
+                    self:Disable()
+                else
+                    self.State.AirwalkPart.CanCollide = false
+                end
+            end
             return
         end
-        
+        if hum.Health <= 0 then
+            if self.Config.DisableOnDeath then
+                self:Disable()
+            else
+                self.State.AirwalkPart.CanCollide = false
+            end
+            return
+        end
         self.State.AirwalkPart.CanCollide = true
-
+        self.State.LastValidRoot = root.Position
         local hrpHalf = root.Size.Y * 0.5
         local feetFromRoot
         if hum.RigType == Enum.HumanoidRigType.R6 then
@@ -5083,37 +5000,57 @@ function Modules.AdvancedAirwalk:Enable()
             feetFromRoot = hrpHalf + (hum.HipHeight or 2)
         end
         local baseOffset = feetFromRoot + (self.State.AirwalkPart.Size.Y * 0.5)
-
         local delta = 0
         if self.State.Increase then delta = -self.Config.VerticalSpeed end
         if self.State.Decrease then delta = self.Config.VerticalSpeed end
-
         self.State.Offset = self.State.Offset + delta
-
-        local newY = root.Position.Y - baseOffset - self.State.Offset
+        self.State.SmoothOffset = self.State.SmoothOffset + (self.State.Offset - self.State.SmoothOffset) * self.Config.SmoothSpeed
+        local newY = root.Position.Y - baseOffset - self.State.SmoothOffset
         self.State.AirwalkPart.CFrame = CFrame.new(root.Position.X, newY, root.Position.Z)
     end)
 end
-
 RegisterCommand({
     Name = "airwalk",
     Aliases = {"float", "aw"},
     Description = "Toggles an advanced airwalk. Use Space/LCtrl or GUI to move."
 }, function()
-
     if Modules.AdvancedAirwalk.State.IsEnabled then
         Modules.AdvancedAirwalk:Disable()
     else
         Modules.AdvancedAirwalk:Enable()
     end
 end)
-
 RegisterCommand({
     Name = "unairwalk",
     Aliases = {"unfloat", "unaw"},
     Description = "Explicitly disables the advanced airwalk."
 }, function()
     Modules.AdvancedAirwalk:Disable()
+end)
+RegisterCommand({
+    Name = "airwalkplatform",
+    Aliases = {"awplatform"},
+    Description = "Toggles visibility of the airwalk platform."
+}, function()
+    Modules.AdvancedAirwalk.Config.ShowPlatform = not Modules.AdvancedAirwalk.Config.ShowPlatform
+    if Modules.AdvancedAirwalk.State.AirwalkPart then
+        local part = Modules.AdvancedAirwalk.State.AirwalkPart
+        part.Transparency = Modules.AdvancedAirwalk.Config.ShowPlatform and 0.7 or 1
+        if Modules.AdvancedAirwalk.Config.ShowPlatform then
+            part.Color = Color3.fromRGB(100, 150, 255)
+            part.Material = Enum.Material.Neon
+        end
+    end
+    DoNotif("Platform Visibility: " .. (Modules.AdvancedAirwalk.Config.ShowPlatform and "ON" or "OFF"), 2)
+end)
+RegisterCommand({
+    Name = "airwalkreset",
+    Aliases = {"awreset"},
+    Description = "Resets airwalk offset to ground level."
+}, function()
+    Modules.AdvancedAirwalk.State.Offset = 0
+    Modules.AdvancedAirwalk.State.SmoothOffset = 0
+    DoNotif("Airwalk offset reset", 2)
 end)
 
 Modules.AntiDestroy = {
@@ -5212,17 +5149,15 @@ Modules.VoidShield = {
     State = {
         IsEnabled = false,
         ShieldPart = nil,
-        Connection = nil,
         CharacterAddedConn = nil,
         ToolConn = nil
     },
     Config = {
-        Size = Vector3.new(12, 12, 5),
+        Size = Vector3.new(12, 12, 1),  -- Made it thinner like a wall
         Distance = 5,
-        Transparency = 0.7,
+        Transparency = 0.5,
         Color = Color3.fromRGB(0, 255, 255),
         Material = Enum.Material.ForceField,
-        RepulsionForce = 25,
     }
 }
 
@@ -5244,12 +5179,12 @@ function Modules.VoidShield:_createShield()
     if self.State.ShieldPart then self.State.ShieldPart:Destroy() end
     
     local part = Instance.new("Part")
-    part.Name = "Callum_KineticRepulsor"
+    part.Name = "Callum_ShieldWall"
     part.Size = self.Config.Size
     part.Transparency = self.Config.Transparency
     part.Color = self.Config.Color
     part.Material = self.Config.Material
-    part.CanCollide = false
+    part.CanCollide = true  -- Changed to true so it actually blocks
     part.CanQuery = true
     part.Anchored = true
     part.CastShadow = false
@@ -5269,48 +5204,18 @@ function Modules.VoidShield:_createShield()
     
     part.Parent = Workspace
     self.State.ShieldPart = part
+    
+    self:_updatePosition()
 end
 
-function Modules.VoidShield:_update()
+function Modules.VoidShield:_updatePosition()
     local character = LocalPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")
     
-    if not root or not self.State.IsEnabled then
-        if self.State.ShieldPart then self.State.ShieldPart.Transparency = 1 end
-        return
-    end
-
-    if not self.State.ShieldPart or not self.State.ShieldPart.Parent then
-        self:_createShield()
-    end
-
-    local shield = self.State.ShieldPart
-    shield.Transparency = self.Config.Transparency
+    if not root or not self.State.ShieldPart then return end
 
     local targetCF = root.CFrame * CFrame.new(0, 0, -self.Config.Distance)
-    shield.CFrame = targetCF
-
-    local overlapParams = OverlapParams.new()
-    overlapParams.FilterType = Enum.RaycastFilterType.Exclude
-    overlapParams.FilterDescendantsInstances = {character, shield}
-    
-    local partsInShield = Workspace:GetPartBoundsInBox(shield.CFrame, shield.Size, overlapParams)
-    
-    for _, part in ipairs(partsInShield) do
-
-        local model = part:FindFirstAncestorOfClass("Model")
-        if model and model:FindFirstChildOfClass("Humanoid") then
-            local npcRoot = model:FindFirstChild("HumanoidRootPart")
-            if npcRoot then
-
-                local pushDir = (npcRoot.Position - root.Position).Unit
-
-                npcRoot.CFrame = CFrame.new(npcRoot.Position + (pushDir * 1.5), npcRoot.Position + (pushDir * 2))
-
-                npcRoot.AssemblyLinearVelocity = pushDir * self.Config.RepulsionForce
-            end
-        end
-    end
+    self.State.ShieldPart.CFrame = targetCF
 end
 
 function Modules.VoidShield:Enable()
@@ -5318,25 +5223,21 @@ function Modules.VoidShield:Enable()
     self.State.IsEnabled = true
     self:_createShield()
 
-    self.State.Connection = RunService.Heartbeat:Connect(function()
-        self:_update()
-    end)
-
+    -- Only update position when character moves, no constant heartbeat
     self.State.CharacterAddedConn = LocalPlayer.CharacterAdded:Connect(function()
         task.wait(0.5)
         if self.State.IsEnabled then self:_createShield() end
     end)
 
-    if typeof(DoNotif) == "function" then DoNotif("Repulsor: [ACTIVE]", 2) end
+    if typeof(DoNotif) == "function" then DoNotif("Shield Wall: [ACTIVE]", 2) end
 end
 
 function Modules.VoidShield:Disable()
     self.State.IsEnabled = false
-    if self.State.Connection then self.State.Connection:Disconnect() end
     if self.State.CharacterAddedConn then self.State.CharacterAddedConn:Disconnect() end
     if self.State.ToolConn then self.State.ToolConn:Disconnect() end
     if self.State.ShieldPart then self.State.ShieldPart:Destroy(); self.State.ShieldPart = nil end
-    if typeof(DoNotif) == "function" then DoNotif("Repulsor: [DISABLED]", 2) end
+    if typeof(DoNotif) == "function" then DoNotif("Shield Wall: [DISABLED]", 2) end
 end
 
 function Modules.VoidShield:Toggle()
@@ -5348,7 +5249,7 @@ function Modules.VoidShield:Initialize()
         RegisterCommand({Name = "cshield", Aliases = {"clientshield"}}, function(args)
             local sizeVal = tonumber(args[1])
             if sizeVal then
-                self.Config.Size = Vector3.new(sizeVal, sizeVal, 5)
+                self.Config.Size = Vector3.new(sizeVal, sizeVal, 1)
                 if self.State.ShieldPart then self.State.ShieldPart.Size = self.Config.Size end
             end
             self:Toggle()
@@ -6043,15 +5944,81 @@ Modules.InfoPanel = {
     State = {
         IsEnabled = false,
         UI = {},
-        Connections = {}
+        Connections = {},
+        IsMinimized = false,
+        IsMaximized = false,
+        PreMaximizeSize = nil,
+        PreMaximizePosition = nil
+    },
+    Theme = {
+        Background = Color3.fromRGB(0, 0, 0),
+        WindowGray = Color3.fromRGB(192, 192, 192),
+        DarkGray = Color3.fromRGB(128, 128, 128),
+        LightGray = Color3.fromRGB(223, 223, 223),
+        White = Color3.fromRGB(255, 255, 255),
+        Blue = Color3.fromRGB(0, 0, 128),
+        Accent = Color3.fromRGB(0, 255, 0),
+        Text = Color3.fromRGB(192, 192, 192),
+        Font = Enum.Font.Code
     },
     Services = {
         Players = game:GetService("Players"),
         RunService = game:GetService("RunService"),
         CoreGui = game:GetService("CoreGui"),
-        Workspace = game:GetService("Workspace")
+        Workspace = game:GetService("Workspace"),
+        TweenService = game:GetService("TweenService")
     }
 }
+
+function Modules.InfoPanel:Minimize()
+    if self.State.IsMinimized then return end
+    self.State.IsMinimized = true
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = self.Services.TweenService:Create(self.State.UI.MainFrame, tweenInfo, {
+        Position = UDim2.new(0.5, -self.State.UI.MainFrame.Size.X.Offset/2, 1, 50),
+        Size = UDim2.new(0, self.State.UI.MainFrame.Size.X.Offset, 0, 30)
+    })
+    tween:Play()
+end
+
+function Modules.InfoPanel:Restore()
+    if not self.State.IsMinimized then return end
+    self.State.IsMinimized = false
+    
+    local targetSize = self.State.PreMaximizeSize or UDim2.new(0, 400, 0, 500)
+    local targetPos = self.State.PreMaximizePosition or UDim2.new(0.5, -200, 0.5, -250)
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = self.Services.TweenService:Create(self.State.UI.MainFrame, tweenInfo, {
+        Position = targetPos,
+        Size = targetSize
+    })
+    tween:Play()
+end
+
+function Modules.InfoPanel:Maximize()
+    if self.State.IsMaximized then
+        self.State.IsMaximized = false
+        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = self.Services.TweenService:Create(self.State.UI.MainFrame, tweenInfo, {
+            Position = self.State.PreMaximizePosition,
+            Size = self.State.PreMaximizeSize
+        })
+        tween:Play()
+    else
+        self.State.PreMaximizeSize = self.State.UI.MainFrame.Size
+        self.State.PreMaximizePosition = self.State.UI.MainFrame.Position
+        self.State.IsMaximized = true
+        
+        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = self.Services.TweenService:Create(self.State.UI.MainFrame, tweenInfo, {
+            Position = UDim2.new(0, 0, 0, 0),
+            Size = UDim2.new(1, 0, 1, 0)
+        })
+        tween:Play()
+    end
+end
 
 function Modules.InfoPanel:Toggle()
     if self.State.IsEnabled then
@@ -6061,131 +6028,336 @@ function Modules.InfoPanel:Toggle()
         if self.State.UI.ScreenGui then
             self.State.UI.ScreenGui:Destroy()
         end
-        self.State = { IsEnabled = false, UI = {}, Connections = {} }
-        DoNotif("Info Panel closed.", 2)
+        self.State = { 
+            IsEnabled = false, 
+            UI = {}, 
+            Connections = {},
+            IsMinimized = false,
+            IsMaximized = false,
+            PreMaximizeSize = nil,
+            PreMaximizePosition = nil
+        }
+        DoNotif("System Information closed.", 2)
         return
     end
 
     self.State.IsEnabled = true
-    DoNotif("Info Panel opened.", 2)
+    DoNotif("System Information opened.", 2)
 
     local localPlayer = self.Services.Players.LocalPlayer
 
+    -- Helper function to create Win95 3D border effect
+    local function CreateWin95Border(parent, isInset)
+        local topColor = isInset and self.Theme.DarkGray or self.Theme.White
+        local bottomColor = isInset and self.Theme.White or self.Theme.DarkGray
+        
+        local topBorder = Instance.new("Frame", parent)
+        topBorder.Name = "TopBorder"
+        topBorder.Size = UDim2.new(1, 0, 0, 2)
+        topBorder.Position = UDim2.new(0, 0, 0, 0)
+        topBorder.BackgroundColor3 = topColor
+        topBorder.BorderSizePixel = 0
+        topBorder.ZIndex = parent.ZIndex + 1
+        
+        local leftBorder = Instance.new("Frame", parent)
+        leftBorder.Name = "LeftBorder"
+        leftBorder.Size = UDim2.new(0, 2, 1, 0)
+        leftBorder.Position = UDim2.new(0, 0, 0, 0)
+        leftBorder.BackgroundColor3 = topColor
+        leftBorder.BorderSizePixel = 0
+        leftBorder.ZIndex = parent.ZIndex + 1
+        
+        local bottomBorder = Instance.new("Frame", parent)
+        bottomBorder.Name = "BottomBorder"
+        bottomBorder.Size = UDim2.new(1, 0, 0, 2)
+        bottomBorder.Position = UDim2.new(0, 0, 1, -2)
+        bottomBorder.BackgroundColor3 = bottomColor
+        bottomBorder.BorderSizePixel = 0
+        bottomBorder.ZIndex = parent.ZIndex + 1
+        
+        local rightBorder = Instance.new("Frame", parent)
+        rightBorder.Name = "RightBorder"
+        rightBorder.Size = UDim2.new(0, 2, 1, 0)
+        rightBorder.Position = UDim2.new(1, -2, 0, 0)
+        rightBorder.BackgroundColor3 = bottomColor
+        rightBorder.BorderSizePixel = 0
+        rightBorder.ZIndex = parent.ZIndex + 1
+    end
+
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "InfoPanel_Zuka_Radiant"
+    screenGui.Name = "SystemInformation_Win95"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
     self.State.UI.ScreenGui = screenGui
 
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.fromOffset(320, 450)
+    mainFrame.Name = "WindowFrame"
+    mainFrame.Size = UDim2.fromOffset(400, 500)
     mainFrame.Position = UDim2.fromScale(0.5, 0.5)
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(34, 32, 38)
-    mainFrame.BackgroundTransparency = 0.1
-    mainFrame.Draggable = true
+    mainFrame.BackgroundColor3 = self.Theme.WindowGray
+    mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
+    mainFrame.ClipsDescendants = false
     mainFrame.Parent = screenGui
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
+    self.State.UI.MainFrame = mainFrame
     
-    local uiStroke = Instance.new("UIStroke", mainFrame)
-    uiStroke.Color = Color3.fromRGB(255, 105, 180)
-    uiStroke.Thickness = 2
-    uiStroke.Transparency = 0.3
+    CreateWin95Border(mainFrame, false)
 
+    -- Title Bar
     local titleBar = Instance.new("Frame", mainFrame)
-    titleBar.Size = UDim2.new(1, 0, 0, 30)
-    titleBar.BackgroundTransparency = 1
-    
-    local titleLabel = Instance.new("TextLabel", titleBar)
-    titleLabel.Size = UDim2.new(1, -30, 1, 0)
-    titleLabel.Position = UDim2.fromOffset(10, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Font = Enum.Font.GothamSemibold
-    titleLabel.Text = "Game & Player Information"
-    titleLabel.TextColor3 = Color3.fromRGB(255, 182, 193)
-    titleLabel.TextSize = 16
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleBar.Name = "TitleBar"
+    titleBar.Position = UDim2.new(0, 3, 0, 3)
+    titleBar.Size = UDim2.new(1, -6, 0, 22)
+    titleBar.BackgroundColor3 = self.Theme.Blue
+    titleBar.BorderSizePixel = 0
+    titleBar.ZIndex = 2
 
+    local titleGradient = Instance.new("UIGradient", titleBar)
+    titleGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 168)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 132, 208))
+    }
+    titleGradient.Rotation = 90
+
+    local titleLabel = Instance.new("TextLabel", titleBar)
+    titleLabel.Name = "Title"
+    titleLabel.Position = UDim2.new(0, 4, 0, 0)
+    titleLabel.Size = UDim2.new(1, -70, 1, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Text = "System Information"
+    titleLabel.TextColor3 = self.Theme.White
+    titleLabel.TextSize = 13
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    titleLabel.ZIndex = 3
+
+    -- Minimize button
+    local minimizeButton = Instance.new("TextButton", titleBar)
+    minimizeButton.Name = "MinimizeButton"
+    minimizeButton.Position = UDim2.new(1, -54, 0, 2)
+    minimizeButton.Size = UDim2.new(0, 16, 0, 16)
+    minimizeButton.BackgroundColor3 = self.Theme.WindowGray
+    minimizeButton.BorderSizePixel = 0
+    minimizeButton.Font = Enum.Font.SourceSansBold
+    minimizeButton.Text = "_"
+    minimizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    minimizeButton.TextSize = 14
+    minimizeButton.TextYAlignment = Enum.TextYAlignment.Top
+    minimizeButton.ZIndex = 4
+    
+    CreateWin95Border(minimizeButton, false)
+    
+    minimizeButton.MouseButton1Click:Connect(function()
+        if self.State.IsMinimized then
+            self:Restore()
+        else
+            self:Minimize()
+        end
+    end)
+
+    -- Maximize button
+    local maximizeButton = Instance.new("TextButton", titleBar)
+    maximizeButton.Name = "MaximizeButton"
+    maximizeButton.Position = UDim2.new(1, -36, 0, 2)
+    maximizeButton.Size = UDim2.new(0, 16, 0, 16)
+    maximizeButton.BackgroundColor3 = self.Theme.WindowGray
+    maximizeButton.BorderSizePixel = 0
+    maximizeButton.Font = Enum.Font.SourceSansBold
+    maximizeButton.Text = "□"
+    maximizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    maximizeButton.TextSize = 14
+    maximizeButton.ZIndex = 4
+    
+    CreateWin95Border(maximizeButton, false)
+    
+    maximizeButton.MouseButton1Click:Connect(function()
+        self:Maximize()
+    end)
+
+    -- Close button
     local closeButton = Instance.new("TextButton", titleBar)
-    closeButton.Size = UDim2.fromOffset(24, 24)
-    closeButton.Position = UDim2.new(1, -28, 0.5, -12)
-    closeButton.BackgroundTransparency = 1
-    closeButton.Font = Enum.Font.GothamBold
-    closeButton.Text = "X"
-    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeButton.TextSize = 20
-    closeButton.Parent = titleBar
-    Instance.new("UICorner", closeButton).CornerRadius = UDim.new(0, 6)
+    closeButton.Name = "CloseButton"
+    closeButton.Position = UDim2.new(1, -18, 0, 2)
+    closeButton.Size = UDim2.new(0, 16, 0, 16)
+    closeButton.BackgroundColor3 = self.Theme.WindowGray
+    closeButton.BorderSizePixel = 0
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.Text = "×"
+    closeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    closeButton.TextSize = 16
+    closeButton.ZIndex = 4
+    
+    CreateWin95Border(closeButton, false)
+    
     closeButton.MouseButton1Click:Connect(function()
         self:Toggle()
     end)
 
-    local scroll = Instance.new("ScrollingFrame", mainFrame)
-    scroll.Size = UDim2.new(1, 0, 1, -30)
-    scroll.Position = UDim2.new(0, 0, 0, 30)
+    -- Main content container
+    local contentContainer = Instance.new("Frame", mainFrame)
+    contentContainer.Name = "ContentContainer"
+    contentContainer.Position = UDim2.new(0, 6, 0, 28)
+    contentContainer.Size = UDim2.new(1, -12, 1, -34)
+    contentContainer.BackgroundColor3 = self.Theme.WindowGray
+    contentContainer.BorderSizePixel = 0
+    contentContainer.ZIndex = 1
+    
+    CreateWin95Border(contentContainer, true)
+
+    -- Scroll frame
+    local scroll = Instance.new("ScrollingFrame", contentContainer)
+    scroll.Size = UDim2.new(1, -8, 1, -8)
+    scroll.Position = UDim2.new(0, 4, 0, 4)
     scroll.BackgroundTransparency = 1
     scroll.BorderSizePixel = 0
-    scroll.ScrollBarThickness = 6
-    scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 105, 180)
+    scroll.ScrollBarThickness = 16
+    scroll.ScrollBarImageColor3 = self.Theme.WindowGray
+    scroll.ScrollingDirection = Enum.ScrollingDirection.Y
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
     local listLayout = Instance.new("UIListLayout", scroll)
-    listLayout.Padding = UDim.new(0, 5)
+    listLayout.Padding = UDim.new(0, 4)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    
     local padding = Instance.new("UIPadding", scroll)
-    padding.PaddingLeft = UDim.new(0, 10)
-    padding.PaddingRight = UDim.new(0, 10)
-    padding.PaddingTop = UDim.new(0, 10)
+    padding.PaddingLeft = UDim.new(0, 6)
+    padding.PaddingRight = UDim.new(0, 6)
+    padding.PaddingTop = UDim.new(0, 6)
 
-    local function createHeader(text: string)
-        local header = Instance.new("TextLabel")
-        header.Size = UDim2.new(1, 0, 0, 24)
-        header.BackgroundTransparency = 1
-        header.Font = Enum.Font.GothamBold
-        header.Text = text
-        header.TextColor3 = Color3.fromRGB(255, 182, 193)
-        header.TextSize = 18
-        header.TextXAlignment = Enum.TextXAlignment.Left
-        header.Parent = scroll
+    local function createHeader(text)
+        local headerFrame = Instance.new("Frame")
+        headerFrame.Size = UDim2.new(1, -12, 0, 20)
+        headerFrame.BackgroundColor3 = self.Theme.Blue
+        headerFrame.BorderSizePixel = 0
+        headerFrame.Parent = scroll
+        
+        local headerLabel = Instance.new("TextLabel", headerFrame)
+        headerLabel.Size = UDim2.new(1, -4, 1, 0)
+        headerLabel.Position = UDim2.new(0, 2, 0, 0)
+        headerLabel.BackgroundTransparency = 1
+        headerLabel.Font = Enum.Font.SourceSansBold
+        headerLabel.Text = text
+        headerLabel.TextColor3 = self.Theme.White
+        headerLabel.TextSize = 14
+        headerLabel.TextXAlignment = Enum.TextXAlignment.Left
+        
+        CreateWin95Border(headerFrame, false)
     end
 
-    local function createInfoEntry(key: string, value: any)
-        local entry = Instance.new("TextLabel")
-        entry.Size = UDim2.new(1, 0, 0, 18)
-        entry.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-        entry.BackgroundTransparency = 0.8
-        entry.Font = Enum.Font.Code
-        entry.TextSize = 14
-        entry.TextColor3 = Color3.fromRGB(220, 220, 220)
-        entry.TextXAlignment = Enum.TextXAlignment.Left
-        entry.RichText = true
-        entry.Text = string.format("  <font color='#AAAAAA'>%s:</font> %s", key, tostring(value))
+    local function createInfoEntry(key, value)
+        local entry = Instance.new("Frame")
+        entry.Size = UDim2.new(1, -12, 0, 18)
+        entry.BackgroundColor3 = self.Theme.White
+        entry.BorderSizePixel = 0
         entry.Parent = scroll
-        Instance.new("UICorner", entry).CornerRadius = UDim.new(0, 4)
-        return entry
+        
+        CreateWin95Border(entry, true)
+        
+        local entryLabel = Instance.new("TextLabel", entry)
+        entryLabel.Size = UDim2.new(1, -6, 1, 0)
+        entryLabel.Position = UDim2.new(0, 3, 0, 0)
+        entryLabel.BackgroundTransparency = 1
+        entryLabel.Font = self.Theme.Font
+        entryLabel.TextSize = 12
+        entryLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+        entryLabel.TextXAlignment = Enum.TextXAlignment.Left
+        entryLabel.RichText = true
+        entryLabel.Text = string.format("<b>%s:</b> %s", key, tostring(value))
+        
+        return entryLabel
     end
 
-    createHeader("Client Info")
-    createInfoEntry("DisplayName", localPlayer.DisplayName)
+    createHeader("▼ Client Information")
+    createInfoEntry("Display Name", localPlayer.DisplayName)
     createInfoEntry("Username", localPlayer.Name)
     createInfoEntry("User ID", localPlayer.UserId)
-    createInfoEntry("Account Age", localPlayer.AccountAge)
+    createInfoEntry("Account Age", localPlayer.AccountAge .. " days")
     local fpsLabel = createInfoEntry("Client FPS", "Calculating...")
 
-    createHeader("Game Info")
+    createHeader("▼ Game Information")
     createInfoEntry("Place ID", game.PlaceId)
     createInfoEntry("Job ID", game.JobId)
     createInfoEntry("Creator Type", game.CreatorType.Name)
     createInfoEntry("Creator ID", game.CreatorId)
 
-    createHeader("Server Players")
+    createHeader("▼ Server Players")
     local playerListFrame = Instance.new("Frame", scroll)
-    playerListFrame.Size = UDim2.new(1, 0, 0, 0)
+    playerListFrame.Size = UDim2.new(1, -12, 0, 0)
     playerListFrame.BackgroundTransparency = 1
     playerListFrame.AutomaticSize = Enum.AutomaticSize.Y
     local playerListLayout = Instance.new("UIListLayout", playerListFrame)
     playerListLayout.Padding = UDim.new(0, 2)
 
+    -- Resize handle
+    local resizeHandle = Instance.new("Frame")
+    resizeHandle.Name = "ResizeHandle"
+    resizeHandle.Size = UDim2.fromOffset(16, 16)
+    resizeHandle.Position = UDim2.new(1, -16, 1, -16)
+    resizeHandle.BackgroundColor3 = self.Theme.WindowGray
+    resizeHandle.BorderSizePixel = 0
+    resizeHandle.ZIndex = 10
+    resizeHandle.Parent = mainFrame
+    
+    for i = 0, 2 do
+        local line = Instance.new("Frame", resizeHandle)
+        line.Size = UDim2.new(0, 2, 1, -4 * i)
+        line.Position = UDim2.new(0, 4 + (4 * i), 0, 4 * i)
+        line.BackgroundColor3 = self.Theme.DarkGray
+        line.BorderSizePixel = 0
+        line.Rotation = 45
+    end
+
+    -- Dragging and resizing
+    local dragging, resizing = false, false
+    local dragStart, resizeStart, startPos, startSize
+    local UserInputService = game:GetService("UserInputService")
+
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end)
+
+    resizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = true
+            resizeStart = input.Position
+            startSize = mainFrame.Size
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    resizing = false
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            if dragging then
+                local delta = input.Position - dragStart
+                mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            elseif resizing then
+                local delta = Vector2.new(input.Position.X - resizeStart.X, input.Position.Y - resizeStart.Y)
+                local newX = math.max(300, startSize.X.Offset + delta.X)
+                local newY = math.max(250, startSize.Y.Offset + delta.Y)
+                mainFrame.Size = UDim2.new(0, newX, 0, newY)
+            end
+        end
+    end)
+
+    -- Update loop
     local lastTick = 0
     self.State.Connections.Updater = self.Services.RunService.Heartbeat:Connect(function(step)
         if not screenGui.Parent then
@@ -6196,23 +6368,31 @@ function Modules.InfoPanel:Toggle()
         local now = tick()
         if now - lastTick > 0.5 then
             lastTick = now
-            fpsLabel.Text = string.format("  <font color='#AAAAAA'>Client FPS:</font> %.1f", 1 / step)
+            fpsLabel.Text = string.format("<b>Client FPS:</b> %.1f", 1 / step)
             
             for _, child in ipairs(playerListFrame:GetChildren()) do
-                if child:IsA("TextLabel") then
+                if child:IsA("Frame") then
                     child:Destroy()
                 end
             end
             
             local players = self.Services.Players:GetPlayers()
             for _, player in ipairs(players) do
-                local playerLabel = Instance.new("TextLabel", playerListFrame)
-                playerLabel.Size = UDim2.new(1, 0, 0, 16)
+                local playerEntry = Instance.new("Frame", playerListFrame)
+                playerEntry.Size = UDim2.new(1, 0, 0, 16)
+                playerEntry.BackgroundColor3 = self.Theme.White
+                playerEntry.BorderSizePixel = 0
+                
+                CreateWin95Border(playerEntry, true)
+                
+                local playerLabel = Instance.new("TextLabel", playerEntry)
+                playerLabel.Size = UDim2.new(1, -6, 1, 0)
+                playerLabel.Position = UDim2.new(0, 3, 0, 0)
                 playerLabel.BackgroundTransparency = 1
-                playerLabel.Font = Enum.Font.Code
-                playerLabel.TextSize = 13
-                playerLabel.TextColor3 = player.TeamColor.Color
-                playerLabel.Text = string.format("- %s (@%s)", player.DisplayName, player.Name)
+                playerLabel.Font = self.Theme.Font
+                playerLabel.TextSize = 11
+                playerLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+                playerLabel.Text = string.format("• %s (@%s)", player.DisplayName, player.Name)
                 playerLabel.TextXAlignment = Enum.TextXAlignment.Left
             end
         end
@@ -7039,7 +7219,7 @@ end
 
 Modules.AntiVoid = {
     State = {
-        IsEnabled = true,
+        IsEnabled = false,
         Connection = nil,
     },
     Config = {
@@ -7796,7 +7976,7 @@ end
 
 Modules.AntiPlayerPhysics = {
     State = {
-        IsEnabled = true,
+        IsEnabled = false,
         SteppedConnection = nil,
         OriginalProperties = setmetatable({}, {__mode = "k"})
     },
@@ -29872,15 +30052,91 @@ Modules.ModuleEditor = {
         UI = nil,
         CurrentTable = nil,
         TableStack = {},
-        Connections = {}
+        Connections = {},
+        IsMinimized = false,
+        IsMaximized = false,
+        PreMaximizeSize = nil,
+        PreMaximizePosition = nil
+    },
+    Theme = {
+        Background = Color3.fromRGB(0, 0, 0),
+        WindowGray = Color3.fromRGB(192, 192, 192),
+        DarkGray = Color3.fromRGB(128, 128, 128),
+        LightGray = Color3.fromRGB(223, 223, 223),
+        White = Color3.fromRGB(255, 255, 255),
+        Blue = Color3.fromRGB(0, 0, 128),
+        Accent = Color3.fromRGB(0, 255, 0),
+        Text = Color3.fromRGB(0, 0, 0),
+        Font = Enum.Font.Code
     },
     Services = {
         Workspace = game:GetService("Workspace"),
         Players = game:GetService("Players"),
         ReplicatedStorage = game:GetService("ReplicatedStorage"),
-        CoreGui = game:GetService("CoreGui")
+        CoreGui = game:GetService("CoreGui"),
+        TweenService = game:GetService("TweenService"),
+        UserInputService = game:GetService("UserInputService")
     }
 }
+
+function Modules.ModuleEditor:Minimize()
+    if self.State.IsMinimized then return end
+    self.State.IsMinimized = true
+    
+    local mainFrame = self.State.UI:FindFirstChild("WindowFrame")
+    if not mainFrame then return end
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = self.Services.TweenService:Create(mainFrame, tweenInfo, {
+        Position = UDim2.new(0.5, -mainFrame.Size.X.Offset/2, 1, 50),
+        Size = UDim2.new(0, mainFrame.Size.X.Offset, 0, 30)
+    })
+    tween:Play()
+end
+
+function Modules.ModuleEditor:Restore()
+    if not self.State.IsMinimized then return end
+    self.State.IsMinimized = false
+    
+    local mainFrame = self.State.UI:FindFirstChild("WindowFrame")
+    if not mainFrame then return end
+    
+    local targetSize = self.State.PreMaximizeSize or UDim2.new(0, 600, 0, 450)
+    local targetPos = self.State.PreMaximizePosition or UDim2.new(0.5, -300, 0.5, -225)
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = self.Services.TweenService:Create(mainFrame, tweenInfo, {
+        Position = targetPos,
+        Size = targetSize
+    })
+    tween:Play()
+end
+
+function Modules.ModuleEditor:Maximize()
+    local mainFrame = self.State.UI:FindFirstChild("WindowFrame")
+    if not mainFrame then return end
+    
+    if self.State.IsMaximized then
+        self.State.IsMaximized = false
+        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = self.Services.TweenService:Create(mainFrame, tweenInfo, {
+            Position = self.State.PreMaximizePosition,
+            Size = self.State.PreMaximizeSize
+        })
+        tween:Play()
+    else
+        self.State.PreMaximizeSize = mainFrame.Size
+        self.State.PreMaximizePosition = mainFrame.Position
+        self.State.IsMaximized = true
+        
+        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = self.Services.TweenService:Create(mainFrame, tweenInfo, {
+            Position = UDim2.new(0, 0, 0, 0),
+            Size = UDim2.new(1, 0, 1, 0)
+        })
+        tween:Play()
+    end
+end
 
 function Modules.ModuleEditor:DestroyUI()
     if self.State.UI then
@@ -29889,6 +30145,8 @@ function Modules.ModuleEditor:DestroyUI()
     end
     self.State.TableStack = {}
     self.State.CurrentTable = nil
+    self.State.IsMinimized = false
+    self.State.IsMaximized = false
 end
 
 function Modules.ModuleEditor:ShowTable(tbl, tableScroll, backBtn)
@@ -29914,13 +30172,55 @@ function Modules.ModuleEditor:ShowTable(tbl, tableScroll, backBtn)
             displayValue = tostring(value)
         end
 
-        local keyLabel = Instance.new("TextLabel", tableScroll)
-        keyLabel.Size = UDim2.new(0.3, -10, 0, 25)
-        keyLabel.Position = UDim2.new(0, 5, 0, (count - 1) * 30)
+        -- Key container
+        local keyContainer = Instance.new("Frame", tableScroll)
+        keyContainer.Size = UDim2.new(0.35, -5, 0, 22)
+        keyContainer.Position = UDim2.new(0, 3, 0, (count - 1) * 27)
+        keyContainer.BackgroundColor3 = self.Theme.White
+        keyContainer.BorderSizePixel = 0
+        
+        local function CreateWin95Border(parent, isInset)
+            local topColor = isInset and self.Theme.DarkGray or self.Theme.White
+            local bottomColor = isInset and self.Theme.White or self.Theme.DarkGray
+            
+            local topBorder = Instance.new("Frame", parent)
+            topBorder.Size = UDim2.new(1, 0, 0, 1)
+            topBorder.Position = UDim2.new(0, 0, 0, 0)
+            topBorder.BackgroundColor3 = topColor
+            topBorder.BorderSizePixel = 0
+            topBorder.ZIndex = parent.ZIndex + 1
+            
+            local leftBorder = Instance.new("Frame", parent)
+            leftBorder.Size = UDim2.new(0, 1, 1, 0)
+            leftBorder.Position = UDim2.new(0, 0, 0, 0)
+            leftBorder.BackgroundColor3 = topColor
+            leftBorder.BorderSizePixel = 0
+            leftBorder.ZIndex = parent.ZIndex + 1
+            
+            local bottomBorder = Instance.new("Frame", parent)
+            bottomBorder.Size = UDim2.new(1, 0, 0, 1)
+            bottomBorder.Position = UDim2.new(0, 0, 1, -1)
+            bottomBorder.BackgroundColor3 = bottomColor
+            bottomBorder.BorderSizePixel = 0
+            bottomBorder.ZIndex = parent.ZIndex + 1
+            
+            local rightBorder = Instance.new("Frame", parent)
+            rightBorder.Size = UDim2.new(0, 1, 1, 0)
+            rightBorder.Position = UDim2.new(1, -1, 0, 0)
+            rightBorder.BackgroundColor3 = bottomColor
+            rightBorder.BorderSizePixel = 0
+            rightBorder.ZIndex = parent.ZIndex + 1
+        end
+        
+        CreateWin95Border(keyContainer, true)
+
+        local keyLabel = Instance.new("TextLabel", keyContainer)
+        keyLabel.Size = UDim2.new(1, -4, 1, 0)
+        keyLabel.Position = UDim2.new(0, 2, 0, 0)
         keyLabel.BackgroundTransparency = 1
-        keyLabel.TextColor3 = Color3.new(1, 1, 1)
-        keyLabel.Font = Enum.Font.Code
-        keyLabel.TextSize = 13
+        keyLabel.TextColor3 = self.Theme.Text
+        keyLabel.Font = self.Theme.Font
+        keyLabel.TextSize = 12
         keyLabel.TextXAlignment = Enum.TextXAlignment.Left
         keyLabel.Text = tostring(key)
 
@@ -29932,32 +30232,39 @@ function Modules.ModuleEditor:ShowTable(tbl, tableScroll, backBtn)
                     break
                 end
             end
-            local icon = hasEditable and "✔️" or "❌"
+            local icon = hasEditable and "✔" or "✖"
 
             local openBtn = Instance.new("TextButton", tableScroll)
-            openBtn.Size = UDim2.new(0.6, -15, 0, 25)
-            openBtn.Position = UDim2.new(0.4, 5, 0, (count - 1) * 30)
-            openBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-            openBtn.TextColor3 = Color3.new(1, 1, 1)
-            openBtn.Font = Enum.Font.Code
-            openBtn.TextSize = 13
-            openBtn.Text = icon .. " ➡ [table]"
+            openBtn.Size = UDim2.new(0.65, -8, 0, 22)
+            openBtn.Position = UDim2.new(0.35, 5, 0, (count - 1) * 27)
+            openBtn.BackgroundColor3 = self.Theme.WindowGray
+            openBtn.BorderSizePixel = 0
+            openBtn.TextColor3 = self.Theme.Text
+            openBtn.Font = self.Theme.Font
+            openBtn.TextSize = 12
+            openBtn.Text = icon .. " » [table]"
+            
+            CreateWin95Border(openBtn, false)
+            
             openBtn.MouseButton1Click:Connect(function()
                 table.insert(self.State.TableStack, tbl)
                 self:ShowTable(value, tableScroll, backBtn)
             end)
         else
             local valueBox = Instance.new("TextBox", tableScroll)
-            valueBox.Size = UDim2.new(0.6, -15, 0, 25)
-            valueBox.Position = UDim2.new(0.4, 5, 0, (count - 1) * 30)
-            valueBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            valueBox.TextColor3 = Color3.new(1, 1, 1)
-            valueBox.Font = Enum.Font.Code
-            valueBox.TextSize = 13
+            valueBox.Size = UDim2.new(0.65, -8, 0, 22)
+            valueBox.Position = UDim2.new(0.35, 5, 0, (count - 1) * 27)
+            valueBox.BackgroundColor3 = self.Theme.White
+            valueBox.BorderSizePixel = 0
+            valueBox.TextColor3 = self.Theme.Text
+            valueBox.Font = self.Theme.Font
+            valueBox.TextSize = 12
             valueBox.ClearTextOnFocus = false
             valueBox.TextWrapped = false
             valueBox.TextTruncate = Enum.TextTruncate.AtEnd
             valueBox.Text = displayValue
+            
+            CreateWin95Border(valueBox, true)
 
             valueBox.FocusLost:Connect(function()
                 local input = valueBox.Text
@@ -29977,90 +30284,211 @@ function Modules.ModuleEditor:ShowTable(tbl, tableScroll, backBtn)
 
                 tbl[key] = newValue
                 print("[ModuleEditor] Patch Applied:", key, "=", newValue)
+                DoNotif("Patched: " .. tostring(key), 2)
             end)
         end
     end
 
-    tableScroll.CanvasSize = UDim2.new(0, 0, 0, count * 30 + 10)
+    tableScroll.CanvasSize = UDim2.new(0, 0, 0, count * 27 + 10)
 end
 
 function Modules.ModuleEditor:CreateUI()
     if self.State.UI then self.State.UI.Enabled = true return end
 
     local module = self
+    
+    local function CreateWin95Border(parent, isInset)
+        local topColor = isInset and module.Theme.DarkGray or module.Theme.White
+        local bottomColor = isInset and module.Theme.White or module.Theme.DarkGray
+        
+        local topBorder = Instance.new("Frame", parent)
+        topBorder.Name = "TopBorder"
+        topBorder.Size = UDim2.new(1, 0, 0, 2)
+        topBorder.Position = UDim2.new(0, 0, 0, 0)
+        topBorder.BackgroundColor3 = topColor
+        topBorder.BorderSizePixel = 0
+        topBorder.ZIndex = parent.ZIndex + 1
+        
+        local leftBorder = Instance.new("Frame", parent)
+        leftBorder.Name = "LeftBorder"
+        leftBorder.Size = UDim2.new(0, 2, 1, 0)
+        leftBorder.Position = UDim2.new(0, 0, 0, 0)
+        leftBorder.BackgroundColor3 = topColor
+        leftBorder.BorderSizePixel = 0
+        leftBorder.ZIndex = parent.ZIndex + 1
+        
+        local bottomBorder = Instance.new("Frame", parent)
+        bottomBorder.Name = "BottomBorder"
+        bottomBorder.Size = UDim2.new(1, 0, 0, 2)
+        bottomBorder.Position = UDim2.new(0, 0, 1, -2)
+        bottomBorder.BackgroundColor3 = bottomColor
+        bottomBorder.BorderSizePixel = 0
+        bottomBorder.ZIndex = parent.ZIndex + 1
+        
+        local rightBorder = Instance.new("Frame", parent)
+        rightBorder.Name = "RightBorder"
+        rightBorder.Size = UDim2.new(0, 2, 1, 0)
+        rightBorder.Position = UDim2.new(1, -2, 0, 0)
+        rightBorder.BackgroundColor3 = bottomColor
+        rightBorder.BorderSizePixel = 0
+        rightBorder.ZIndex = parent.ZIndex + 1
+    end
+    
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "Zuka_ModuleTableEditor"
+    screenGui.Name = "ModuleTableEditor_Win95"
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
     screenGui.Parent = self.Services.CoreGui
     self.State.UI = screenGui
 
     local mainFrame = Instance.new("Frame", screenGui)
-    mainFrame.Size = UDim2.new(0, 540, 0, 380)
-    mainFrame.Position = UDim2.new(0.5, -270, 0.5, -190)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    mainFrame.Name = "WindowFrame"
+    mainFrame.Size = UDim2.new(0, 600, 0, 450)
+    mainFrame.Position = UDim2.new(0.5, -300, 0.5, -225)
+    mainFrame.BackgroundColor3 = self.Theme.WindowGray
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
-    mainFrame.Draggable = true
+    mainFrame.ClipsDescendants = false
 
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
+    CreateWin95Border(mainFrame, false)
 
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Size = UDim2.new(1, -100, 0, 30)
-    title.Position = UDim2.new(0, 10, 0, 5)
-    title.Text = "Overseer Mini"
-    title.Font = Enum.Font.SourceSansSemibold
-    title.TextSize = 18
-    title.TextColor3 = Color3.new(1, 1, 1)
-    title.BackgroundTransparency = 1
-    title.TextXAlignment = Enum.TextXAlignment.Left
+    -- Title Bar
+    local titleBar = Instance.new("Frame", mainFrame)
+    titleBar.Name = "TitleBar"
+    titleBar.Position = UDim2.new(0, 3, 0, 3)
+    titleBar.Size = UDim2.new(1, -6, 0, 22)
+    titleBar.BackgroundColor3 = self.Theme.Blue
+    titleBar.BorderSizePixel = 0
+    titleBar.ZIndex = 2
 
-    local closeBtn = Instance.new("TextButton", mainFrame)
-    closeBtn.Position = UDim2.new(1, -90, 0, 5)
-    closeBtn.Size = UDim2.new(0, 80, 0, 25)
-    closeBtn.Text = "Close"
-    closeBtn.BackgroundColor3 = Color3.fromRGB(100, 40, 40)
-    closeBtn.TextColor3 = Color3.new(1, 1, 1)
-    closeBtn.Font = Enum.Font.SourceSansBold
-    closeBtn.TextSize = 14
-    closeBtn.MouseButton1Click:Connect(function()
+    local titleGradient = Instance.new("UIGradient", titleBar)
+    titleGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 168)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 132, 208))
+    }
+    titleGradient.Rotation = 90
+
+    local titleLabel = Instance.new("TextLabel", titleBar)
+    titleLabel.Name = "Title"
+    titleLabel.Position = UDim2.new(0, 4, 0, 0)
+    titleLabel.Size = UDim2.new(1, -70, 1, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Text = "Module Table Editor - Overseer Mini"
+    titleLabel.TextColor3 = self.Theme.White
+    titleLabel.TextSize = 13
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    titleLabel.ZIndex = 3
+
+    -- Minimize button
+    local minimizeButton = Instance.new("TextButton", titleBar)
+    minimizeButton.Name = "MinimizeButton"
+    minimizeButton.Position = UDim2.new(1, -54, 0, 2)
+    minimizeButton.Size = UDim2.new(0, 16, 0, 16)
+    minimizeButton.BackgroundColor3 = self.Theme.WindowGray
+    minimizeButton.BorderSizePixel = 0
+    minimizeButton.Font = Enum.Font.SourceSansBold
+    minimizeButton.Text = "_"
+    minimizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    minimizeButton.TextSize = 14
+    minimizeButton.TextYAlignment = Enum.TextYAlignment.Top
+    minimizeButton.ZIndex = 4
+    
+    CreateWin95Border(minimizeButton, false)
+    
+    minimizeButton.MouseButton1Click:Connect(function()
+        if module.State.IsMinimized then
+            module:Restore()
+        else
+            module:Minimize()
+        end
+    end)
+
+    -- Maximize button
+    local maximizeButton = Instance.new("TextButton", titleBar)
+    maximizeButton.Name = "MaximizeButton"
+    maximizeButton.Position = UDim2.new(1, -36, 0, 2)
+    maximizeButton.Size = UDim2.new(0, 16, 0, 16)
+    maximizeButton.BackgroundColor3 = self.Theme.WindowGray
+    maximizeButton.BorderSizePixel = 0
+    maximizeButton.Font = Enum.Font.SourceSansBold
+    maximizeButton.Text = "□"
+    maximizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    maximizeButton.TextSize = 14
+    maximizeButton.ZIndex = 4
+    
+    CreateWin95Border(maximizeButton, false)
+    
+    maximizeButton.MouseButton1Click:Connect(function()
+        module:Maximize()
+    end)
+
+    -- Close button
+    local closeButton = Instance.new("TextButton", titleBar)
+    closeButton.Name = "CloseButton"
+    closeButton.Position = UDim2.new(1, -18, 0, 2)
+    closeButton.Size = UDim2.new(0, 16, 0, 16)
+    closeButton.BackgroundColor3 = self.Theme.WindowGray
+    closeButton.BorderSizePixel = 0
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.Text = "×"
+    closeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    closeButton.TextSize = 16
+    closeButton.ZIndex = 4
+    
+    CreateWin95Border(closeButton, false)
+    
+    closeButton.MouseButton1Click:Connect(function()
         module:DestroyUI()
     end)
 
-    local buttonsFrame = Instance.new("Frame", mainFrame)
-    buttonsFrame.Size = UDim2.new(0, 160, 1, -40)
-    buttonsFrame.Position = UDim2.new(0, 10, 0, 40)
-    buttonsFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    buttonsFrame.BorderSizePixel = 0
+    -- Left sidebar container
+    local sidebarContainer = Instance.new("Frame", mainFrame)
+    sidebarContainer.Name = "SidebarContainer"
+    sidebarContainer.Size = UDim2.new(0, 180, 1, -34)
+    sidebarContainer.Position = UDim2.new(0, 6, 0, 28)
+    sidebarContainer.BackgroundColor3 = self.Theme.WindowGray
+    sidebarContainer.BorderSizePixel = 0
+    sidebarContainer.ZIndex = 1
+    
+    CreateWin95Border(sidebarContainer, true)
 
-    local scroll = Instance.new("ScrollingFrame", buttonsFrame)
-    scroll.Size = UDim2.new(1, 0, 1, 0)
+    local scroll = Instance.new("ScrollingFrame", sidebarContainer)
+    scroll.Size = UDim2.new(1, -8, 1, -8)
+    scroll.Position = UDim2.new(0, 4, 0, 4)
     scroll.CanvasSize = UDim2.new(0, 0, 5, 0)
     scroll.BackgroundTransparency = 1
-    scroll.ScrollBarThickness = 6
+    scroll.BorderSizePixel = 0
+    scroll.ScrollBarThickness = 16
+    scroll.ScrollBarImageColor3 = self.Theme.WindowGray
 
+    -- Right panel container
     local tableFrame = Instance.new("Frame", mainFrame)
-    tableFrame.Position = UDim2.new(0, 180, 0, 40)
-    tableFrame.Size = UDim2.new(1, -190, 1, -50)
-    tableFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    tableFrame.Name = "TableContainer"
+    tableFrame.Position = UDim2.new(0, 192, 0, 28)
+    tableFrame.Size = UDim2.new(1, -198, 1, -34)
+    tableFrame.BackgroundColor3 = self.Theme.WindowGray
     tableFrame.BorderSizePixel = 0
     tableFrame.Visible = false
+    tableFrame.ZIndex = 1
+    
+    CreateWin95Border(tableFrame, true)
 
-    local tableScroll = Instance.new("ScrollingFrame", tableFrame)
-    tableScroll.Size = UDim2.new(1, -8, 1, -40)
-    tableScroll.Position = UDim2.new(0, 4, 0, 35)
-    tableScroll.ScrollBarThickness = 6
-    tableScroll.BackgroundTransparency = 1
-
+    -- Back button
     local backBtn = Instance.new("TextButton", tableFrame)
-    backBtn.Size = UDim2.new(0, 60, 0, 25)
-    backBtn.Position = UDim2.new(0, 5, 0, 5)
-    backBtn.Text = "⬅"
-    backBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    backBtn.TextColor3 = Color3.new(1, 1, 1)
-    backBtn.Font = Enum.Font.SourceSansBold
-    backBtn.TextSize = 14
+    backBtn.Size = UDim2.new(0, 70, 0, 22)
+    backBtn.Position = UDim2.new(0, 6, 0, 6)
+    backBtn.Text = "« Back"
+    backBtn.BackgroundColor3 = self.Theme.WindowGray
+    backBtn.BorderSizePixel = 0
+    backBtn.TextColor3 = self.Theme.Text
+    backBtn.Font = self.Theme.Font
+    backBtn.TextSize = 12
     backBtn.Visible = false
+    backBtn.ZIndex = 2
+    
+    CreateWin95Border(backBtn, false)
 
     backBtn.MouseButton1Click:Connect(function()
         if #module.State.TableStack > 0 then
@@ -30068,6 +30496,15 @@ function Modules.ModuleEditor:CreateUI()
             module:ShowTable(prev, tableScroll, backBtn)
         end
     end)
+
+    local tableScroll = Instance.new("ScrollingFrame", tableFrame)
+    tableScroll.Size = UDim2.new(1, -12, 1, -40)
+    tableScroll.Position = UDim2.new(0, 6, 0, 32)
+    tableScroll.ScrollBarThickness = 16
+    tableScroll.ScrollBarImageColor3 = self.Theme.WindowGray
+    tableScroll.BackgroundTransparency = 1
+    tableScroll.BorderSizePixel = 0
+    tableScroll.ZIndex = 2
 
     local yOffset = 0
     local containers = {
@@ -30078,17 +30515,21 @@ function Modules.ModuleEditor:CreateUI()
 
     for serviceName, service in pairs(containers) do
         local serviceBtn = Instance.new("TextButton", scroll)
-        serviceBtn.Size = UDim2.new(1, 0, 0, 25)
-        serviceBtn.Position = UDim2.new(0, 0, 0, yOffset)
-        serviceBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        serviceBtn.TextColor3 = Color3.new(1, 1, 1)
+        serviceBtn.Size = UDim2.new(1, -4, 0, 24)
+        serviceBtn.Position = UDim2.new(0, 2, 0, yOffset)
+        serviceBtn.BackgroundColor3 = self.Theme.WindowGray
+        serviceBtn.BorderSizePixel = 0
+        serviceBtn.TextColor3 = self.Theme.Text
         serviceBtn.Text = "📁 " .. serviceName
-        serviceBtn.Font = Enum.Font.SourceSans
-        serviceBtn.TextSize = 14
+        serviceBtn.Font = self.Theme.Font
+        serviceBtn.TextSize = 12
+        
+        CreateWin95Border(serviceBtn, false)
+        
         yOffset += 27
 
         serviceBtn.MouseButton1Click:Connect(function()
-
+            -- Clear previous modules
             for _, btn in ipairs(scroll:GetChildren()) do
                 if btn:IsA("TextButton") and not btn.Text:find("📁") then
                     btn:Destroy()
@@ -30099,16 +30540,21 @@ function Modules.ModuleEditor:CreateUI()
             for _, obj in ipairs(service:GetDescendants()) do
                 if obj:IsA("ModuleScript") then
                     local success, moduleTable = pcall(function() return require(obj) end)
-                    local icon = (success and typeof(moduleTable) == "table") and "✔️" or "❌"
+                    local icon = (success and typeof(moduleTable) == "table") and "✔" or "✖"
 
                     local modBtn = Instance.new("TextButton", scroll)
-                    modBtn.Size = UDim2.new(1, 0, 0, 25)
-                    modBtn.Position = UDim2.new(0, 0, 0, modOffset)
-                    modBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-                    modBtn.TextColor3 = Color3.new(1, 1, 1)
-                    modBtn.Text = icon .. " " .. obj.Name
-                    modBtn.Font = Enum.Font.SourceSans
-                    modBtn.TextSize = 13
+                    modBtn.Size = UDim2.new(1, -4, 0, 24)
+                    modBtn.Position = UDim2.new(0, 2, 0, modOffset)
+                    modBtn.BackgroundColor3 = self.Theme.WindowGray
+                    modBtn.BorderSizePixel = 0
+                    modBtn.TextColor3 = self.Theme.Text
+                    modBtn.Text = "  " .. icon .. " " .. obj.Name
+                    modBtn.Font = self.Theme.Font
+                    modBtn.TextSize = 11
+                    modBtn.TextXAlignment = Enum.TextXAlignment.Left
+                    
+                    CreateWin95Border(modBtn, false)
+                    
                     modOffset += 27
 
                     modBtn.MouseButton1Click:Connect(function()
@@ -30126,6 +30572,71 @@ function Modules.ModuleEditor:CreateUI()
             scroll.CanvasSize = UDim2.fromOffset(0, modOffset + 50)
         end)
     end
+
+    -- Resize handle
+    local resizeHandle = Instance.new("Frame")
+    resizeHandle.Name = "ResizeHandle"
+    resizeHandle.Size = UDim2.fromOffset(16, 16)
+    resizeHandle.Position = UDim2.new(1, -16, 1, -16)
+    resizeHandle.BackgroundColor3 = self.Theme.WindowGray
+    resizeHandle.BorderSizePixel = 0
+    resizeHandle.ZIndex = 10
+    resizeHandle.Parent = mainFrame
+    
+    for i = 0, 2 do
+        local line = Instance.new("Frame", resizeHandle)
+        line.Size = UDim2.new(0, 2, 1, -4 * i)
+        line.Position = UDim2.new(0, 4 + (4 * i), 0, 4 * i)
+        line.BackgroundColor3 = self.Theme.DarkGray
+        line.BorderSizePixel = 0
+        line.Rotation = 45
+    end
+
+    -- Dragging and resizing
+    local dragging, resizing = false, false
+    local dragStart, resizeStart, startPos, startSize
+
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end)
+
+    resizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = true
+            resizeStart = input.Position
+            startSize = mainFrame.Size
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    resizing = false
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end)
+    
+    self.Services.UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            if dragging then
+                local delta = input.Position - dragStart
+                mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            elseif resizing then
+                local delta = Vector2.new(input.Position.X - resizeStart.X, input.Position.Y - resizeStart.Y)
+                local newX = math.max(400, startSize.X.Offset + delta.X)
+                local newY = math.max(300, startSize.Y.Offset + delta.Y)
+                mainFrame.Size = UDim2.new(0, newX, 0, newY)
+            end
+        end
+    end)
     
     DoNotif("Module Table Editor: INITIALIZED", 2)
 end
@@ -30138,6 +30649,491 @@ function Modules.ModuleEditor:Initialize()
         Description = "Opens the Module Table Editor to live-patch constants."
     }, function()
         module:CreateUI()
+    end)
+end
+
+Modules.ScriptExecutor2 = {
+    State = {
+        IsEnabled = false,
+        UI = nil,
+        IsMinimized = false,
+        IsMaximized = false,
+        PreMaximizeSize = nil,
+        PreMaximizePosition = nil,
+        SavedScripts = {}
+    },
+    Theme = {
+        Background = Color3.fromRGB(0, 0, 0),
+        WindowGray = Color3.fromRGB(192, 192, 192),
+        DarkGray = Color3.fromRGB(128, 128, 128),
+        LightGray = Color3.fromRGB(223, 223, 223),
+        White = Color3.fromRGB(255, 255, 255),
+        Blue = Color3.fromRGB(0, 0, 128),
+        Accent = Color3.fromRGB(0, 255, 0),
+        Text = Color3.fromRGB(0, 0, 0),
+        EditorBg = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.Code
+    },
+    Services = {
+        CoreGui = game:GetService("CoreGui"),
+        TweenService = game:GetService("TweenService"),
+        UserInputService = game:GetService("UserInputService")
+    }
+}
+
+function Modules.ScriptExecutor2:Minimize()
+    if self.State.IsMinimized then return end
+    self.State.IsMinimized = true
+    
+    local mainFrame = self.State.UI:FindFirstChild("WindowFrame")
+    if not mainFrame then return end
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = self.Services.TweenService:Create(mainFrame, tweenInfo, {
+        Position = UDim2.new(0.5, -mainFrame.Size.X.Offset/2, 1, 50),
+        Size = UDim2.new(0, mainFrame.Size.X.Offset, 0, 30)
+    })
+    tween:Play()
+end
+
+function Modules.ScriptExecutor2:Restore()
+    if not self.State.IsMinimized then return end
+    self.State.IsMinimized = false
+    
+    local mainFrame = self.State.UI:FindFirstChild("WindowFrame")
+    if not mainFrame then return end
+    
+    local targetSize = self.State.PreMaximizeSize or UDim2.new(0, 650, 0, 500)
+    local targetPos = self.State.PreMaximizePosition or UDim2.new(0.5, -325, 0.5, -250)
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = self.Services.TweenService:Create(mainFrame, tweenInfo, {
+        Position = targetPos,
+        Size = targetSize
+    })
+    tween:Play()
+end
+
+function Modules.ScriptExecutor2:Maximize()
+    local mainFrame = self.State.UI:FindFirstChild("WindowFrame")
+    if not mainFrame then return end
+    
+    if self.State.IsMaximized then
+        self.State.IsMaximized = false
+        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = self.Services.TweenService:Create(mainFrame, tweenInfo, {
+            Position = self.State.PreMaximizePosition,
+            Size = self.State.PreMaximizeSize
+        })
+        tween:Play()
+    else
+        self.State.PreMaximizeSize = mainFrame.Size
+        self.State.PreMaximizePosition = mainFrame.Position
+        self.State.IsMaximized = true
+        
+        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = self.Services.TweenService:Create(mainFrame, tweenInfo, {
+            Position = UDim2.new(0, 0, 0, 0),
+            Size = UDim2.new(1, 0, 1, 0)
+        })
+        tween:Play()
+    end
+end
+
+function Modules.ScriptExecutor2:DestroyUI()
+    if self.State.UI then
+        self.State.UI:Destroy()
+        self.State.UI = nil
+    end
+    self.State.IsMinimized = false
+    self.State.IsMaximized = false
+    self.State.IsEnabled = false
+end
+
+function Modules.ScriptExecutor2:Execute(scriptText)
+    if not scriptText or scriptText == "" then
+        DoNotif("No script to execute.", 2)
+        return
+    end
+    
+    local success, err = pcall(function()
+        loadstring(scriptText)()
+    end)
+    
+    if success then
+        DoNotif("Script executed successfully.", 2)
+    else
+        DoNotif("Execution failed: " .. tostring(err), 3)
+        warn("[ScriptExecutor] Error:", err)
+    end
+end
+
+function Modules.ScriptExecutor2:CreateUI()
+    if self.State.UI then 
+        self.State.UI.Enabled = true 
+        return 
+    end
+
+    local module = self
+    
+    local function CreateWin95Border(parent, isInset)
+        local topColor = isInset and module.Theme.DarkGray or module.Theme.White
+        local bottomColor = isInset and module.Theme.White or module.Theme.DarkGray
+        
+        local topBorder = Instance.new("Frame", parent)
+        topBorder.Name = "TopBorder"
+        topBorder.Size = UDim2.new(1, 0, 0, 2)
+        topBorder.Position = UDim2.new(0, 0, 0, 0)
+        topBorder.BackgroundColor3 = topColor
+        topBorder.BorderSizePixel = 0
+        topBorder.ZIndex = parent.ZIndex + 1
+        
+        local leftBorder = Instance.new("Frame", parent)
+        leftBorder.Name = "LeftBorder"
+        leftBorder.Size = UDim2.new(0, 2, 1, 0)
+        leftBorder.Position = UDim2.new(0, 0, 0, 0)
+        leftBorder.BackgroundColor3 = topColor
+        leftBorder.BorderSizePixel = 0
+        leftBorder.ZIndex = parent.ZIndex + 1
+        
+        local bottomBorder = Instance.new("Frame", parent)
+        bottomBorder.Name = "BottomBorder"
+        bottomBorder.Size = UDim2.new(1, 0, 0, 2)
+        bottomBorder.Position = UDim2.new(0, 0, 1, -2)
+        bottomBorder.BackgroundColor3 = bottomColor
+        bottomBorder.BorderSizePixel = 0
+        bottomBorder.ZIndex = parent.ZIndex + 1
+        
+        local rightBorder = Instance.new("Frame", parent)
+        rightBorder.Name = "RightBorder"
+        rightBorder.Size = UDim2.new(0, 2, 1, 0)
+        rightBorder.Position = UDim2.new(1, -2, 0, 0)
+        rightBorder.BackgroundColor3 = bottomColor
+        rightBorder.BorderSizePixel = 0
+        rightBorder.ZIndex = parent.ZIndex + 1
+    end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "ScriptExecutor_Win95"
+    screenGui.ResetOnSpawn = false
+    screenGui.IgnoreGuiInset = true
+    screenGui.Parent = self.Services.CoreGui
+    self.State.UI = screenGui
+
+    local mainFrame = Instance.new("Frame", screenGui)
+    mainFrame.Name = "WindowFrame"
+    mainFrame.Size = UDim2.new(0, 650, 0, 500)
+    mainFrame.Position = UDim2.new(0.5, -325, 0.5, -250)
+    mainFrame.BackgroundColor3 = self.Theme.WindowGray
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.ClipsDescendants = false
+
+    CreateWin95Border(mainFrame, false)
+
+    -- Title Bar
+    local titleBar = Instance.new("Frame", mainFrame)
+    titleBar.Name = "TitleBar"
+    titleBar.Position = UDim2.new(0, 3, 0, 3)
+    titleBar.Size = UDim2.new(1, -6, 0, 22)
+    titleBar.BackgroundColor3 = self.Theme.Blue
+    titleBar.BorderSizePixel = 0
+    titleBar.ZIndex = 2
+
+    local titleGradient = Instance.new("UIGradient", titleBar)
+    titleGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 168)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 132, 208))
+    }
+    titleGradient.Rotation = 90
+
+    local titleLabel = Instance.new("TextLabel", titleBar)
+    titleLabel.Name = "Title"
+    titleLabel.Position = UDim2.new(0, 4, 0, 0)
+    titleLabel.Size = UDim2.new(1, -70, 1, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Text = "Script Executor"
+    titleLabel.TextColor3 = self.Theme.White
+    titleLabel.TextSize = 13
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    titleLabel.ZIndex = 3
+
+    -- Minimize button
+    local minimizeButton = Instance.new("TextButton", titleBar)
+    minimizeButton.Name = "MinimizeButton"
+    minimizeButton.Position = UDim2.new(1, -54, 0, 2)
+    minimizeButton.Size = UDim2.new(0, 16, 0, 16)
+    minimizeButton.BackgroundColor3 = self.Theme.WindowGray
+    minimizeButton.BorderSizePixel = 0
+    minimizeButton.Font = Enum.Font.SourceSansBold
+    minimizeButton.Text = "_"
+    minimizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    minimizeButton.TextSize = 14
+    minimizeButton.TextYAlignment = Enum.TextYAlignment.Top
+    minimizeButton.ZIndex = 4
+    
+    CreateWin95Border(minimizeButton, false)
+    
+    minimizeButton.MouseButton1Click:Connect(function()
+        if module.State.IsMinimized then
+            module:Restore()
+        else
+            module:Minimize()
+        end
+    end)
+
+    -- Maximize button
+    local maximizeButton = Instance.new("TextButton", titleBar)
+    maximizeButton.Name = "MaximizeButton"
+    maximizeButton.Position = UDim2.new(1, -36, 0, 2)
+    maximizeButton.Size = UDim2.new(0, 16, 0, 16)
+    maximizeButton.BackgroundColor3 = self.Theme.WindowGray
+    maximizeButton.BorderSizePixel = 0
+    maximizeButton.Font = Enum.Font.SourceSansBold
+    maximizeButton.Text = "□"
+    maximizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    maximizeButton.TextSize = 14
+    maximizeButton.ZIndex = 4
+    
+    CreateWin95Border(maximizeButton, false)
+    
+    maximizeButton.MouseButton1Click:Connect(function()
+        module:Maximize()
+    end)
+
+    -- Close button
+    local closeButton = Instance.new("TextButton", titleBar)
+    closeButton.Name = "CloseButton"
+    closeButton.Position = UDim2.new(1, -18, 0, 2)
+    closeButton.Size = UDim2.new(0, 16, 0, 16)
+    closeButton.BackgroundColor3 = self.Theme.WindowGray
+    closeButton.BorderSizePixel = 0
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.Text = "×"
+    closeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    closeButton.TextSize = 16
+    closeButton.ZIndex = 4
+    
+    CreateWin95Border(closeButton, false)
+    
+    closeButton.MouseButton1Click:Connect(function()
+        module:DestroyUI()
+    end)
+
+    -- Editor container
+    local editorContainer = Instance.new("Frame", mainFrame)
+    editorContainer.Name = "EditorContainer"
+    editorContainer.Position = UDim2.new(0, 6, 0, 28)
+    editorContainer.Size = UDim2.new(1, -12, 1, -68)
+    editorContainer.BackgroundColor3 = self.Theme.EditorBg
+    editorContainer.BorderSizePixel = 0
+    editorContainer.ZIndex = 1
+    
+    CreateWin95Border(editorContainer, true)
+
+    -- Script TextBox
+    local scriptBox = Instance.new("TextBox", editorContainer)
+    scriptBox.Name = "ScriptEditor"
+    scriptBox.Size = UDim2.new(1, -8, 1, -8)
+    scriptBox.Position = UDim2.new(0, 4, 0, 4)
+    scriptBox.BackgroundTransparency = 1
+    scriptBox.Font = self.Theme.Font
+    scriptBox.TextSize = 14
+    scriptBox.TextColor3 = self.Theme.Text
+    scriptBox.TextXAlignment = Enum.TextXAlignment.Left
+    scriptBox.TextYAlignment = Enum.TextYAlignment.Top
+    scriptBox.ClearTextOnFocus = false
+    scriptBox.MultiLine = true
+    scriptBox.Text = "-- Enter your script here\nprint('Hello, World!')"
+    scriptBox.TextWrapped = true
+    scriptBox.ZIndex = 2
+
+    -- Button bar
+    local buttonBar = Instance.new("Frame", mainFrame)
+    buttonBar.Name = "ButtonBar"
+    buttonBar.Position = UDim2.new(0, 6, 1, -34)
+    buttonBar.Size = UDim2.new(1, -12, 0, 28)
+    buttonBar.BackgroundColor3 = self.Theme.WindowGray
+    buttonBar.BorderSizePixel = 0
+    buttonBar.ZIndex = 1
+    
+    CreateWin95Border(buttonBar, true)
+
+    -- Execute button
+    local executeBtn = Instance.new("TextButton", buttonBar)
+    executeBtn.Name = "ExecuteButton"
+    executeBtn.Position = UDim2.new(0, 6, 0, 4)
+    executeBtn.Size = UDim2.new(0, 100, 0, 20)
+    executeBtn.BackgroundColor3 = self.Theme.WindowGray
+    executeBtn.BorderSizePixel = 0
+    executeBtn.Font = Enum.Font.SourceSansBold
+    executeBtn.Text = "Execute"
+    executeBtn.TextColor3 = self.Theme.Text
+    executeBtn.TextSize = 12
+    executeBtn.ZIndex = 2
+    
+    CreateWin95Border(executeBtn, false)
+    
+    executeBtn.MouseButton1Click:Connect(function()
+        module:Execute(scriptBox.Text)
+    end)
+
+    -- Clear button
+    local clearBtn = Instance.new("TextButton", buttonBar)
+    clearBtn.Name = "ClearButton"
+    clearBtn.Position = UDim2.new(0, 112, 0, 4)
+    clearBtn.Size = UDim2.new(0, 100, 0, 20)
+    clearBtn.BackgroundColor3 = self.Theme.WindowGray
+    clearBtn.BorderSizePixel = 0
+    clearBtn.Font = Enum.Font.SourceSansBold
+    clearBtn.Text = "Clear"
+    clearBtn.TextColor3 = self.Theme.Text
+    clearBtn.TextSize = 12
+    clearBtn.ZIndex = 2
+    
+    CreateWin95Border(clearBtn, false)
+    
+    clearBtn.MouseButton1Click:Connect(function()
+        scriptBox.Text = ""
+        DoNotif("Editor cleared.", 2)
+    end)
+
+    -- Copy to Clipboard button
+    local copyBtn = Instance.new("TextButton", buttonBar)
+    copyBtn.Name = "CopyButton"
+    copyBtn.Position = UDim2.new(0, 218, 0, 4)
+    copyBtn.Size = UDim2.new(0, 100, 0, 20)
+    copyBtn.BackgroundColor3 = self.Theme.WindowGray
+    copyBtn.BorderSizePixel = 0
+    copyBtn.Font = Enum.Font.SourceSansBold
+    copyBtn.Text = "Copy"
+    copyBtn.TextColor3 = self.Theme.Text
+    copyBtn.TextSize = 12
+    copyBtn.ZIndex = 2
+    
+    CreateWin95Border(copyBtn, false)
+    
+    copyBtn.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard(scriptBox.Text)
+            DoNotif("Copied to clipboard.", 2)
+        else
+            DoNotif("Clipboard not supported.", 2)
+        end
+    end)
+
+    -- Paste from Clipboard button
+    local pasteBtn = Instance.new("TextButton", buttonBar)
+    pasteBtn.Name = "PasteButton"
+    pasteBtn.Position = UDim2.new(0, 324, 0, 4)
+    pasteBtn.Size = UDim2.new(0, 100, 0, 20)
+    pasteBtn.BackgroundColor3 = self.Theme.WindowGray
+    pasteBtn.BorderSizePixel = 0
+    pasteBtn.Font = Enum.Font.SourceSansBold
+    pasteBtn.Text = "Paste"
+    pasteBtn.TextColor3 = self.Theme.Text
+    pasteBtn.TextSize = 12
+    pasteBtn.ZIndex = 2
+    
+    CreateWin95Border(pasteBtn, false)
+    
+    pasteBtn.MouseButton1Click:Connect(function()
+        if getclipboard then
+            scriptBox.Text = getclipboard()
+            DoNotif("Pasted from clipboard.", 2)
+        else
+            DoNotif("Clipboard not supported.", 2)
+        end
+    end)
+
+    -- Resize handle
+    local resizeHandle = Instance.new("Frame")
+    resizeHandle.Name = "ResizeHandle"
+    resizeHandle.Size = UDim2.fromOffset(16, 16)
+    resizeHandle.Position = UDim2.new(1, -16, 1, -16)
+    resizeHandle.BackgroundColor3 = self.Theme.WindowGray
+    resizeHandle.BorderSizePixel = 0
+    resizeHandle.ZIndex = 10
+    resizeHandle.Parent = mainFrame
+    
+    for i = 0, 2 do
+        local line = Instance.new("Frame", resizeHandle)
+        line.Size = UDim2.new(0, 2, 1, -4 * i)
+        line.Position = UDim2.new(0, 4 + (4 * i), 0, 4 * i)
+        line.BackgroundColor3 = self.Theme.DarkGray
+        line.BorderSizePixel = 0
+        line.Rotation = 45
+    end
+
+    -- Dragging and resizing
+    local dragging, resizing = false, false
+    local dragStart, resizeStart, startPos, startSize
+
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end)
+
+    resizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = true
+            resizeStart = input.Position
+            startSize = mainFrame.Size
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    resizing = false
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end)
+    
+    self.Services.UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            if dragging then
+                local delta = input.Position - dragStart
+                mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            elseif resizing then
+                local delta = Vector2.new(input.Position.X - resizeStart.X, input.Position.Y - resizeStart.Y)
+                local newX = math.max(400, startSize.X.Offset + delta.X)
+                local newY = math.max(300, startSize.Y.Offset + delta.Y)
+                mainFrame.Size = UDim2.new(0, newX, 0, newY)
+            end
+        end
+    end)
+    
+    self.State.IsEnabled = true
+    DoNotif("Script Executor opened.", 2)
+end
+
+function Modules.ScriptExecutor2:Toggle()
+    if self.State.IsEnabled then
+        self:DestroyUI()
+        DoNotif("Script Executor closed.", 2)
+    else
+        self:CreateUI()
+    end
+end
+
+function Modules.ScriptExecutor2:Initialize()
+    local module = self
+    RegisterCommand({
+        Name = "fastexec",
+        Aliases = {},
+        Description = "Opens the script executor window."
+    }, function()
+        module:Toggle()
     end)
 end
 
@@ -30846,11 +31842,11 @@ end
 Modules.HumanShield = {
     State = {
         IsEnabled = false,
-        Target = nil,
-        Connection = nil
+        Targets = {},
+        Connections = {}
     },
     Config = {
-        DISTANCE = 1.5,
+        DISTANCE = 5.5,
         VERTICAL_OFFSET = 0
     },
     Dependencies = {"Players", "RunService"}
@@ -30858,11 +31854,58 @@ Modules.HumanShield = {
 
 function Modules.HumanShield:Stop(): ()
     self.State.IsEnabled = false
-    if self.State.Connection then
-        self.State.Connection:Disconnect()
-        self.State.Connection = nil
+    
+    for _, connection in pairs(self.State.Connections) do
+        if connection then
+            connection:Disconnect()
+        end
     end
-    self.State.Target = nil
+    
+    self.State.Connections = {}
+    self.State.Targets = {}
+end
+
+function Modules.HumanShield:PossessAll(): ()
+    if self.State.IsEnabled then self:Stop() end
+    
+    local myChar = Players.LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then
+        return DoNotif("Your character not found.", 2)
+    end
+    
+    local targets = {}
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(targets, player.Character)
+        end
+    end
+    
+    if #targets == 0 then
+        return DoNotif("No valid targets found.", 2)
+    end
+    
+    self.State.IsEnabled = true
+    self.State.Targets = targets
+    
+    for i, character in ipairs(targets) do
+        local tRoot = character:FindFirstChild("HumanoidRootPart")
+        if tRoot then
+            local connection = RunService.Heartbeat:Connect(function()
+                local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                
+                if not (myRoot and tRoot and tRoot.Parent) then
+                    return
+                end
+                
+                tRoot.Velocity = Vector3.new(0, 30.01, 0)
+                tRoot.CFrame = myRoot.CFrame * CFrame.new(0, self.Config.VERTICAL_OFFSET, -self.Config.DISTANCE)
+            end)
+            
+            table.insert(self.State.Connections, connection)
+        end
+    end
+    
+    DoNotif("Shield Active: All players (" .. #targets .. ")", 2)
 end
 
 function Modules.HumanShield:Possess(targetName: string): ()
@@ -30878,9 +31921,9 @@ function Modules.HumanShield:Possess(targetName: string): ()
     if not tRoot then return end
 
     self.State.IsEnabled = true
-    self.State.Target = character
+    table.insert(self.State.Targets, character)
     
-    self.State.Connection = RunService.Heartbeat:Connect(function()
+    local connection = RunService.Heartbeat:Connect(function()
         local myChar = Players.LocalPlayer.Character
         local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
         
@@ -30893,6 +31936,8 @@ function Modules.HumanShield:Possess(targetName: string): ()
         tRoot.CFrame = myRoot.CFrame * CFrame.new(0, self.Config.VERTICAL_OFFSET, -self.Config.DISTANCE)
     end)
     
+    table.insert(self.State.Connections, connection)
+    
     DoNotif("Shield Active: " .. targetPlr.Name, 2)
 end
 
@@ -30901,16 +31946,20 @@ function Modules.HumanShield:Initialize(): ()
     RegisterCommand({
         Name = "bring",
         Aliases = {},
-        Description = "Positions a player in front of you with their back turned."
+        Description = "Positions a player in front of you with their back turned. Use 'all' to bring all players."
     }, function(args)
         if module.State.IsEnabled then
             module:Stop()
             DoNotif("Shield Released.", 2)
         else
             if #args > 0 then
-                module:Possess(args[1])
+                if args[1]:lower() == "all" then
+                    module:PossessAll()
+                else
+                    module:Possess(args[1])
+                end
             else
-                DoNotif("Usage: ;bring [player]", 3)
+                DoNotif("Usage: ;bring [player/all]", 3)
             end
         end
     end)
@@ -40545,416 +41594,905 @@ Modules.InfiniteYieldPlugins = {
     State = {
         LoadedPlugins = {},
         PluginCache = {},
-        IsEnabled = true
+        IsEnabled = true,
+        PluginFolders = {"plugins", "workspace/plugins", "autoexec/plugins"}
     },
     
     Config = {
-        PLUGIN_DIR = "",
-        PLUGIN_EXT = ".iy"
+        PLUGIN_DIR = "plugins",
+        PLUGIN_EXT = ".iy",
+        AUTO_LOAD = false,
+        CACHE_PLUGINS = true,
+        MAX_FILE_SIZE = 1000000 -- 1MB limit for safety
     },
     
     Dependencies = {"HttpService"}
 }
 
-function Modules.InfiniteYieldPlugins:LoadPluginFile(filePath: string): (boolean, string)
+-- Improved file loading with validation and safety checks
+function Modules.InfiniteYieldPlugins:LoadPluginFile(filePath: string): (boolean, string?)
+    if not readfile then
+        return false, "readfile not available in this executor"
+    end
+    
     local success, result = pcall(function()
+        -- Validate file extension
         if not filePath:lower():find(self.Config.PLUGIN_EXT, 1, true) then
-            return false, "File must be a .iy file"
+            return false, "File must have " .. self.Config.PLUGIN_EXT .. " extension"
         end
         
-        if readfile then
-            local fileContent = readfile(filePath)
-            if not fileContent or fileContent == "" then
-                return false, "File is empty or cannot be read"
-            end
-            return true, fileContent
-        else
-            return false, "readfile not available"
+        -- Check if file exists
+        if not isfile or not isfile(filePath) then
+            return false, "File does not exist: " .. filePath
         end
+        
+        -- Read file content
+        local fileContent = readfile(filePath)
+        
+        if not fileContent or fileContent == "" then
+            return false, "File is empty or cannot be read"
+        end
+        
+        -- Check file size for safety
+        if #fileContent > self.Config.MAX_FILE_SIZE then
+            return false, "File too large (max " .. self.Config.MAX_FILE_SIZE .. " bytes)"
+        end
+        
+        -- Basic syntax validation
+        local testLoad, testErr = loadstring(fileContent)
+        if not testLoad then
+            return false, "Syntax error: " .. tostring(testErr)
+        end
+        
+        return true, fileContent
     end)
     
     if not success then
-        return false, result
+        return false, "Error loading file: " .. tostring(result)
     end
     
-    return true, result
+    return result
 end
 
-function Modules.InfiniteYieldPlugins:ExecutePluginCode(pluginName: string, code: string)
+-- Enhanced plugin execution with better sandboxing
+function Modules.InfiniteYieldPlugins:ExecutePluginCode(pluginName: string, code: string): (boolean, string?)
     local success, result = pcall(function()
+        -- Create safe environment for plugin
         local pluginEnv = setmetatable({
-            print = print, warn = warn, task = task, 
-            DoNotif = DoNotif, Player = LocalPlayer
-        }, {__index = getgenv()})
+            -- Core Lua functions
+            print = print,
+            warn = warn,
+            error = error,
+            assert = assert,
+            type = type,
+            typeof = typeof,
+            tostring = tostring,
+            tonumber = tonumber,
+            next = next,
+            pairs = pairs,
+            ipairs = ipairs,
+            pcall = pcall,
+            xpcall = xpcall,
+            select = select,
+            
+            -- Libraries
+            task = task,
+            table = table,
+            string = string,
+            math = math,
+            utf8 = utf8,
+            coroutine = coroutine,
+            
+            -- Roblox essentials
+            game = game,
+            workspace = workspace,
+            Instance = Instance,
+            Vector3 = Vector3,
+            Vector2 = Vector2,
+            CFrame = CFrame,
+            Color3 = Color3,
+            UDim2 = UDim2,
+            UDim = UDim,
+            Enum = Enum,
+            
+            -- Services
+            Players = game:GetService("Players"),
+            RunService = game:GetService("RunService"),
+            UserInputService = game:GetService("UserInputService"),
+            TweenService = game:GetService("TweenService"),
+            
+            -- Custom utilities
+            DoNotif = DoNotif,
+            Player = game:GetService("Players").LocalPlayer,
+            LocalPlayer = game:GetService("Players").LocalPlayer,
+            
+            -- Plugin metadata
+            _PLUGIN_NAME = pluginName,
+            _PLUGIN_VERSION = "1.0"
+        }, {__index = getgenv and getgenv() or _G})
         
-        local pluginFunc = loadstring(code)
-        if not pluginFunc then return false, "Syntax Error" end
-        
-        setfenv(pluginFunc, pluginEnv)
-        local pluginTable = pluginFunc() -- Standard IY plugins return a table
-
-        -- Check if the plugin is in the standard IY format (Table -> Commands)
-        if type(pluginTable) == "table" and pluginTable.Commands then
-            for cmdName, cmdData in pairs(pluginTable.Commands) do
-                RegisterCommand({
-                    Name = cmdName,
-                    Aliases = cmdData.Aliases or {},
-                    Description = cmdData.Description or "IY Plugin Command"
-                }, function(args)
-                    -- IY commands expect (args, speaker)
-                    pcall(cmdData.Function, args, LocalPlayer)
-                end)
-            end
-            return true, "Commands Registered"
+        -- Load and compile plugin code
+        local pluginFunc, loadErr = loadstring(code)
+        if not pluginFunc then
+            return false, "Failed to compile: " .. tostring(loadErr)
         end
         
-        return true, "Raw script executed"
+        -- Set environment
+        setfenv(pluginFunc, pluginEnv)
+        
+        -- Execute plugin
+        local pluginTable = pluginFunc()
+        
+        -- Handle standard IY plugin format
+        if type(pluginTable) == "table" then
+            if pluginTable.Commands then
+                local cmdCount = 0
+                for cmdName, cmdData in pairs(pluginTable.Commands) do
+                    if type(cmdData) == "table" and type(cmdData.Function) == "function" then
+                        RegisterCommand({
+                            Name = cmdName,
+                            Aliases = cmdData.Aliases or {},
+                            Description = cmdData.Description or ("IY Plugin: " .. pluginName)
+                        }, function(args)
+                            -- Wrap in pcall for safety
+                            local success, err = pcall(function()
+                                cmdData.Function(args, game:GetService("Players").LocalPlayer)
+                            end)
+                            if not success then
+                                warn("[" .. pluginName .. "] Command error: " .. tostring(err))
+                                DoNotif("Command error - see console", 3)
+                            end
+                        end)
+                        cmdCount = cmdCount + 1
+                    end
+                end
+                return true, "Loaded " .. cmdCount .. " command(s)"
+            elseif pluginTable.Init then
+                -- Handle plugins with init function
+                local initSuccess, initErr = pcall(pluginTable.Init)
+                if not initSuccess then
+                    return false, "Init failed: " .. tostring(initErr)
+                end
+                return true, "Plugin initialized"
+            end
+        end
+        
+        -- Plugin executed but no standard format detected
+        return true, "Plugin executed (no commands registered)"
     end)
     
-    return success, result
+    if not success then
+        return false, "Execution error: " .. tostring(result)
+    end
+    
+    return result
 end
 
-function Modules.InfiniteYieldPlugins:LoadPlugin(pluginPath: string)
-    if not self.State.IsEnabled then return end
+-- Load a single plugin with improved error handling
+function Modules.InfiniteYieldPlugins:LoadPlugin(pluginPath: string): boolean
+    if not self.State.IsEnabled then
+        warn("[IY Plugin] System is disabled")
+        return false
+    end
     
     -- Extract clean name from path
-    local fileName = pluginPath:match("([^/\\ ]+)$") or pluginPath
+    local fileName = pluginPath:match("([^/\\]+)$") or pluginPath
     local pluginName = fileName:gsub(self.Config.PLUGIN_EXT, "")
     
-    if self.State.LoadedPlugins[pluginName] then return end
+    -- Check if already loaded
+    if self.State.LoadedPlugins[pluginName] then
+        DoNotif("Plugin '" .. pluginName .. "' already loaded", 2)
+        return false
+    end
     
+    -- Load file
     local success, content = self:LoadPluginFile(pluginPath)
-    if not success then return end
+    if not success then
+        warn("[IY Plugin] Failed to load '" .. pluginName .. "': " .. tostring(content))
+        DoNotif("Failed to load: " .. pluginName, 3)
+        return false
+    end
     
+    -- Cache if enabled
+    if self.Config.CACHE_PLUGINS then
+        self.State.PluginCache[pluginName] = content
+    end
+    
+    -- Execute plugin
     local execSuccess, execMsg = self:ExecutePluginCode(pluginName, content)
     
     if execSuccess then
-        self.State.LoadedPlugins[pluginName] = true
-        DoNotif("Integrated: " .. pluginName, 2)
+        self.State.LoadedPlugins[pluginName] = {
+            path = pluginPath,
+            loaded = os.time(),
+            message = execMsg
+        }
+        DoNotif("✓ Loaded: " .. pluginName, 2)
+        print("[IY Plugin] Integrated '" .. pluginName .. "' - " .. tostring(execMsg))
+        return true
     else
-        warn("--> [IY_PLUGIN] Failed to integrate " .. pluginName .. ": " .. tostring(execMsg))
+        warn("[IY Plugin] Failed to execute '" .. pluginName .. "': " .. tostring(execMsg))
+        DoNotif("✗ Failed: " .. pluginName, 3)
+        return false
     end
 end
 
--- New command to scan the workspace folder
-RegisterCommand({
-    Name = "iyscan",
-    Aliases = {"refreshplugins", "iyr"},
-    Description = "Scans the executor's workspace/plugins folder and integrates all .iy files."
-}, function()
-    if not listfiles then 
-        return DoNotif("Executor does not support 'listfiles'", 3) 
+-- Unload a plugin
+function Modules.InfiniteYieldPlugins:UnloadPlugin(pluginName: string): boolean
+    if self.State.LoadedPlugins[pluginName] then
+        self.State.LoadedPlugins[pluginName] = nil
+        self.State.PluginCache[pluginName] = nil
+        DoNotif("Unloaded: " .. pluginName, 2)
+        return true
+    end
+    return false
+end
+
+-- Scan and load plugins from directory
+function Modules.InfiniteYieldPlugins:ScanDirectory(directory: string): number
+    if not listfiles then
+        warn("[IY Plugin] listfiles not available")
+        return 0
     end
     
-    local files = listfiles("plugins") -- Assumes your plugins are in a folder named 'plugins'
     local count = 0
+    local success, files = pcall(function()
+        return listfiles(directory)
+    end)
     
-    for _, file in ipairs(files) do
-        if file:lower():match("%.iy$") then
-            Modules.InfiniteYieldPlugins:LoadPlugin(file)
-            count = count + 1
+    if not success then
+        warn("[IY Plugin] Failed to scan directory: " .. directory)
+        return 0
+    end
+    
+    if not files then
+        return 0
+    end
+    
+    for _, filePath in ipairs(files) do
+        if filePath:lower():match(self.Config.PLUGIN_EXT .. "$") then
+            if self:LoadPlugin(filePath) then
+                count = count + 1
+            end
         end
     end
     
-    DoNotif("Scan Complete. Integrated " .. count .. " plugins.", 3)
-end)
+    return count
+end
+
+-- Initialize with commands
+function Modules.InfiniteYieldPlugins:Initialize()
+    -- Scan command
+    RegisterCommand({
+        Name = "iyscan",
+        Aliases = {"refreshplugins", "iyr", "scanplugins"},
+        Description = "Scans plugin folders and loads all .iy files"
+    }, function(args)
+        if not listfiles then
+            return DoNotif("Executor doesn't support 'listfiles'", 3)
+        end
+        
+        local totalCount = 0
+        local foldersChecked = 0
+        
+        for _, folder in ipairs(self.State.PluginFolders) do
+            local count = self:ScanDirectory(folder)
+            totalCount = totalCount + count
+            if count > 0 then
+                foldersChecked = foldersChecked + 1
+                print("[IY Plugin] Found " .. count .. " plugin(s) in: " .. folder)
+            end
+        end
+        
+        if totalCount > 0 then
+            DoNotif("✓ Loaded " .. totalCount .. " plugin(s) from " .. foldersChecked .. " folder(s)", 3)
+        else
+            DoNotif("No plugins found in plugin folders", 3)
+        end
+    end)
+    
+    -- Load specific plugin
+    RegisterCommand({
+        Name = "iyload",
+        Aliases = {"loadplugin", "iyl"},
+        Description = "Load a specific .iy plugin file. Usage: ;iyload <filepath>"
+    }, function(args)
+        if not args[1] then
+            return DoNotif("Usage: ;iyload <filepath>", 3)
+        end
+        
+        local filePath = table.concat(args, " ")
+        self:LoadPlugin(filePath)
+    end)
+    
+    -- List loaded plugins
+    RegisterCommand({
+        Name = "iylist",
+        Aliases = {"listplugins", "plugins"},
+        Description = "Lists all loaded IY plugins"
+    }, function()
+        local count = 0
+        print("=== Loaded IY Plugins ===")
+        for name, data in pairs(self.State.LoadedPlugins) do
+            count = count + 1
+            print(count .. ". " .. name .. " - " .. (data.message or ""))
+        end
+        
+        if count == 0 then
+            DoNotif("No plugins loaded", 2)
+        else
+            DoNotif(count .. " plugin(s) loaded", 2)
+        end
+    end)
+    
+    -- Unload plugin
+    RegisterCommand({
+        Name = "iyunload",
+        Aliases = {"unloadplugin"},
+        Description = "Unload a specific plugin. Usage: ;iyunload <name>"
+    }, function(args)
+        if not args[1] then
+            return DoNotif("Usage: ;iyunload <plugin_name>", 3)
+        end
+        
+        local pluginName = table.concat(args, " ")
+        if self:UnloadPlugin(pluginName) then
+            DoNotif("Unloaded: " .. pluginName, 2)
+        else
+            DoNotif("Plugin not found: " .. pluginName, 3)
+        end
+    end)
+    
+    -- Clear all plugins
+    RegisterCommand({
+        Name = "iyclear",
+        Aliases = {"clearplugins"},
+        Description = "Unload all IY plugins"
+    }, function()
+        local count = 0
+        for name in pairs(self.State.LoadedPlugins) do
+            self:UnloadPlugin(name)
+            count = count + 1
+        end
+        DoNotif("Cleared " .. count .. " plugin(s)", 2)
+    end)
+    
+    print("[IY Plugin] System initialized")
+    
+    -- Auto-load if enabled
+    if self.Config.AUTO_LOAD and listfiles then
+        task.defer(function()
+            task.wait(1)
+            local total = 0
+            for _, folder in ipairs(self.State.PluginFolders) do
+                total = total + self:ScanDirectory(folder)
+            end
+            if total > 0 then
+                print("[IY Plugin] Auto-loaded " .. total .. " plugin(s)")
+            end
+        end)
+    end
+end
 
 Modules.CommandAdapter = {
     State = {
-        AdaptedCommands = {}
+        AdaptedCommands = {},
+        LoadedScripts = {},
+        UIInstance = nil
+    },
+    
+    Config = {
+        SupportedFrameworks = {
+            "nameless",
+            "infinite",
+            "universal",
+            "custom"
+        }
     }
 }
 
-function Modules.CommandAdapter:CreateCompatibleEnvironment(frameworkName)
-    local framework = frameworkName or "universal"
+-- Create a compatible command API for different frameworks
+function Modules.CommandAdapter:CreateCompatibleEnvironment(frameworkName: string)
+    local framework = frameworkName:lower() or "universal"
     local cmdAPI = {}
     local loadedCount = 0
     
-    -- Supports both Nameless Admin and Infinite Yield formats
-
+    -- Universal command registration (works with multiple formats)
     function cmdAPI:add(nameOrAliases, descOrFunc, funcOrNil)
         local name, aliases, description, func
         
+        -- Format 1: add("commandname", "description", function)
         if type(nameOrAliases) == "string" then
             name = nameOrAliases
             aliases = {}
             description = type(descOrFunc) == "string" and descOrFunc or ""
             func = funcOrNil or descOrFunc
+        
+        -- Format 2: add({"commandname", "alias1", "alias2"}, "description", function)
         elseif type(nameOrAliases) == "table" then
-            aliases = nameOrAliases
-            name = aliases[1] or "unknown"
+            aliases = {}
+            name = nameOrAliases[1] or "unknown"
+            
+            -- Extract aliases (skip first which is the main name)
+            for i = 2, #nameOrAliases do
+                table.insert(aliases, nameOrAliases[i])
+            end
+            
             description = type(descOrFunc) == "string" and descOrFunc or ""
             func = funcOrNil or descOrFunc
+        else
+            warn("[CommandAdapter] Invalid command format")
+            return false
         end
         
+        -- Validate function
         if type(func) ~= "function" then
-            warn("CommandAdapter: Invalid function for command '" .. tostring(name) .. "'")
-            return
+            warn("[CommandAdapter] Invalid function for command '" .. tostring(name) .. "'")
+            return false
         end
         
-        RegisterCommand({
-            Name = name,
-            Aliases = aliases,
-            Description = description or ("Command from " .. framework)
-        }, func)
+        -- Register the command
+        local success = pcall(function()
+            RegisterCommand({
+                Name = name,
+                Aliases = aliases,
+                Description = description or ("Imported from " .. framework)
+            }, function(args)
+                -- Wrap in pcall for safety
+                local cmdSuccess, cmdErr = pcall(function()
+                    func(args, game:GetService("Players").LocalPlayer)
+                end)
+                
+                if not cmdSuccess then
+                    warn("[CommandAdapter] Error in command '" .. name .. "': " .. tostring(cmdErr))
+                    DoNotif("Command error - check console", 3)
+                end
+            end)
+        end)
         
-        loadedCount = loadedCount + 1
+        if success then
+            loadedCount = loadedCount + 1
+            return true
+        else
+            warn("[CommandAdapter] Failed to register command: " .. name)
+            return false
+        end
     end
     
-    return cmdAPI, loadedCount
+    -- Alias for compatibility
+    cmdAPI.register = cmdAPI.add
+    cmdAPI.Add = cmdAPI.add
+    
+    return cmdAPI, function() return loadedCount end
 end
 
-function Modules.CommandAdapter:ExecuteCommandScript(scriptCode, frameworkName, scriptName)
-    frameworkName = frameworkName or "universal"
-    scriptName = scriptName or "UnnamedScript_" .. os.time()
+-- Execute command script with improved sandboxing
+function Modules.CommandAdapter:ExecuteCommandScript(scriptCode: string, frameworkName: string, scriptName: string): boolean
+    frameworkName = frameworkName:lower() or "universal"
+    scriptName = scriptName or "ImportedScript_" .. os.time()
+    
+    -- Check if already loaded
+    if self.State.LoadedScripts[scriptName] then
+        DoNotif("Script '" .. scriptName .. "' already loaded", 3)
+        return false
+    end
     
     local success, result = pcall(function()
-        local cmdAPI, _ = self:CreateCompatibleEnvironment(frameworkName)
+        local cmdAPI, getCount = self:CreateCompatibleEnvironment(frameworkName)
         
+        -- Create sandboxed environment
         local env = {
+            -- Core Lua
             print = print,
             warn = warn,
-            game = game,
-            script = script,
-            Instance = Instance,
-            Vector3 = Vector3,
-            Color3 = Color3,
-            CFrame = CFrame,
-            task = task,
+            error = error,
+            assert = assert,
+            type = type,
+            typeof = typeof,
+            tostring = tostring,
+            tonumber = tonumber,
+            next = next,
+            pairs = pairs,
+            ipairs = ipairs,
+            pcall = pcall,
+            xpcall = xpcall,
+            select = select,
+            unpack = unpack,
+            
+            -- Libraries
             table = table,
             string = string,
             math = math,
-            ipairs = ipairs,
-            pairs = pairs,
-            next = next,
-            type = type,
-            tostring = tostring,
-            tonumber = tonumber,
-            assert = assert,
+            task = task,
+            coroutine = coroutine,
+            utf8 = utf8,
+            bit32 = bit32,
             
-            -- Command API
+            -- Roblox globals
+            game = game,
+            workspace = workspace,
+            script = script,
+            Instance = Instance,
+            Vector3 = Vector3,
+            Vector2 = Vector2,
+            CFrame = CFrame,
+            Color3 = Color3,
+            UDim2 = UDim2,
+            UDim = UDim,
+            Enum = Enum,
+            Ray = Ray,
+            Region3 = Region3,
+            NumberRange = NumberRange,
+            NumberSequence = NumberSequence,
+            ColorSequence = ColorSequence,
+            
+            -- Services
+            Players = game:GetService("Players"),
+            Workspace = game:GetService("Workspace"),
+            RunService = game:GetService("RunService"),
+            UserInputService = game:GetService("UserInputService"),
+            CoreGui = game:GetService("CoreGui"),
+            TweenService = game:GetService("TweenService"),
+            ReplicatedStorage = game:GetService("ReplicatedStorage"),
+            
+            -- Command API (multiple names for compatibility)
             cmd = cmdAPI,
+            commands = cmdAPI,
+            CMD = cmdAPI,
             
-            -- Common shortcuts from other frameworks
-            Add = function(name, desc, func) cmdAPI:add(name, desc, func) end,
-            register = function(name, desc, func) cmdAPI:add(name, desc, func) end,
+            -- Shortcuts
+            Add = function(n, d, f) return cmdAPI:add(n, d, f) end,
+            register = function(n, d, f) return cmdAPI:add(n, d, f) end,
+            addCommand = function(n, d, f) return cmdAPI:add(n, d, f) end,
             
-            -- Services and common utilities
+            -- Utilities
             DoNotif = DoNotif,
-            Players = Players,
-            Workspace = Workspace,
-            RunService = RunService,
-            UserInputService = UserInputService,
-            CoreGui = CoreGui,
-            LocalPlayer = LocalPlayer,
-            Mouse = PlayerMouse,
-            Camera = CurrentCamera,
+            LocalPlayer = game:GetService("Players").LocalPlayer,
+            Player = game:GetService("Players").LocalPlayer,
+            Mouse = game:GetService("Players").LocalPlayer:GetMouse(),
+            Camera = workspace.CurrentCamera,
+            
+            -- Common executor functions (safe versions)
+            wait = task.wait,
+            spawn = task.spawn,
+            delay = task.delay,
         }
         
-        setmetatable(env, {__index = _G})
+        -- Set metatable for fallback
+        setmetatable(env, {
+            __index = function(t, k)
+                -- Check _G as fallback
+                if _G[k] ~= nil then
+                    return _G[k]
+                end
+                -- Check getgenv if available
+                if getgenv and getgenv()[k] ~= nil then
+                    return getgenv()[k]
+                end
+                return nil
+            end
+        })
         
-        -- Parse and load the script
-        local func, err = loadstring(scriptCode)
+        -- Compile script
+        local func, compileErr = loadstring(scriptCode)
         if not func then
-            return false, "Syntax Error: " .. tostring(err)
+            return false, "Syntax error: " .. tostring(compileErr)
         end
         
+        -- Set environment
         setfenv(func, env)
-        func()
         
-        return true, "Script loaded successfully"
+        -- Execute script
+        local execSuccess, execErr = pcall(func)
+        if not execSuccess then
+            return false, "Execution error: " .. tostring(execErr)
+        end
+        
+        -- Get command count
+        local cmdCount = getCount()
+        
+        return true, "Loaded " .. cmdCount .. " command(s)"
     end)
     
     if success then
-        self.State.AdaptedCommands[scriptName] = true
-        DoNotif("Loaded commands from '" .. scriptName .. "' (" .. frameworkName .. ")", 2)
+        self.State.LoadedScripts[scriptName] = {
+            framework = frameworkName,
+            loaded = os.time(),
+            message = result
+        }
+        DoNotif("✓ " .. scriptName .. ": " .. tostring(result), 3)
+        print("[CommandAdapter] " .. scriptName .. " - " .. tostring(result))
         return true
     else
-        warn("CommandAdapter Error: " .. tostring(result))
-        DoNotif("Error loading commands: " .. tostring(result), 4)
+        warn("[CommandAdapter] Failed to load '" .. scriptName .. "': " .. tostring(result))
+        DoNotif("✗ Error: " .. tostring(result), 4)
         return false
     end
 end
 
+-- Initialize system with commands
 function Modules.CommandAdapter:Initialize()
     RegisterCommand({
-        Name = "pastecommands",
-        Aliases = {"paste", "importcmds"},
-        Description = "Paste Nameless Admin or Infinite Yield commands. Usage: ;pastecommands [framework] (nameless/infinite/universal)"
-    }, function(args)
-        -- This will be used with the UI to paste commands
-        DoNotif("Use the Command Adapter UI (type ;cmdui) to paste commands.", 2)
-    end)
-    
-    RegisterCommand({
-        Name = "cmdui",
-        Aliases = {"cmdadapter", "adaptcmds"},
-        Description = "Opens the Command Adapter UI to paste external commands"
+        Name = "cmdadapter",
+        Aliases = {"cmdui", "adaptcmds", "importcmds"},
+        Description = "Opens the Command Adapter UI to import external commands"
     }, function()
         self:CreateUI()
     end)
     
-    print("--> Command Adapter System initialized")
+    RegisterCommand({
+        Name = "listimported",
+        Aliases = {"importedcmds"},
+        Description = "Lists all imported command scripts"
+    }, function()
+        local count = 0
+        print("=== Imported Command Scripts ===")
+        for name, data in pairs(self.State.LoadedScripts) do
+            count = count + 1
+            print(count .. ". " .. name .. " (" .. data.framework .. ") - " .. (data.message or ""))
+        end
+        
+        if count == 0 then
+            DoNotif("No imported scripts", 2)
+        else
+            DoNotif(count .. " script(s) imported", 2)
+        end
+    end)
+    
+    RegisterCommand({
+        Name = "clearimported",
+        Aliases = {"clearadapted"},
+        Description = "Clears the list of imported scripts (doesn't unregister commands)"
+    }, function()
+        local count = 0
+        for _ in pairs(self.State.LoadedScripts) do
+            count = count + 1
+        end
+        self.State.LoadedScripts = {}
+        DoNotif("Cleared " .. count .. " imported script(s)", 2)
+    end)
+    
+    print("[CommandAdapter] System initialized")
 end
 
+-- Create improved UI
 function Modules.CommandAdapter:CreateUI()
     local CoreGui = game:GetService("CoreGui")
     
+    -- Close existing UI
     if CoreGui:FindFirstChild("CommandAdapterUI") then
         CoreGui:FindFirstChild("CommandAdapterUI"):Destroy()
     end
     
-    local sg = Instance.new("ScreenGui", CoreGui)
+    local sg = Instance.new("ScreenGui")
     sg.Name = "CommandAdapterUI"
     sg.ResetOnSpawn = false
     sg.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    sg.Parent = CoreGui
     
-    local main = Instance.new("Frame", sg)
-    main.Size = UDim2.fromOffset(700, 600)
+    self.State.UIInstance = sg
+    
+    -- Main frame
+    local main = Instance.new("Frame")
+    main.Size = UDim2.fromOffset(750, 650)
     main.Position = UDim2.fromScale(0.5, 0.5)
     main.AnchorPoint = Vector2.new(0.5, 0.5)
-    main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-    main.BorderSizePixel = 2
-    main.BorderColor3 = Color3.fromRGB(0, 255, 255)
+    main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    main.BorderSizePixel = 0
     main.Active = true
     main.Draggable = true
+    main.Parent = sg
     
-    local header = Instance.new("TextLabel", main)
-    header.Size = UDim2.new(1, 0, 0, 40)
-    header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+    
+    local stroke = Instance.new("UIStroke", main)
+    stroke.Color = Color3.fromRGB(0, 200, 255)
+    stroke.Thickness = 2
+    
+    -- Shadow effect
+    local shadow = Instance.new("ImageLabel", main)
+    shadow.Size = UDim2.new(1, 30, 1, 30)
+    shadow.Position = UDim2.fromOffset(-15, -15)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.5
+    shadow.ZIndex = 0
+    
+    -- Header
+    local header = Instance.new("Frame", main)
+    header.Size = UDim2.new(1, 0, 0, 50)
+    header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     header.BorderSizePixel = 0
-    header.Text = "⚙️ COMMAND ADAPTER - Paste External Commands"
-    header.TextColor3 = Color3.fromRGB(0, 255, 255)
-    header.Font = Enum.Font.Code
-    header.TextSize = 14
-    header.TextXAlignment = "Left"
-    header.TextScaled = false
     
-    local padding = Instance.new("UIPadding", header)
-    padding.PaddingLeft = UDim.new(0, 15)
+    Instance.new("UICorner", header).CornerRadius = UDim.new(0, 8)
     
+    local headerTitle = Instance.new("TextLabel", header)
+    headerTitle.Size = UDim2.new(1, -60, 1, 0)
+    headerTitle.Position = UDim2.fromOffset(20, 0)
+    headerTitle.BackgroundTransparency = 1
+    headerTitle.Text = "⚙️ COMMAND ADAPTER"
+    headerTitle.TextColor3 = Color3.fromRGB(0, 200, 255)
+    headerTitle.Font = Enum.Font.GothamBold
+    headerTitle.TextSize = 18
+    headerTitle.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local headerSubtext = Instance.new("TextLabel", header)
+    headerSubtext.Size = UDim2.new(1, -60, 0, 15)
+    headerSubtext.Position = UDim2.fromOffset(20, 28)
+    headerSubtext.BackgroundTransparency = 1
+    headerSubtext.Text = "Import commands from Nameless Admin, Infinite Yield, and more"
+    headerSubtext.TextColor3 = Color3.fromRGB(150, 150, 150)
+    headerSubtext.Font = Enum.Font.Gotham
+    headerSubtext.TextSize = 10
+    headerSubtext.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Close button
     local closeBtn = Instance.new("TextButton", header)
-    closeBtn.Size = UDim2.fromOffset(35, 35)
-    closeBtn.Position = UDim2.new(1, -40, 0.5, -17)
+    closeBtn.Size = UDim2.fromOffset(40, 40)
+    closeBtn.Position = UDim2.new(1, -45, 0.5, -20)
     closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.new(1, 0, 0)
-    closeBtn.Font = Enum.Font.Code
-    closeBtn.TextSize = 16
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 20
+    
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
     
     closeBtn.MouseButton1Click:Connect(function()
         sg:Destroy()
+        self.State.UIInstance = nil
     end)
     
-    local frameworkLabel = Instance.new("TextLabel", main)
-    frameworkLabel.Size = UDim2.new(1, -20, 0, 20)
-    frameworkLabel.Position = UDim2.fromOffset(10, 50)
+    -- Content area
+    local content = Instance.new("ScrollingFrame", main)
+    content.Size = UDim2.new(1, -40, 1, -100)
+    content.Position = UDim2.fromOffset(20, 65)
+    content.BackgroundTransparency = 1
+    content.BorderSizePixel = 0
+    content.ScrollBarThickness = 6
+    content.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 255)
+    content.CanvasSize = UDim2.fromOffset(0, 0)
+    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    
+    -- Framework selector
+    local frameworkLabel = Instance.new("TextLabel", content)
+    frameworkLabel.Size = UDim2.new(1, 0, 0, 20)
     frameworkLabel.BackgroundTransparency = 1
-    frameworkLabel.Text = "Framework (nameless/infinite/universal):"
+    frameworkLabel.Text = "Framework Type:"
     frameworkLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    frameworkLabel.Font = Enum.Font.Code
-    frameworkLabel.TextSize = 11
-    frameworkLabel.TextXAlignment = "Left"
+    frameworkLabel.Font = Enum.Font.GothamMedium
+    frameworkLabel.TextSize = 12
+    frameworkLabel.TextXAlignment = Enum.TextXAlignment.Left
     
-    local frameworkBox = Instance.new("TextBox", main)
-    frameworkBox.Size = UDim2.new(0.3, -5, 0, 28)
-    frameworkBox.Position = UDim2.fromOffset(10, 75)
-    frameworkBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    frameworkBox.BorderSizePixel = 1
-    frameworkBox.BorderColor3 = Color3.fromRGB(0, 255, 255)
+    local frameworkBox = Instance.new("TextBox", content)
+    frameworkBox.Size = UDim2.new(0.45, 0, 0, 35)
+    frameworkBox.Position = UDim2.fromOffset(0, 25)
+    frameworkBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    frameworkBox.BorderSizePixel = 0
     frameworkBox.Text = "universal"
+    frameworkBox.PlaceholderText = "universal/nameless/infinite"
     frameworkBox.TextColor3 = Color3.new(1, 1, 1)
-    frameworkBox.Font = Enum.Font.Code
-    frameworkBox.TextSize = 10
-    Instance.new("UICorner", frameworkBox).CornerRadius = UDim.new(0, 3)
+    frameworkBox.Font = Enum.Font.Gotham
+    frameworkBox.TextSize = 11
     
-    local scriptNameLabel = Instance.new("TextLabel", main)
-    scriptNameLabel.Size = UDim2.new(1, -20, 0, 20)
-    scriptNameLabel.Position = UDim2.fromOffset(10, 110)
-    scriptNameLabel.BackgroundTransparency = 1
-    scriptNameLabel.Text = "Script Name (optional):"
-    scriptNameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    scriptNameLabel.Font = Enum.Font.Code
-    scriptNameLabel.TextSize = 11
-    scriptNameLabel.TextXAlignment = "Left"
+    Instance.new("UICorner", frameworkBox).CornerRadius = UDim.new(0, 6)
+    Instance.new("UIPadding", frameworkBox).PaddingLeft = UDim.new(0, 10)
     
-    local scriptNameBox = Instance.new("TextBox", main)
-    scriptNameBox.Size = UDim2.new(0.3, -5, 0, 28)
-    scriptNameBox.Position = UDim2.fromOffset(10, 135)
-    scriptNameBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    scriptNameBox.BorderSizePixel = 1
-    scriptNameBox.BorderColor3 = Color3.fromRGB(0, 255, 255)
-    scriptNameBox.PlaceholderText = "MyScript"
-    scriptNameBox.TextColor3 = Color3.new(1, 1, 1)
-    scriptNameBox.Font = Enum.Font.Code
-    scriptNameBox.TextSize = 10
-    Instance.new("UICorner", scriptNameBox).CornerRadius = UDim.new(0, 3)
+    -- Script name
+    local nameLabel = Instance.new("TextLabel", content)
+    nameLabel.Size = UDim2.new(1, 0, 0, 20)
+    nameLabel.Position = UDim2.fromOffset(0, 75)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = "Script Name (Optional):"
+    nameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    nameLabel.Font = Enum.Font.GothamMedium
+    nameLabel.TextSize = 12
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
     
-    local codeLabel = Instance.new("TextLabel", main)
-    codeLabel.Size = UDim2.new(1, -20, 0, 20)
-    codeLabel.Position = UDim2.fromOffset(10, 170)
+    local nameBox = Instance.new("TextBox", content)
+    nameBox.Size = UDim2.new(0.45, 0, 0, 35)
+    nameBox.Position = UDim2.fromOffset(0, 100)
+    nameBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    nameBox.BorderSizePixel = 0
+    nameBox.PlaceholderText = "MyCommands"
+    nameBox.TextColor3 = Color3.new(1, 1, 1)
+    nameBox.Font = Enum.Font.Gotham
+    nameBox.TextSize = 11
+    
+    Instance.new("UICorner", nameBox).CornerRadius = UDim.new(0, 6)
+    Instance.new("UIPadding", nameBox).PaddingLeft = UDim.new(0, 10)
+    
+    -- Code input
+    local codeLabel = Instance.new("TextLabel", content)
+    codeLabel.Size = UDim2.new(1, 0, 0, 20)
+    codeLabel.Position = UDim2.fromOffset(0, 150)
     codeLabel.BackgroundTransparency = 1
     codeLabel.Text = "Paste Command Code:"
     codeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    codeLabel.Font = Enum.Font.Code
-    codeLabel.TextSize = 11
-    codeLabel.TextXAlignment = "Left"
+    codeLabel.Font = Enum.Font.GothamMedium
+    codeLabel.TextSize = 12
+    codeLabel.TextXAlignment = Enum.TextXAlignment.Left
     
-    local codeBox = Instance.new("TextBox", main)
-    codeBox.Size = UDim2.new(1, -20, 0, 280)
-    codeBox.Position = UDim2.fromOffset(10, 195)
-    codeBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    codeBox.BorderSizePixel = 1
-    codeBox.BorderColor3 = Color3.fromRGB(0, 255, 255)
-    codeBox.PlaceholderText = "Paste your cmd.add() commands here..."
+    local codeBox = Instance.new("TextBox", content)
+    codeBox.Size = UDim2.new(1, 0, 0, 320)
+    codeBox.Position = UDim2.fromOffset(0, 175)
+    codeBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    codeBox.BorderSizePixel = 0
+    codeBox.PlaceholderText = "-- Paste your cmd:add() commands here...\n\ncmd:add(\"example\", \"An example command\", function(args)\n    print(\"Hello!\")\nend)"
     codeBox.TextColor3 = Color3.new(1, 1, 1)
     codeBox.Font = Enum.Font.Code
-    codeBox.TextSize = 9
+    codeBox.TextSize = 11
     codeBox.TextWrapped = true
     codeBox.MultiLine = true
-    Instance.new("UICorner", codeBox).CornerRadius = UDim.new(0, 4)
+    codeBox.TextXAlignment = Enum.TextXAlignment.Left
+    codeBox.TextYAlignment = Enum.TextYAlignment.Top
+    codeBox.ClearTextOnFocus = false
     
-    local loadBtn = Instance.new("TextButton", main)
-    loadBtn.Size = UDim2.fromOffset(150, 35)
-    loadBtn.Position = UDim2.fromOffset(10, 555)
+    Instance.new("UICorner", codeBox).CornerRadius = UDim.new(0, 6)
+    local codePadding = Instance.new("UIPadding", codeBox)
+    codePadding.PaddingLeft = UDim.new(0, 10)
+    codePadding.PaddingTop = UDim.new(0, 10)
+    codePadding.PaddingRight = UDim.new(0, 10)
+    codePadding.PaddingBottom = UDim.new(0, 10)
+    
+    -- Buttons container
+    local buttonContainer = Instance.new("Frame", content)
+    buttonContainer.Size = UDim2.new(1, 0, 0, 45)
+    buttonContainer.Position = UDim2.fromOffset(0, 510)
+    buttonContainer.BackgroundTransparency = 1
+    
+    -- Load button
+    local loadBtn = Instance.new("TextButton", buttonContainer)
+    loadBtn.Size = UDim2.new(0.48, 0, 1, 0)
     loadBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
     loadBtn.BorderSizePixel = 0
-    loadBtn.Text = "LOAD COMMANDS"
-    loadBtn.TextColor3 = Color3.new(0, 0, 0)
-    loadBtn.Font = Enum.Font.Code
-    loadBtn.TextSize = 11
-    Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 4)
+    loadBtn.Text = "✓ LOAD COMMANDS"
+    loadBtn.TextColor3 = Color3.new(1, 1, 1)
+    loadBtn.Font = Enum.Font.GothamBold
+    loadBtn.TextSize = 13
+    
+    Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 8)
     
     loadBtn.MouseButton1Click:Connect(function()
-        if codeBox.Text ~= "" then
-            local framework = frameworkBox.Text:lower() or "universal"
-            local scriptName = scriptNameBox.Text ~= "" and scriptNameBox.Text or "PastedCommands"
-            self:ExecuteCommandScript(codeBox.Text, framework, scriptName)
-            codeBox.Text = ""
-        else
-            DoNotif("Please paste some code first.", 3)
+        local code = codeBox.Text
+        if code == "" or code == nil then
+            DoNotif("Please paste command code first", 3)
+            return
         end
+        
+        local framework = frameworkBox.Text
+        if framework == "" then framework = "universal" end
+        
+        local scriptName = nameBox.Text
+        if scriptName == "" then
+            scriptName = "PastedCommands_" .. os.time()
+        end
+        
+        self:ExecuteCommandScript(code, framework, scriptName)
     end)
     
-    local clearBtn = Instance.new("TextButton", main)
-    clearBtn.Size = UDim2.fromOffset(100, 35)
-    clearBtn.Position = UDim2.fromOffset(170, 555)
+    -- Clear button
+    local clearBtn = Instance.new("TextButton", buttonContainer)
+    clearBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    clearBtn.Position = UDim2.fromScale(0.52, 0)
     clearBtn.BackgroundColor3 = Color3.fromRGB(150, 60, 60)
     clearBtn.BorderSizePixel = 0
-    clearBtn.Text = "CLEAR"
+    clearBtn.Text = "✕ CLEAR"
     clearBtn.TextColor3 = Color3.new(1, 1, 1)
-    clearBtn.Font = Enum.Font.Code
-    clearBtn.TextSize = 11
-    Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0, 4)
+    clearBtn.Font = Enum.Font.GothamBold
+    clearBtn.TextSize = 13
+    
+    Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0, 8)
     
     clearBtn.MouseButton1Click:Connect(function()
         codeBox.Text = ""
+        nameBox.Text = ""
         frameworkBox.Text = "universal"
-        scriptNameBox.Text = ""
+        DoNotif("Cleared input fields", 2)
     end)
     
-    DoNotif("Command Adapter UI Opened", 2)
+    DoNotif("Command Adapter UI opened", 2)
 end
 
 function processCommand(message)
