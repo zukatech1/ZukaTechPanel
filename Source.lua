@@ -77,7 +77,7 @@ local Services = setmetatable({}, {
 print(string.format("--> [ZukaTech]: Memory Baseline: %.2f KB", _GC_START))
 print(string.format("--> [ZukaTech]: Environment Unlock: SUCCESS"))
 print(string.format("--> [ZukaTech]: C-Closure Wrapper: ACTIVE"))
---]]
+print(string.format("Where talent meets ambition."))--]]
 
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
@@ -901,7 +901,7 @@ end
 
 RegisterCommand({
     Name = "aimbot",
-    Aliases = { "aim", "gamingchair", "a" },
+    Aliases = {},
     Description = "Loads the aimbot GUI. Optional: [player name] to lock target."
 }, function(args)
 
@@ -1213,9 +1213,9 @@ function Modules.AstralProjection:Initialize()
     end)
 end
 RegisterCommand({
-    Name = "astral",
+    Name = "desyn",
     Aliases = {},
-    Description = "Toggles astral projection, desyncing yourself remaining invisible to others."
+    Description = "Toggles desync, remaining invisible to others."
 }, function()
     Modules.AstralProjection:Toggle()
 end)
@@ -1538,8 +1538,7 @@ Modules.CommandBar = {
         IsMinimized = false,
         IsMaximized = false,
         PreMaximizeSize = nil,
-        PreMaximizePosition = nil,
-        StartupShown = false
+        PreMaximizePosition = nil
     },
 
     Theme = {
@@ -1566,93 +1565,6 @@ function Modules.CommandBar:PlayBeep(): ()
     beep.Parent = game:GetService("SoundService")
     beep:Play()
     beep.Ended:Connect(function() beep:Destroy() end)
-end
-
--- Startup sound
-function Modules.CommandBar:PlayStartupSound(): ()
-    local startup = Instance.new("Sound")
-    startup.SoundId = "rbxassetid://6026984224" -- Windows 95 startup sound
-    startup.Volume = 0.5
-    startup.Parent = game:GetService("SoundService")
-    startup:Play()
-    startup.Ended:Connect(function() startup:Destroy() end)
-end
-
-function Modules.CommandBar:ShowStartupScreen(): ()
-    if self.State.StartupShown then return end
-    self.State.StartupShown = true
-    
-    local StartupGui = Instance.new("ScreenGui")
-    StartupGui.Name = "Win95Startup"
-    StartupGui.Parent = CoreGui
-    StartupGui.IgnoreGuiInset = true
-    StartupGui.DisplayOrder = 999
-    
-    local Background = Instance.new("Frame", StartupGui)
-    Background.Size = UDim2.new(1, 0, 1, 0)
-    Background.BackgroundColor3 = Color3.fromRGB(43, 58, 68)
-    Background.BackgroundTransparency = 0.5
-    Background.BorderSizePixel = 0
-    
-    local Logo = Instance.new("ImageLabel", Background)
-    Logo.Position = UDim2.new(0.5, -150, 0.5, -100)
-    Logo.Size = UDim2.new(0, 300, 0, 100)
-    Logo.BackgroundTransparency = 1
-    Logo.Image = "" -- We'll use text instead
-    
-    local Win95Text = Instance.new("TextLabel", Background)
-    Win95Text.Position = UDim2.new(0.5, -200, 0.4, 0)
-    Win95Text.Size = UDim2.new(0, 400, 0, 80)
-    Win95Text.BackgroundTransparency = 1
-    Win95Text.Font = Enum.Font.SourceSansBold
-    Win95Text.Text = "Thanks for using my script."
-    Win95Text.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Win95Text.TextSize = 60
-    Win95Text.TextStrokeTransparency = 0.5
-    
-    local SubText = Instance.new("TextLabel", Background)
-    SubText.Position = UDim2.new(0.5, -200, 0.5, 20)
-    SubText.Size = UDim2.new(0, 400, 0, 40)
-    SubText.BackgroundTransparency = 1
-    SubText.Font = Enum.Font.SourceSans
-    SubText.Text = "We lit."
-    SubText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SubText.TextSize = 48
-    
-    local LoadingBar = Instance.new("Frame", Background)
-    LoadingBar.Position = UDim2.new(0.5, -150, 0.65, 0)
-    LoadingBar.Size = UDim2.new(0, 300, 0, 20)
-    LoadingBar.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
-    LoadingBar.BorderSizePixel = 2
-    LoadingBar.BorderColor3 = Color3.fromRGB(255, 255, 255)
-    
-    local LoadingFill = Instance.new("Frame", LoadingBar)
-    LoadingFill.Size = UDim2.new(0, 0, 1, 0)
-    LoadingFill.BackgroundColor3 = Color3.fromRGB(0, 0, 128)
-    LoadingFill.BorderSizePixel = 0
-    
-    local LoadingText = Instance.new("TextLabel", Background)
-    LoadingText.Position = UDim2.new(0.5, -100, 0.7, 0)
-    LoadingText.Size = UDim2.new(0, 200, 0, 30)
-    LoadingText.BackgroundTransparency = 1
-    LoadingText.Font = Enum.Font.SourceSans
-    LoadingText.Text = "Starting Windows..."
-    LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    LoadingText.TextSize = 16
-    
-    -- Play startup sound
-    self:PlayStartupSound()
-    
-    -- Animate loading bar
-    local tween = TweenService:Create(LoadingFill, TweenInfo.new(2, Enum.EasingStyle.Linear), {
-        Size = UDim2.new(1, 0, 1, 0)
-    })
-    tween:Play()
-    
-    tween.Completed:Connect(function()
-        task.wait(0.3)
-        StartupGui:Destroy()
-    end)
 end
 
 function Modules.CommandBar:CopyOutputToClipboard(): ()
@@ -1760,12 +1672,6 @@ function Modules.CommandBar:Toggle(): ()
     local tweenInfo: TweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
     
     if isOpening then
-        -- Show startup screen first time
-        if not self.State.StartupShown then
-            self:ShowStartupScreen()
-            task.wait(1.3)
-        end
-        
         self.State.UI.Enabled = true
         local goalPosition: UDim2 = UDim2.new(0.5, -self.State.Container.Size.X.Offset/2, 0.5, -self.State.Container.Size.Y.Offset/2)
         
@@ -1831,7 +1737,7 @@ end
 
 function Modules.CommandBar:ListCommands(): ()
     self:AddOutput("════════════════════════════════════════════", self.Theme.Accent)
-    self:AddOutput("MS-DOS Version 6.22 (C)Copyright Microslop Corp 1981-1994.", self.Theme.Text)
+    self:AddOutput("Zuka-Tech Version 13.77 (C)Copyright Microslop Corp 1981-1994.", self.Theme.Text)
     self:AddOutput("════════════════════════════════════════════", self.Theme.Accent)
     self:AddOutput("")
 
@@ -2065,7 +1971,7 @@ function Modules.CommandBar:Initialize(): ()
     AnimatedScanline.Size = UDim2.new(1, 0, 0, 3)
     AnimatedScanline.Position = UDim2.new(0, 0, 0, 0)
     AnimatedScanline.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    AnimatedScanline.BackgroundTransparency = 0.7
+    AnimatedScanline.BackgroundTransparency = 0.9
     AnimatedScanline.BorderSizePixel = 0
     
     task.spawn(function()
@@ -3205,112 +3111,393 @@ RegisterCommand({
 end)
 
 Modules.killbrick = {
-State = {
-Tracked = setmetatable({}, {__mode="k"}),
-Originals = setmetatable({}, {__mode="k"}),
-Signals = setmetatable({}, {__mode="k"}),
-Connections = {}
+    State = {
+        Tracked = setmetatable({}, {__mode = "k"}),
+        Originals = setmetatable({}, {__mode = "k"}),
+        Signals = setmetatable({}, {__mode = "k"}),
+        Connections = {},
+        Enabled = false,
+        LastCleanup = 0,
+        Stats = {
+            PartsProtected = 0,
+            AttemptsBlocked = 0,
+            LastReset = tick()
+        }
+    },
+    
+    Config = {
+        CleanupInterval = 30, -- Cleanup every 30 seconds
+        UseHeartbeat = false, -- Use Heartbeat instead of Stepped for better performance
+        ProtectAccessories = true,
+        ProtectTools = true,
+        WhitelistedParts = {}, -- Parts to exclude from protection
+        DebugMode = false
+    }
 }
-}
-local function cleanupAntiKillbrick()
-local state = Modules.killbrick.State
-for _, conn in ipairs(state.Connections) do
-    if conn and typeof(conn.Disconnect) == "function" then
-        conn:Disconnect()
+
+local function debugLog(message)
+    if Modules.killbrick.Config.DebugMode then
+        print("[KillBrick Debug]", message)
     end
 end
-table.clear(state.Connections)
-for _, signalTable in pairs(state.Signals) do
-    if signalTable then
-        for _, conn in ipairs(signalTable) do
-            if conn and typeof(conn.Disconnect) == "function" then
-                conn:Disconnect()
+
+local function cleanupAntiKillbrick()
+    local state = Modules.killbrick.State
+    
+    debugLog("Starting cleanup...")
+    
+    -- Disconnect all connections
+    for i = #state.Connections, 1, -1 do
+        local conn = state.Connections[i]
+        if conn and typeof(conn) == "RBXScriptConnection" then
+            pcall(function() conn:Disconnect() end)
+        end
+        state.Connections[i] = nil
+    end
+    
+    -- Disconnect all part-specific signals
+    for part, signalTable in pairs(state.Signals) do
+        if signalTable then
+            for i = #signalTable, 1, -1 do
+                local conn = signalTable[i]
+                if conn and typeof(conn) == "RBXScriptConnection" then
+                    pcall(function() conn:Disconnect() end)
+                end
+                signalTable[i] = nil
             end
         end
     end
-end
-for part, originalValue in pairs(state.Originals) do
-    if typeof(part) == "Instance" and part:IsA("BasePart") then
-        part.CanTouch = (originalValue == nil) or originalValue
-    end
-end
-table.clear(state.Signals)
-table.clear(state.Tracked)
-table.clear(state.Originals)
-end
-function Modules.killbrick.Enable()
-    cleanupAntiKillbrick()
-    local state = Modules.killbrick.State
-    local localPlayer = Players.LocalPlayer
-    local function applyProtection(part)
-    if not (part and part:IsA("BasePart")) then return end
-        if state.Originals[part] == nil then
-            state.Originals[part] = part.CanTouch
+    
+    -- Restore original CanTouch values
+    for part, originalValue in pairs(state.Originals) do
+        if typeof(part) == "Instance" and part:IsA("BasePart") then
+            pcall(function()
+                part.CanTouch = originalValue
+            end)
         end
+    end
+    
+    -- Clear all tables
+    table.clear(state.Signals)
+    table.clear(state.Tracked)
+    table.clear(state.Originals)
+    
+    state.LastCleanup = tick()
+    debugLog("Cleanup completed")
+end
+
+local function isPartWhitelisted(part)
+    local state = Modules.killbrick.State
+    
+    -- Check whitelist
+    for _, whitelistedPart in ipairs(Modules.killbrick.Config.WhitelistedParts) do
+        if part == whitelistedPart or part:IsDescendantOf(whitelistedPart) then
+            return true
+        end
+    end
+    
+    return false
+end
+
+local function shouldProtectPart(part)
+    if not (part and typeof(part) == "Instance" and part:IsA("BasePart")) then
+        return false
+    end
+    
+    -- Skip whitelisted parts
+    if isPartWhitelisted(part) then
+        return false
+    end
+    
+    -- Check if part is in player's character
+    local character = Players.LocalPlayer.Character
+    if not character or not part:IsDescendantOf(character) then
+        return false
+    end
+    
+    -- Optional: Skip accessories
+    if not Modules.killbrick.Config.ProtectAccessories and part:FindFirstAncestorOfClass("Accessory") then
+        return false
+    end
+    
+    -- Optional: Skip tools
+    if not Modules.killbrick.Config.ProtectTools and part:FindFirstAncestorOfClass("Tool") then
+        return false
+    end
+    
+    return true
+end
+
+local function applyProtection(part)
+    local state = Modules.killbrick.State
+    
+    if not shouldProtectPart(part) then
+        return
+    end
+    
+    -- Store original value only once
+    if state.Originals[part] == nil then
+        state.Originals[part] = part.CanTouch
+    end
+    
+    -- Apply protection
+    local success = pcall(function()
         part.CanTouch = false
-        state.Tracked[part] = true
-        if not state.Signals[part] then
-            local connection = part:GetPropertyChangedSignal("CanTouch"):Connect(function()
+    end)
+    
+    if not success then
+        debugLog("Failed to protect part: " .. tostring(part))
+        return
+    end
+    
+    state.Tracked[part] = true
+    state.Stats.PartsProtected = state.Stats.PartsProtected + 1
+    
+    -- Set up property change listener if not already set
+    if not state.Signals[part] then
+        local connection = part:GetPropertyChangedSignal("CanTouch"):Connect(function()
+            if not state.Enabled then return end
+            
             if part.CanTouch ~= false then
-                part.CanTouch = false
+                pcall(function()
+                    part.CanTouch = false
+                    state.Stats.AttemptsBlocked = state.Stats.AttemptsBlocked + 1
+                    debugLog("Blocked CanTouch change on: " .. tostring(part))
+                end)
             end
         end)
+        
         state.Signals[part] = {connection}
     end
 end
+
 local function setupCharacter(character)
-if not character then return end
+    if not character then return end
+    
+    local state = Modules.killbrick.State
+    
+    debugLog("Setting up character: " .. tostring(character))
+    
+    -- Protect existing descendants
     for _, descendant in ipairs(character:GetDescendants()) do
         applyProtection(descendant)
     end
-    table.insert(state.Connections, character.DescendantAdded:Connect(applyProtection))
-    table.insert(state.Connections, character.DescendantRemoving:Connect(function(descendant)
-    if state.Signals[descendant] then
-        for _, conn in ipairs(state.Signals[descendant]) do conn:Disconnect() end
+    
+    -- Monitor new descendants
+    local addedConn = character.DescendantAdded:Connect(function(descendant)
+        if state.Enabled then
+            task.defer(applyProtection, descendant)
+        end
+    end)
+    table.insert(state.Connections, addedConn)
+    
+    -- Clean up removed descendants
+    local removingConn = character.DescendantRemoving:Connect(function(descendant)
+        if state.Signals[descendant] then
+            for _, conn in ipairs(state.Signals[descendant]) do
+                pcall(function() conn:Disconnect() end)
+            end
             state.Signals[descendant] = nil
         end
+        
         state.Tracked[descendant] = nil
         state.Originals[descendant] = nil
-    end))
+    end)
+    table.insert(state.Connections, removingConn)
 end
+
 local function onCharacterAdded(character)
-cleanupAntiKillbrick()
-task.wait()
-setupCharacter(character)
+    debugLog("Character added, reinitializing...")
+    
+    -- Small delay to ensure character is fully loaded
+    task.wait(0.1)
+    
+    -- Clean up old character data
+    cleanupAntiKillbrick()
+    
+    -- Set up new character
+    if Modules.killbrick.State.Enabled then
+        setupCharacter(character)
+    end
 end
-if localPlayer.Character then
-    setupCharacter(localPlayer.Character)
+
+function Modules.killbrick.Enable()
+    local state = Modules.killbrick.State
+    
+    if state.Enabled then
+        warn("[KillBrick] Already enabled")
+        return
+    end
+    
+    state.Enabled = true
+    state.Stats.LastReset = tick()
+    
+    cleanupAntiKillbrick()
+    
+    local localPlayer = Players.LocalPlayer
+    
+    -- Set up current character
+    if localPlayer.Character then
+        setupCharacter(localPlayer.Character)
+    end
+    
+    -- Monitor character changes
+    local charAddedConn = localPlayer.CharacterAdded:Connect(onCharacterAdded)
+    table.insert(state.Connections, charAddedConn)
+    
+    local charRemovingConn = localPlayer.CharacterRemoving:Connect(function()
+        debugLog("Character removing...")
+    end)
+    table.insert(state.Connections, charRemovingConn)
+    
+    -- Runtime protection loop
+    local updateEvent = Modules.killbrick.Config.UseHeartbeat and RunService.Heartbeat or RunService.Stepped
+    local updateConn = updateEvent:Connect(function()
+        if not state.Enabled then return end
+        
+        local character = localPlayer.Character
+        if not character then return end
+        
+        -- Periodic cleanup
+        if tick() - state.LastCleanup > Modules.killbrick.Config.CleanupInterval then
+            local tracked = {}
+            for part in pairs(state.Tracked) do
+                if typeof(part) == "Instance" and part:IsA("BasePart") and part.Parent then
+                    tracked[part] = true
+                else
+                    -- Clean up invalid parts
+                    state.Tracked[part] = nil
+                    state.Originals[part] = nil
+                    if state.Signals[part] then
+                        for _, conn in ipairs(state.Signals[part]) do
+                            pcall(function() conn:Disconnect() end)
+                        end
+                        state.Signals[part] = nil
+                    end
+                end
+            end
+            state.LastCleanup = tick()
+        end
+        
+        -- Enforce protection on tracked parts
+        for part in pairs(state.Tracked) do
+            if typeof(part) == "Instance" and part:IsA("BasePart") and part.Parent then
+                if part.CanTouch ~= false then
+                    pcall(function()
+                        part.CanTouch = false
+                        state.Stats.AttemptsBlocked = state.Stats.AttemptsBlocked + 1
+                    end)
+                end
+            end
+        end
+    end)
+    table.insert(state.Connections, updateConn)
+    
+    DoNotif("Anti-KillBrick Enabled", 2)
+    debugLog("Protection enabled with " .. state.Stats.PartsProtected .. " parts")
 end
-table.insert(state.Connections, localPlayer.CharacterAdded:Connect(onCharacterAdded))
-table.insert(state.Connections, localPlayer.CharacterRemoving:Connect(cleanupAntiKillbrick))
-table.insert(state.Connections, RunService.Stepped:Connect(function()
-if not localPlayer.Character then return end
-    for part in pairs(state.Tracked) do
-        if typeof(part) == "Instance" and part:IsA("BasePart") and part.Parent and part.CanTouch ~= false then
-            part.CanTouch = false
+
+function Modules.killbrick.Disable()
+    local state = Modules.killbrick.State
+    
+    if not state.Enabled then
+        warn("[KillBrick] Already disabled")
+        return
+    end
+    
+    state.Enabled = false
+    
+    cleanupAntiKillbrick()
+    
+    DoNotif("Anti-KillBrick Disabled", 2)
+    debugLog("Protection disabled")
+end
+
+function Modules.killbrick.Toggle()
+    if Modules.killbrick.State.Enabled then
+        Modules.killbrick.Disable()
+    else
+        Modules.killbrick.Enable()
+    end
+end
+
+function Modules.killbrick.GetStats()
+    local state = Modules.killbrick.State
+    local uptime = tick() - state.Stats.LastReset
+    
+    return {
+        Enabled = state.Enabled,
+        PartsProtected = state.Stats.PartsProtected,
+        AttemptsBlocked = state.Stats.AttemptsBlocked,
+        Uptime = uptime,
+        TrackedParts = 0 -- Will count below
+    }
+end
+
+function Modules.killbrick.AddWhitelist(part)
+    if not (part and typeof(part) == "Instance") then
+        return false
+    end
+    
+    table.insert(Modules.killbrick.Config.WhitelistedParts, part)
+    debugLog("Added whitelist: " .. tostring(part))
+    return true
+end
+
+function Modules.killbrick.RemoveWhitelist(part)
+    for i, whitelisted in ipairs(Modules.killbrick.Config.WhitelistedParts) do
+        if whitelisted == part then
+            table.remove(Modules.killbrick.Config.WhitelistedParts, i)
+            debugLog("Removed whitelist: " .. tostring(part))
+            return true
         end
     end
-end))
-print("Anti-KillBrick Enabled.")
+    return false
 end
-function Modules.killbrick.Disable()
-    cleanupAntiKillbrick()
-    print("Anti-KillBrick Disabled.")
+
+function Modules.killbrick.ClearWhitelist()
+    table.clear(Modules.killbrick.Config.WhitelistedParts)
+    debugLog("Cleared whitelist")
 end
+
+-- Commands
 RegisterCommand({
-Name = "antikillbrick",
-Aliases = {"antikb"},
-Description = "Prevents kill bricks from killing you."
+    Name = "antikillbrick",
+    Aliases = {"antikb", "akb"},
+    Description = "Prevents kill bricks from killing you."
 }, function(args)
-Modules.killbrick.Enable(args)
+    Modules.killbrick.Enable()
 end)
+
 RegisterCommand({
-Name = "unantikillbrick",
-Aliases = {"unantikb"},
-Description = "Allows kill bricks to kill you again."
+    Name = "unantikillbrick",
+    Aliases = {"unantikb", "unakb"},
+    Description = "Allows kill bricks to kill you again."
 }, function(args)
-Modules.killbrick.Disable(args)
+    Modules.killbrick.Disable()
 end)
+
+RegisterCommand({
+    Name = "togglekillbrick",
+    Aliases = {"tkb"},
+    Description = "Toggles kill brick protection."
+}, function(args)
+    Modules.killbrick.Toggle()
+end)
+
+RegisterCommand({
+    Name = "killbrickstats",
+    Aliases = {"kbstats"},
+    Description = "Shows kill brick protection statistics."
+}, function(args)
+    local stats = Modules.killbrick.GetStats()
+    print("=== Kill Brick Protection Stats ===")
+    print("Enabled:", stats.Enabled)
+    print("Parts Protected:", stats.PartsProtected)
+    print("Attempts Blocked:", stats.AttemptsBlocked)
+    print("Uptime:", string.format("%.1f", stats.Uptime) .. "s")
+end)
+
 Modules.FlingProtection = {
 State = {
 IsEnabled = false,
@@ -7674,62 +7861,262 @@ end
 Modules.AdBlock = {
     State = {
         IsEnabled = false,
-        Connections = {}
+        Connections = {},
+        RemovedAds = 0,
+        Whitelist = {},
+        ProcessedInstances = setmetatable({}, {__mode = "k"})
     },
     Dependencies = {"Workspace", "Players", "CoreGui"},
-    Services = {}
+    Services = {},
+    
+    Config = {
+        AggressiveMode = false, -- If true, uses stricter detection
+        RemoveBillboards = true,
+        RemoveSurfaceGuis = false, -- Often used legitimately
+        ProtectCoreGuis = true, -- Protect Roblox core GUIs
+        DebugMode = false,
+        
+        -- Whitelist patterns (GUI names that should never be removed)
+        WhitelistPatterns = {
+            "^roblox", -- Roblox official GUIs
+            "^core", -- Core GUIs
+            "^system",
+            "health", "hotbar", "backpack", "chat",
+            "leaderboard", "playerlist", "nametag",
+            "menu", "settings", "inventory", "hud"
+        },
+        
+        -- Blacklist patterns (more likely to be ads)
+        BlacklistPatterns = {
+            "ad[sv]?$", "advert", "sponsor", "promo",
+            "donation", "robux", "gamepass", "purchase",
+            "vip", "premium", "buy", "shop"
+        }
+    }
 }
 
-local AD_KEYWORDS = {
-    "ad", "ads", "advert", "sponsor", "promo", "promotion"
-}
+local function debugLog(message)
+    if Modules.AdBlock.Config.DebugMode then
+        print("[AdBlock Debug]", message)
+    end
+end
 
-local function nameLooksLikeAd(name)
+local function isWhitelisted(name)
     name = name:lower()
-    for _, word in ipairs(AD_KEYWORDS) do
-        if name:find(word) then
+    
+    -- Check manual whitelist
+    for instance in pairs(Modules.AdBlock.State.Whitelist) do
+        if typeof(instance) == "Instance" and instance.Name:lower() == name then
             return true
         end
     end
+    
+    -- Check whitelist patterns
+    for _, pattern in ipairs(Modules.AdBlock.Config.WhitelistPatterns) do
+        if name:match(pattern) then
+            debugLog("Whitelisted by pattern: " .. name .. " (" .. pattern .. ")")
+            return true
+        end
+    end
+    
     return false
 end
 
-function Modules.AdBlock:_destroy(instance)
-    pcall(function()
+local function isBlacklisted(name)
+    name = name:lower()
+    
+    for _, pattern in ipairs(Modules.AdBlock.Config.BlacklistPatterns) do
+        if name:match(pattern) then
+            debugLog("Blacklisted by pattern: " .. name .. " (" .. pattern .. ")")
+            return true
+        end
+    end
+    
+    return false
+end
+
+local function hasAdCharacteristics(gui)
+    local suspicionScore = 0
+    
+    -- Check for excessive ImageLabels (common in ads)
+    local imageLabels = gui:GetDescendants()
+    local imageCount = 0
+    for _, obj in ipairs(imageLabels) do
+        if obj:IsA("ImageLabel") then
+            imageCount = imageCount + 1
+        end
+    end
+    
+    if imageCount > 3 then
+        suspicionScore = suspicionScore + 2
+    end
+    
+    -- Check for TextButtons with purchase-related text
+    for _, obj in ipairs(gui:GetDescendants()) do
+        if obj:IsA("TextButton") or obj:IsA("TextLabel") then
+            local text = obj.Text:lower()
+            if text:match("buy") or text:match("purchase") or text:match("robux") 
+                or text:match("vip") or text:match("premium") or text:match("gamepass") then
+                suspicionScore = suspicionScore + 3
+            end
+        end
+    end
+    
+    -- Check for HttpService URLs (ads often load external images)
+    for _, obj in ipairs(gui:GetDescendants()) do
+        if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+            local image = obj.Image
+            if image and (image:match("rbxhttp") or image:match("http")) then
+                suspicionScore = suspicionScore + 1
+            end
+        end
+    end
+    
+    -- Check size - ads are often oddly positioned or sized
+    if gui:IsA("ScreenGui") then
+        for _, frame in ipairs(gui:GetChildren()) do
+            if frame:IsA("GuiObject") then
+                local size = frame.AbsoluteSize
+                local position = frame.AbsolutePosition
+                
+                -- Check if it's taking up screen space in ad-like positions
+                if size.Y < 100 and size.X > 200 then
+                    suspicionScore = suspicionScore + 1
+                end
+            end
+        end
+    end
+    
+    return suspicionScore >= (Modules.AdBlock.Config.AggressiveMode and 2 or 4)
+end
+
+local function isCoreGui(gui)
+    -- Check if it's a Roblox core GUI
+    if gui:IsDescendantOf(game:GetService("CoreGui")) then
+        return true
+    end
+    
+    -- Check for core GUI indicators
+    local name = gui.Name:lower()
+    if name:match("^roblox") or name:match("^core") then
+        return true
+    end
+    
+    return false
+end
+
+function Modules.AdBlock:_destroy(instance, reason)
+    if not instance or not instance.Parent then return end
+    
+    -- Don't destroy if whitelisted
+    if isWhitelisted(instance.Name) then
+        debugLog("Skipped whitelisted: " .. instance.Name)
+        return
+    end
+    
+    -- Protect core GUIs
+    if self.Config.ProtectCoreGuis and isCoreGui(instance) then
+        debugLog("Protected core GUI: " .. instance.Name)
+        return
+    end
+    
+    local success = pcall(function()
+        debugLog("Removing: " .. instance.Name .. " (" .. (reason or "unknown reason") .. ")")
         instance:Destroy()
+        self.State.RemovedAds = self.State.RemovedAds + 1
     end)
+    
+    if not success then
+        debugLog("Failed to remove: " .. instance.Name)
+    end
 end
 
 function Modules.AdBlock:_processObject(obj)
     if not obj or not obj.Parent then return end
-
-    if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
-        self:_destroy(obj)
+    
+    -- Skip if already processed
+    if self.State.ProcessedInstances[obj] then
         return
     end
-
-    if obj:IsA("ScreenGui") then
-        if nameLooksLikeAd(obj.Name) or obj:FindFirstChildWhichIsA("ImageLabel", true) then
-            self:_destroy(obj)
+    
+    self.State.ProcessedInstances[obj] = true
+    
+    -- Skip whitelisted instances
+    if isWhitelisted(obj.Name) then
+        return
+    end
+    
+    -- Handle BillboardGuis
+    if self.Config.RemoveBillboards and obj:IsA("BillboardGui") then
+        -- Check if it's a legitimate billboard (like nametags)
+        local parent = obj.Parent
+        if parent and parent:IsA("BasePart") then
+            -- Allow nametags above characters
+            local humanoid = parent.Parent and parent.Parent:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                debugLog("Skipped character billboard: " .. obj.Name)
+                return
+            end
         end
-        return
-    end
-
-    if obj:IsA("BasePart") then
-        if obj:FindFirstChildWhichIsA("BillboardGui") then
-            self:_destroy(obj)
+        
+        if isBlacklisted(obj.Name) then
+            self:_destroy(obj, "blacklisted billboard")
             return
         end
     end
-
-    if nameLooksLikeAd(obj.Name) then
-        self:_destroy(obj)
-        return
+    
+    -- Handle SurfaceGuis (often legitimate, only remove if suspicious)
+    if self.Config.RemoveSurfaceGuis and obj:IsA("SurfaceGui") then
+        if isBlacklisted(obj.Name) or (self.Config.AggressiveMode and hasAdCharacteristics(obj)) then
+            self:_destroy(obj, "suspicious surface GUI")
+            return
+        end
     end
-
-    if obj:FindFirstChild("AdGuiAdornee") then
-        self:_destroy(obj.Parent or obj)
-        return
+    
+    -- Handle ScreenGuis
+    if obj:IsA("ScreenGui") then
+        local shouldRemove = false
+        local reason = ""
+        
+        -- Check blacklist
+        if isBlacklisted(obj.Name) then
+            shouldRemove = true
+            reason = "blacklisted name"
+        end
+        
+        -- Check for ad characteristics
+        if not shouldRemove and hasAdCharacteristics(obj) then
+            shouldRemove = true
+            reason = "ad characteristics detected"
+        end
+        
+        -- Check for AdGuiAdornee marker
+        if not shouldRemove and obj:FindFirstChild("AdGuiAdornee", true) then
+            shouldRemove = true
+            reason = "AdGuiAdornee marker"
+        end
+        
+        if shouldRemove then
+            self:_destroy(obj, reason)
+            return
+        end
+    end
+    
+    -- Handle BaseParts with billboards
+    if obj:IsA("BasePart") and self.Config.RemoveBillboards then
+        local billboard = obj:FindFirstChildWhichIsA("BillboardGui")
+        if billboard and (isBlacklisted(obj.Name) or isBlacklisted(billboard.Name)) then
+            self:_destroy(obj, "part with ad billboard")
+            return
+        end
+    end
+    
+    -- General name check (least aggressive)
+    if self.Config.AggressiveMode and isBlacklisted(obj.Name) then
+        -- Only remove if it's a GUI-related object
+        if obj:IsA("GuiObject") or obj:IsA("LayerCollector") then
+            self:_destroy(obj, "blacklisted name")
+        end
     end
 end
 
@@ -7738,40 +8125,67 @@ function Modules.AdBlock:Enable()
         DoNotif("AdBlock already enabled.", 2)
         return
     end
-
+    
     self.State.IsEnabled = true
-    DoNotif("AdBlock enabled.", 2)
-
-    local function scan(container)
+    self.State.RemovedAds = 0
+    
+    local function scan(container, containerName)
+        debugLog("Scanning: " .. containerName)
+        local count = 0
+        
         for _, obj in ipairs(container:GetDescendants()) do
             self:_processObject(obj)
+            count = count + 1
         end
+        
+        debugLog("Scanned " .. count .. " objects in " .. containerName)
     end
-
-    scan(self.Services.Workspace)
-
+    
+    -- Scan workspace
+    scan(self.Services.Workspace, "Workspace")
+    
+    -- Scan PlayerGui
     local player = self.Services.Players.LocalPlayer
     if player then
-        local gui = player:WaitForChild("PlayerGui", 5)
-        if gui then scan(gui) end
+        local gui = player:FindFirstChild("PlayerGui")
+        if not gui then
+            gui = player:WaitForChild("PlayerGui", 5)
+        end
+        if gui then
+            scan(gui, "PlayerGui")
+        end
     end
-
-    scan(self.Services.CoreGui)
-
-    local function watch(container)
-        table.insert(self.State.Connections,
-            container.DescendantAdded:Connect(function(obj)
-                self:_processObject(obj)
-            end)
-        )
+    
+    -- Scan CoreGui (carefully)
+    if not self.Config.ProtectCoreGuis then
+        scan(self.Services.CoreGui, "CoreGui")
     end
-
-    watch(self.Services.Workspace)
-    watch(self.Services.CoreGui)
-
+    
+    -- Set up watchers
+    local function watch(container, containerName)
+        local conn = container.DescendantAdded:Connect(function(obj)
+            if self.State.IsEnabled then
+                task.defer(function()
+                    self:_processObject(obj)
+                end)
+            end
+        end)
+        
+        table.insert(self.State.Connections, conn)
+        debugLog("Watching: " .. containerName)
+    end
+    
+    watch(self.Services.Workspace, "Workspace")
+    
     if player and player:FindFirstChild("PlayerGui") then
-        watch(player.PlayerGui)
+        watch(player.PlayerGui, "PlayerGui")
     end
+    
+    if not self.Config.ProtectCoreGuis then
+        watch(self.Services.CoreGui, "CoreGui")
+    end
+    
+    DoNotif("AdBlock enabled. Removed " .. self.State.RemovedAds .. " ads.", 3)
 end
 
 function Modules.AdBlock:Disable()
@@ -7779,15 +8193,17 @@ function Modules.AdBlock:Disable()
         DoNotif("AdBlock not active.", 2)
         return
     end
-
+    
     self.State.IsEnabled = false
-
+    
     for _, c in ipairs(self.State.Connections) do
         pcall(function() c:Disconnect() end)
     end
-
-    self.State.Connections = {}
-    DoNotif("AdBlock disabled.", 2)
+    
+    table.clear(self.State.Connections)
+    table.clear(self.State.ProcessedInstances)
+    
+    DoNotif("AdBlock disabled. Total ads removed: " .. self.State.RemovedAds, 3)
 end
 
 function Modules.AdBlock:Toggle()
@@ -7798,17 +8214,63 @@ function Modules.AdBlock:Toggle()
     end
 end
 
+function Modules.AdBlock:AddWhitelist(instance)
+    if typeof(instance) == "Instance" then
+        self.State.Whitelist[instance] = true
+        debugLog("Added to whitelist: " .. instance.Name)
+        return true
+    end
+    return false
+end
+
+function Modules.AdBlock:RemoveWhitelist(instance)
+    if self.State.Whitelist[instance] then
+        self.State.Whitelist[instance] = nil
+        debugLog("Removed from whitelist: " .. instance.Name)
+        return true
+    end
+    return false
+end
+
+function Modules.AdBlock:GetStats()
+    return {
+        Enabled = self.State.IsEnabled,
+        RemovedAds = self.State.RemovedAds,
+        WhitelistedCount = 0 -- Will count below
+    }
+end
+
 function Modules.AdBlock:Initialize()
     for _, serviceName in ipairs(self.Dependencies) do
         self.Services[serviceName] = game:GetService(serviceName)
     end
-
+    
     RegisterCommand({
         Name = "adblock",
-        Aliases = {"removeads"},
-        Description = "Automatically removes in-game advertisements."
+        Aliases = {"removeads", "blockads"},
+        Description = "Toggles automatic ad removal."
     }, function()
         self:Toggle()
+    end)
+    
+    RegisterCommand({
+        Name = "adblockstats",
+        Aliases = {"abstats"},
+        Description = "Shows AdBlock statistics."
+    }, function()
+        local stats = self:GetStats()
+        print("=== AdBlock Stats ===")
+        print("Enabled:", stats.Enabled)
+        print("Ads Removed:", stats.RemovedAds)
+    end)
+    
+    RegisterCommand({
+        Name = "adblockmode",
+        Aliases = {"abmode"},
+        Description = "Toggle aggressive mode."
+    }, function(args)
+        self.Config.AggressiveMode = not self.Config.AggressiveMode
+        DoNotif("AdBlock Aggressive Mode: " .. tostring(self.Config.AggressiveMode), 2)
     end)
 end
 
@@ -7889,87 +8351,6 @@ function Modules.Fakeout:Initialize()
     end)
 end
 
-Modules.R6Enforcer = {
-    State = {
-        IsEnabled = false,
-
-        CharacterAddedConnection = nil
-    },
-    Dependencies = {"Players"},
-    Services = {}
-}
-
-function Modules.R6Enforcer:_forceRespawn()
-    local character = self.Services.Players.LocalPlayer.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    if humanoid and humanoid.Health > 0 then
-        humanoid.Health = 0
-    end
-end
-
-function Modules.R6Enforcer:Enable()
-    if self.State.IsEnabled then return end
-    
-    local localPlayer = self.Services.Players.LocalPlayer
-    if not localPlayer then return end
-
-    self.State.IsEnabled = true
-
-    if self.State.CharacterAddedConnection then self.State.CharacterAddedConnection:Disconnect() end
-
-    self.State.CharacterAddedConnection = localPlayer.CharacterAdded:Connect(function(character)
-
-        if not self.State.IsEnabled then return end
-        
-        local humanoid = character:WaitForChild("Humanoid", 5)
-        if humanoid then
-
-            local r6Description = Instance.new("HumanoidDescription")
-            humanoid:ApplyDescription(r6Description)
-        end
-    end)
-    
-    DoNotif("R6 Enforcer: ENABLED. Respawning to apply...", 3)
-
-    self:_forceRespawn()
-end
-
-function Modules.R6Enforcer:Disable()
-    if not self.State.IsEnabled then return end
-    self.State.IsEnabled = false
-
-    if self.State.CharacterAddedConnection then
-        self.State.CharacterAddedConnection:Disconnect()
-        self.State.CharacterAddedConnection = nil
-    end
-
-    DoNotif("R6 Enforcer: DISABLED. Respawning to revert...", 3)
-
-    self:_forceRespawn()
-end
-
-function Modules.R6Enforcer:Toggle()
-    if self.State.IsEnabled then
-        self:Disable()
-    else
-        self:Enable()
-    end
-end
-
-function Modules.R6Enforcer:Initialize()
-    local module = self
-    for _, serviceName in ipairs(module.Dependencies) do
-        module.Services[serviceName] = game:GetService(serviceName)
-    end
-
-    RegisterCommand({
-        Name = "forcer6",
-        Aliases = {"r6", "classicavatar"},
-        Description = "Forces your character to load as R6 via respawn."
-    }, function()
-        module:Toggle()
-    end)
-end
 
 Modules.AntiPlayerPhysics = {
     State = {
@@ -8061,155 +8442,13 @@ end
 function Modules.AntiPlayerPhysics:Initialize()
     local module = self
     RegisterCommand({
-        Name = "nocollide",
+        Name = "antifling",
         Aliases = {"nofling"},
         Description = "Toggles a simple anti-fling that makes other players non-collidable."
     }, function()
         module:Toggle()
     end)
 end
-
-Modules.ForensicAntiFling = {
-    State = {
-        IsEnabled = false,
-        SafeCFrame = nil,
-        LastSafePosition = nil,
-        Connections = {},
-        TrackedPlayers = {}
-    },
-    Config = {
-        MAX_SPEED = 35,
-        SAFE_Y_BUFFER = 5,
-        VOID_THRESHOLD = -15,
-        PROTECT_RADIUS = 18,
-        FREEZE_DURATION = 0.5,
-        OTHER_VEL_LIMIT = 60
-    }
-}
-
-function Modules.ForensicAntiFling:_purgeForces(character)
-    for _, obj in ipairs(character:GetDescendants()) do
-        if obj:IsA("BodyMover") or obj:IsA("LinearVelocity") or obj:IsA("AngularVelocity")
-        or obj:IsA("AlignPosition") or obj:IsA("AlignOrientation") or obj:IsA("VectorForce") then
-            pcall(function() obj:Destroy() end)
-        end
-    end
-end
-
-function Modules.ForensicAntiFling:_onTouchFreeze(otherPart)
-    if not self.State.IsEnabled then return end
-    if otherPart:IsA("BasePart") and otherPart.AssemblyLinearVelocity.Magnitude > self.Config.MAX_SPEED then
-        local origVel = otherPart.AssemblyLinearVelocity
-        otherPart.AssemblyLinearVelocity = Vector3.zero
-        otherPart.AssemblyAngularVelocity = Vector3.zero
-
-        task.delay(self.Config.FREEZE_DURATION, function()
-            if otherPart and otherPart.Parent then
-                otherPart.AssemblyLinearVelocity = origVel
-            end
-        end)
-    end
-end
-
-function Modules.ForensicAntiFling:_startDefense(character)
-    local hrp = character:WaitForChild("HumanoidRootPart", 5)
-    local hum = character:WaitForChild("Humanoid", 5)
-    if not hrp or not hum then return end
-
-    self.State.SafeCFrame = hrp.CFrame
-
-    table.insert(self.State.Connections, hrp.Touched:Connect(function(p) self:_onTouchFreeze(p) end))
-
-    table.insert(self.State.Connections, RunService.Heartbeat:Connect(function()
-        if not self.State.IsEnabled or hum.Health <= 0 then return end
-
-        local vel = hrp.AssemblyLinearVelocity.Magnitude
-
-        if vel <= self.Config.MAX_SPEED and hrp.Position.Y > self.Config.SAFE_Y_BUFFER then
-            self.State.SafeCFrame = hrp.CFrame
-        end
-
-        if hrp.Position.Y < self.Config.VOID_THRESHOLD then
-            hrp.CFrame = self.State.SafeCFrame or CFrame.new(0, 50, 0)
-            hrp.AssemblyLinearVelocity = Vector3.zero
-            self:_purgeForces(character)
-            return
-        end
-
-        if vel > self.Config.MAX_SPEED or hrp.Position.Y < self.Config.SAFE_Y_BUFFER then
-
-            hrp.CFrame = self.State.SafeCFrame or hrp.CFrame
-            hrp.AssemblyLinearVelocity = Vector3.zero
-            hrp.AssemblyAngularVelocity = Vector3.zero
-            
-            self:_purgeForces(character)
-
-            for _, part in pairs(Workspace:GetPartBoundsInRadius(hrp.Position, self.Config.PROTECT_RADIUS)) do
-                if part:IsA("BasePart") and not part:IsDescendantOf(character) then
-                    if part.Parent:FindFirstChildOfClass("Humanoid") then
-                        part.AssemblyLinearVelocity = Vector3.zero
-                        part.AssemblyAngularVelocity = Vector3.zero
-                    end
-                end
-            end
-        end
-    end))
-end
-
-function Modules.ForensicAntiFling:_monitorOthers()
-    table.insert(self.State.Connections, RunService.Heartbeat:Connect(function()
-        if not self.State.IsEnabled then return end
-        
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character and plr.Character.PrimaryPart then
-                local root = plr.Character.PrimaryPart
-                if root.AssemblyLinearVelocity.Magnitude > self.Config.OTHER_VEL_LIMIT or root.AssemblyAngularVelocity.Magnitude > self.Config.OTHER_VEL_LIMIT then
-
-                    for _, v in ipairs(plr.Character:GetDescendants()) do
-                        if v:IsA("BasePart") then
-                            v.CanCollide = false
-                            v.AssemblyLinearVelocity = Vector3.zero
-                            v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
-                        end
-                    end
-                end
-            end
-        end
-    end))
-end
-
-function Modules.ForensicAntiFling:Enable()
-    if self.State.IsEnabled then return end
-    self.State.IsEnabled = true
-    
-    if LocalPlayer.Character then self:_startDefense(LocalPlayer.Character) end
-    table.insert(self.State.Connections, LocalPlayer.CharacterAdded:Connect(function(c) self:_startDefense(c) end))
-    
-    self:_monitorOthers()
-    DoNotif("Forensic Anti-Fling: ENABLED", 2)
-end
-
-function Modules.ForensicAntiFling:Disable()
-    if not self.State.IsEnabled then return end
-    self.State.IsEnabled = false
-    
-    for _, conn in pairs(self.State.Connections) do conn:Disconnect() end
-    table.clear(self.State.Connections)
-    
-    DoNotif("Forensic Anti-Fling: DISABLED", 2)
-end
-
-function Modules.ForensicAntiFling:Toggle()
-    if self.State.IsEnabled then self:Disable() else self:Enable() end
-end
-
-RegisterCommand({
-    Name = "antifling",
-    Aliases = {"anf", "unfling", "safezone"},
-    Description = "Toggles high-tier snapback and kinetic-drain anti-fling."
-}, function()
-    Modules.ForensicAntiFling:Toggle()
-end)
 
 Modules.AntiKill = {
     State = {
@@ -8296,7 +8535,7 @@ function Modules.AntiKill:Initialize()
     RegisterCommand({
         Name = "antikill",
         Aliases = {},
-        Description = "Toggles a client-sided system to resist flings and character manipulation."
+        Description = "Toggles a client-sided system to resist death and character manipulation."
     }, function()
         module:Toggle()
     end)
@@ -8647,19 +8886,39 @@ Modules.TeleporterScanner = {
 	State = {
 		UI = nil,
 		IsScanning = false,
-		Highlights = {}
+		Highlights = {},
+		ScanCache = {},
+		LastScan = 0,
+		Stats = {
+			TotalScanned = 0,
+			PotentalFound = 0,
+			LastScanTime = 0
+		}
+	},
+	
+	Config = {
+		CacheExpiry = 60, -- Cache results for 60 seconds
+		YieldInterval = 250, -- Yield every 250 objects
+		MaxResults = 100, -- Maximum results to display
+		AutoScanOnOpen = false,
+		HighlightDuration = 0, -- 0 = permanent, otherwise auto-remove after X seconds
+		DeepScan = false, -- Scan decompiled scripts more thoroughly
+		ScanHiddenObjects = true,
+		DebugMode = false
 	}
 }
+
+local function debugLog(message)
+	if Modules.TeleporterScanner.Config.DebugMode then
+		print("[TeleporterScanner Debug]", message)
+	end
+end
 
 function Modules.TeleporterScanner:ToggleGUI()
 	local self = Modules.TeleporterScanner
 
 	if self.State.UI and self.State.UI.Parent then
-		for _, highlight in pairs(self.State.Highlights) do
-			if highlight and highlight.Parent then highlight:Destroy() end
-		end
-		table.clear(self.State.Highlights)
-		
+		self:CleanupHighlights()
 		self.State.UI:Destroy()
 		self.State.UI = nil
 		DoNotif("Teleporter Scanner closed.", 2)
@@ -8672,150 +8931,642 @@ function Modules.TeleporterScanner:ToggleGUI()
 	local UserInputService = game:GetService("UserInputService")
 	local TweenService = game:GetService("TweenService")
 	local CoreGui = game:GetService("CoreGui")
+	local Players = game:GetService("Players")
 
-	local SCRIPT_KEYWORDS = { "TeleportService", ":Teleport(", ":TeleportToPlaceInstance(", "fireproximityprompt" }
-	local NAME_KEYWORDS = { "teleport", "portal", "warp" }
-	local DATA_PAYLOAD_NAMES = { "placeid", "gameid", "targetplace" }
+	-- Enhanced detection keywords
+	local SCRIPT_KEYWORDS = {
+		-- High confidence
+		{pattern = "TeleportService", confidence = 1.0},
+		{pattern = ":Teleport%(", confidence = 1.0},
+		{pattern = ":TeleportToPlaceInstance%(", confidence = 1.0},
+		{pattern = "TeleportAsync", confidence = 1.0},
+		
+		-- Medium-high confidence
+		{pattern = "fireproximityprompt", confidence = 0.9},
+		{pattern = "firetouchinterest", confidence = 0.85},
+		{pattern = "game:GetService%([\"']TeleportService", confidence = 0.95},
+		
+		-- Medium confidence
+		{pattern = "placeId%s*=%s*%d+", confidence = 0.7},
+		{pattern = "JobId", confidence = 0.6},
+		{pattern = "PrivateServerId", confidence = 0.6},
+		
+		-- Lower confidence (common in teleport systems)
+		{pattern = "CFrame%.new%(", confidence = 0.3},
+		{pattern = "HumanoidRootPart%.CFrame", confidence = 0.4}
+	}
+	
+	local NAME_KEYWORDS = {
+		{pattern = "teleport", confidence = 0.6},
+		{pattern = "portal", confidence = 0.6},
+		{pattern = "warp", confidence = 0.5},
+		{pattern = "transport", confidence = 0.5},
+		{pattern = "gateway", confidence = 0.5},
+		{pattern = "door", confidence = 0.3},
+		{pattern = "exit", confidence = 0.4}
+	}
+	
+	local DATA_PAYLOAD_NAMES = {
+		{name = "placeid", confidence = 0.9},
+		{name = "gameid", confidence = 0.9},
+		{name = "targetplace", confidence = 0.9},
+		{name = "destination", confidence = 0.7},
+		{name = "teleportdata", confidence = 0.85},
+		{name = "tpid", confidence = 0.8}
+	}
 
-	local CONFIDENCE_THRESHOLDS = { SCRIPT = 1.0, DATA_PAYLOAD = 0.8, NAME = 0.5 }
-
+	-- Create UI
 	local screenGui = Instance.new("ScreenGui")
 	self.State.UI = screenGui
 	screenGui.Name = "TeleporterScannerGui"
 	screenGui.ResetOnSpawn = false
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+	screenGui.IgnoreGuiInset = true
 
-	local mainFrame = Instance.new("Frame"); mainFrame.Name = "MainFrame"; mainFrame.Size = UDim2.new(0, 350, 0, 450); mainFrame.Position = UDim2.new(0, 10, 0.5, -225); mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45); mainFrame.BorderColor3 = Color3.fromRGB(85, 85, 125); mainFrame.ClipsDescendants = true; mainFrame.Parent = screenGui
-	local titleLabel = Instance.new("TextLabel"); titleLabel.Name = "TitleLabel"; titleLabel.Size = UDim2.new(1, 0, 0, 30); titleLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 55); titleLabel.Text = "Forensic Teleporter Scanner"; titleLabel.Font = Enum.Font.SourceSansBold; titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255); titleLabel.Parent = mainFrame
-	local scanButton = Instance.new("TextButton"); scanButton.Name = "ScanButton"; scanButton.Size = UDim2.new(1, -10, 0, 30); scanButton.Position = UDim2.new(0.5, 0, 0, 35); scanButton.AnchorPoint = Vector2.new(0.5, 0); scanButton.BackgroundColor3 = Color3.fromRGB(80, 60, 200); scanButton.Font = Enum.Font.SourceSansBold; scanButton.TextColor3 = Color3.fromRGB(255, 255, 255); scanButton.Text = "Begin Workspace Scan"; scanButton.Parent = mainFrame
-	local clearButton = Instance.new("TextButton"); clearButton.Name = "ClearButton"; clearButton.Size = UDim2.new(1, -10, 0, 20); clearButton.Position = UDim2.new(0.5, 0, 0, 70); clearButton.AnchorPoint = Vector2.new(0.5, 0); clearButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60); clearButton.Font = Enum.Font.SourceSans; clearButton.TextColor3 = Color3.fromRGB(255, 255, 255); clearButton.Text = "Clear Highlights & Results"; clearButton.Parent = mainFrame
-	local resultsFrame = Instance.new("ScrollingFrame"); resultsFrame.Name = "ResultsFrame"; resultsFrame.Size = UDim2.new(1, -10, 1, -95); resultsFrame.Position = UDim2.new(0, 5, 0, 90); resultsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40); resultsFrame.Parent = mainFrame
-	local listLayout = Instance.new("UIListLayout"); listLayout.SortOrder = Enum.SortOrder.LayoutOrder; listLayout.Padding = UDim.new(0, 3); listLayout.Parent = resultsFrame
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Name = "MainFrame"
+	mainFrame.Size = UDim2.new(0, 380, 0, 500)
+	mainFrame.Position = UDim2.new(0, 10, 0.5, -250)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+	mainFrame.BorderSizePixel = 2
+	mainFrame.BorderColor3 = Color3.fromRGB(85, 85, 125)
+	mainFrame.ClipsDescendants = true
+	mainFrame.Parent = screenGui
+	
+	local uiCorner = Instance.new("UICorner")
+	uiCorner.CornerRadius = UDim.new(0, 8)
+	uiCorner.Parent = mainFrame
+
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Name = "TitleLabel"
+	titleLabel.Size = UDim2.new(1, 0, 0, 35)
+	titleLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+	titleLabel.Text = "🔍 Forensic Teleporter Scanner"
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 14
+	titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	titleLabel.Parent = mainFrame
+	
+	local titleCorner = Instance.new("UICorner")
+	titleCorner.CornerRadius = UDim.new(0, 8)
+	titleCorner.Parent = titleLabel
+
+	local closeButton = Instance.new("TextButton")
+	closeButton.Name = "CloseButton"
+	closeButton.Size = UDim2.new(0, 30, 0, 30)
+	closeButton.Position = UDim2.new(1, -32, 0, 2.5)
+	closeButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+	closeButton.Text = "✕"
+	closeButton.Font = Enum.Font.GothamBold
+	closeButton.TextSize = 16
+	closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeButton.Parent = titleLabel
+	
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 4)
+	closeCorner.Parent = closeButton
+
+	local statsLabel = Instance.new("TextLabel")
+	statsLabel.Name = "StatsLabel"
+	statsLabel.Size = UDim2.new(1, -10, 0, 20)
+	statsLabel.Position = UDim2.new(0, 5, 0, 40)
+	statsLabel.BackgroundTransparency = 1
+	statsLabel.Text = "Ready to scan | 0 objects scanned"
+	statsLabel.Font = Enum.Font.Gotham
+	statsLabel.TextSize = 11
+	statsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+	statsLabel.TextXAlignment = Enum.TextXAlignment.Left
+	statsLabel.Parent = mainFrame
+
+	local scanButton = Instance.new("TextButton")
+	scanButton.Name = "ScanButton"
+	scanButton.Size = UDim2.new(1, -10, 0, 32)
+	scanButton.Position = UDim2.new(0.5, 0, 0, 65)
+	scanButton.AnchorPoint = Vector2.new(0.5, 0)
+	scanButton.BackgroundColor3 = Color3.fromRGB(80, 60, 200)
+	scanButton.Font = Enum.Font.GothamBold
+	scanButton.TextSize = 13
+	scanButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	scanButton.Text = "🔍 Begin Workspace Scan"
+	scanButton.Parent = mainFrame
+	
+	local scanCorner = Instance.new("UICorner")
+	scanCorner.CornerRadius = UDim.new(0, 6)
+	scanCorner.Parent = scanButton
+
+	local deepScanToggle = Instance.new("TextButton")
+	deepScanToggle.Name = "DeepScanToggle"
+	deepScanToggle.Size = UDim2.new(0.48, 0, 0, 24)
+	deepScanToggle.Position = UDim2.new(0, 5, 0, 102)
+	deepScanToggle.BackgroundColor3 = self.Config.DeepScan and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(80, 80, 90)
+	deepScanToggle.Font = Enum.Font.Gotham
+	deepScanToggle.TextSize = 11
+	deepScanToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	deepScanToggle.Text = "Deep Scan: " .. (self.Config.DeepScan and "ON" or "OFF")
+	deepScanToggle.Parent = mainFrame
+	
+	local deepCorner = Instance.new("UICorner")
+	deepCorner.CornerRadius = UDim.new(0, 4)
+	deepCorner.Parent = deepScanToggle
+
+	local clearButton = Instance.new("TextButton")
+	clearButton.Name = "ClearButton"
+	clearButton.Size = UDim2.new(0.48, 0, 0, 24)
+	clearButton.Position = UDim2.new(0.52, 0, 0, 102)
+	clearButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+	clearButton.Font = Enum.Font.Gotham
+	clearButton.TextSize = 11
+	clearButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	clearButton.Text = "🗑️ Clear Results"
+	clearButton.Parent = mainFrame
+	
+	local clearCorner = Instance.new("UICorner")
+	clearCorner.CornerRadius = UDim.new(0, 4)
+	clearCorner.Parent = clearButton
+
+	local filterLabel = Instance.new("TextLabel")
+	filterLabel.Name = "FilterLabel"
+	filterLabel.Size = UDim2.new(1, -10, 0, 18)
+	filterLabel.Position = UDim2.new(0, 5, 0, 131)
+	filterLabel.BackgroundTransparency = 1
+	filterLabel.Text = "Min Confidence: 0%"
+	filterLabel.Font = Enum.Font.Gotham
+	filterLabel.TextSize = 10
+	filterLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+	filterLabel.TextXAlignment = Enum.TextXAlignment.Left
+	filterLabel.Parent = mainFrame
+
+	local filterSlider = Instance.new("Frame")
+	filterSlider.Name = "FilterSlider"
+	filterSlider.Size = UDim2.new(1, -10, 0, 6)
+	filterSlider.Position = UDim2.new(0, 5, 0, 150)
+	filterSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+	filterSlider.BorderSizePixel = 0
+	filterSlider.Parent = mainFrame
+	
+	local sliderCorner = Instance.new("UICorner")
+	sliderCorner.CornerRadius = UDim.new(1, 0)
+	sliderCorner.Parent = filterSlider
+
+	local sliderFill = Instance.new("Frame")
+	sliderFill.Name = "Fill"
+	sliderFill.Size = UDim2.new(0, 0, 1, 0)
+	sliderFill.BackgroundColor3 = Color3.fromRGB(80, 60, 200)
+	sliderFill.BorderSizePixel = 0
+	sliderFill.Parent = filterSlider
+	
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(1, 0)
+	fillCorner.Parent = sliderFill
+
+	local resultsFrame = Instance.new("ScrollingFrame")
+	resultsFrame.Name = "ResultsFrame"
+	resultsFrame.Size = UDim2.new(1, -10, 1, -165)
+	resultsFrame.Position = UDim2.new(0, 5, 0, 160)
+	resultsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+	resultsFrame.BorderSizePixel = 0
+	resultsFrame.ScrollBarThickness = 6
+	resultsFrame.Parent = mainFrame
+	
+	local resultsCorner = Instance.new("UICorner")
+	resultsCorner.CornerRadius = UDim.new(0, 6)
+	resultsCorner.Parent = resultsFrame
+
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Padding = UDim.new(0, 3)
+	listLayout.Parent = resultsFrame
+	
+	local listPadding = Instance.new("UIPadding")
+	listPadding.PaddingLeft = UDim.new(0, 5)
+	listPadding.PaddingRight = UDim.new(0, 5)
+	listPadding.PaddingTop = UDim.new(0, 5)
+	listPadding.PaddingBottom = UDim.new(0, 5)
+	listPadding.Parent = resultsFrame
+
+	-- Slider logic
+	local minConfidence = 0
+	local function updateFilter()
+		for _, child in ipairs(resultsFrame:GetChildren()) do
+			if child:IsA("TextButton") then
+				local conf = tonumber(child:GetAttribute("Confidence"))
+				child.Visible = conf and (conf >= minConfidence)
+			end
+		end
+	end
+
+	filterSlider.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			local function updateSlider()
+				local mouse = UserInputService:GetMouseLocation()
+				local relativeX = math.clamp((mouse.X - filterSlider.AbsolutePosition.X) / filterSlider.AbsoluteSize.X, 0, 1)
+				minConfidence = relativeX
+				sliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+				filterLabel.Text = string.format("Min Confidence: %.0f%%", minConfidence * 100)
+				updateFilter()
+			end
+			
+			local conn
+			conn = UserInputService.InputEnded:Connect(function(endInput)
+				if endInput.UserInputType == Enum.UserInputType.MouseButton1 then
+					conn:Disconnect()
+				end
+			end)
+			
+			local moveConn
+			moveConn = UserInputService.InputChanged:Connect(function(moveInput)
+				if moveInput.UserInputType == Enum.UserInputType.MouseMovement then
+					updateSlider()
+				end
+			end)
+			
+			UserInputService.InputEnded:Connect(function(endInput)
+				if endInput.UserInputType == Enum.UserInputType.MouseButton1 then
+					moveConn:Disconnect()
+				end
+			end)
+			
+			updateSlider()
+		end
+	end)
 
 	local function highlightPart(part, confidence)
 		if self.State.Highlights[part] then return end
+		
 		local highlight = Instance.new("Highlight")
-		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop; highlight.FillColor = Color3.fromHSV(0.0, 0.8, 1); highlight.OutlineColor = Color3.fromRGB(255, 255, 255); highlight.FillTransparency = 0.5; highlight.Parent = part
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		
+		-- Color based on confidence: red (low) -> yellow (mid) -> green (high)
+		local hue = confidence * 0.33 -- 0 = red, 0.33 = green
+		highlight.FillColor = Color3.fromHSV(hue, 0.8, 1)
+		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		highlight.FillTransparency = 0.4
+		highlight.OutlineTransparency = 0
+		highlight.Parent = part
+		
 		self.State.Highlights[part] = highlight
+		
+		-- Auto-remove after duration
+		if self.Config.HighlightDuration > 0 then
+			task.delay(self.Config.HighlightDuration, function()
+				if highlight and highlight.Parent then
+					highlight:Destroy()
+				end
+				self.State.Highlights[part] = nil
+			end)
+		end
+		
+		debugLog("Highlighted: " .. part:GetFullName() .. " (Confidence: " .. string.format("%.0f%%", confidence * 100) .. ")")
 	end
 
-	local function addResultToList(part, confidence, reason)
+	local function addResultToList(part, confidence, reasons)
 		local resultButton = Instance.new("TextButton")
-		resultButton.Name = part.Name; resultButton.Text = `[{string.format("%.0f", confidence * 100)}%] {part:GetFullName()} ({reason})`; resultButton.Size = UDim2.new(1, 0, 0, 25); resultButton.BackgroundColor3 = Color3.fromHSV(0, 0.5, 0.5 + (confidence * 0.2)); resultButton.Font = Enum.Font.SourceSans; resultButton.TextXAlignment = Enum.TextXAlignment.Left; resultButton.TextColor3 = Color3.fromRGB(225, 225, 225); resultButton.LayoutOrder = -confidence; resultButton.Parent = resultsFrame
+		resultButton.Name = part.Name
+		
+		local reasonText = table.concat(reasons, ", ")
+		resultButton.Text = string.format("[%.0f%%] %s\n%s", confidence * 100, part.Name, reasonText)
+		resultButton.Size = UDim2.new(1, -10, 0, 40)
+		resultButton.BackgroundColor3 = Color3.fromHSV(confidence * 0.33, 0.4, 0.3)
+		resultButton.Font = Enum.Font.Gotham
+		resultButton.TextSize = 11
+		resultButton.TextXAlignment = Enum.TextXAlignment.Left
+		resultButton.TextYAlignment = Enum.TextYAlignment.Top
+		resultButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+		resultButton.TextWrapped = true
+		resultButton.LayoutOrder = math.floor(-confidence * 1000)
+		resultButton:SetAttribute("Confidence", confidence)
+		resultButton.Parent = resultsFrame
+		
+		local btnCorner = Instance.new("UICorner")
+		btnCorner.CornerRadius = UDim.new(0, 4)
+		btnCorner.Parent = resultButton
+		
+		local btnPadding = Instance.new("UIPadding")
+		btnPadding.PaddingLeft = UDim.new(0, 8)
+		btnPadding.PaddingTop = UDim.new(0, 4)
+		btnPadding.Parent = resultButton
+
 		resultButton.MouseButton1Click:Connect(function()
-			local camera = Workspace.CurrentCamera; camera.CameraType = Enum.CameraType.Scriptable
-			local targetCFrame = CFrame.new(part.Position + part.CFrame.LookVector * 10, part.Position)
-			local tween = TweenService:Create(camera, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {CFrame = targetCFrame})
-			tween:Play(); tween.Completed:Wait(); camera.CameraType = Enum.CameraType.Custom
+			if not part or not part.Parent then
+				DoNotif("Target no longer exists", 2)
+				return
+			end
+			
+			local targetPart = part:IsA("Model") and part:FindFirstChildWhichIsA("BasePart", true) or part
+			if not targetPart or not targetPart:IsA("BasePart") then
+				DoNotif("Cannot teleport camera to this object", 2)
+				return
+			end
+			
+			local camera = Workspace.CurrentCamera
+			local player = Players.LocalPlayer
+			
+			-- Save current camera state
+			local originalCameraType = camera.CameraType
+			
+			camera.CameraType = Enum.CameraType.Scriptable
+			
+			local distance = 15
+			local targetCFrame = CFrame.new(targetPart.Position + (targetPart.CFrame.LookVector * distance) + Vector3.new(0, 5, 0), targetPart.Position)
+			
+			local tween = TweenService:Create(camera, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = targetCFrame})
+			tween:Play()
+			
+			task.delay(3, function()
+				camera.CameraType = originalCameraType
+			end)
+		end)
+		
+		resultButton.MouseButton2Click:Connect(function()
+			-- Right-click to copy path
+			if setclipboard then
+				setclipboard(part:GetFullName())
+				DoNotif("Copied path to clipboard", 2)
+			end
 		end)
 	end
 
 	local function clearResults()
-		for _, highlight in pairs(self.State.Highlights) do
-			if highlight and highlight.Parent then highlight:Destroy() end
-		end
-		table.clear(self.State.Highlights)
+		self:CleanupHighlights()
+		
 		for _, child in ipairs(resultsFrame:GetChildren()) do
-			if child:IsA("TextButton") then child:Destroy() end
+			if child:IsA("TextButton") then
+				child:Destroy()
+			end
 		end
-		scanButton.Text = "Begin Workspace Scan"; scanButton.Active = true
+		
+		scanButton.Text = "🔍 Begin Workspace Scan"
+		scanButton.Active = true
+		statsLabel.Text = "Results cleared | 0 objects scanned"
+		
+		debugLog("Results cleared")
+	end
+
+	local function analyzeScript(script)
+		local success, source = pcall(function()
+			return script.Source
+		end)
+		
+		if not success or not source then
+			return 0, {}
+		end
+		
+		local lowerSource = source:lower()
+		local maxConfidence = 0
+		local reasons = {}
+		
+		for _, keyword in ipairs(SCRIPT_KEYWORDS) do
+			local pattern = keyword.pattern:lower()
+			
+			if lowerSource:find(pattern, 1, true) or (self.Config.DeepScan and lowerSource:match(pattern)) then
+				if keyword.confidence > maxConfidence then
+					maxConfidence = keyword.confidence
+				end
+				table.insert(reasons, "Script: " .. keyword.pattern)
+				
+				if not self.Config.DeepScan then
+					break -- Fast exit if not deep scanning
+				end
+			end
+		end
+		
+		return maxConfidence, reasons
+	end
+
+	local function analyzeBasePart(part)
+		local confidence = 0
+		local reasons = {}
+		
+		-- Check data payloads
+		for _, child in ipairs(part:GetChildren()) do
+			if child:IsA("ValueBase") then
+				local childName = child.Name:lower()
+				for _, data in ipairs(DATA_PAYLOAD_NAMES) do
+					if childName == data.name or childName:find(data.name, 1, true) then
+						confidence = math.max(confidence, data.confidence)
+						table.insert(reasons, "Data: " .. child.Name)
+						break
+					end
+				end
+			end
+		end
+		
+		-- Check name keywords
+		local partName = part.Name:lower()
+		for _, keyword in ipairs(NAME_KEYWORDS) do
+			if partName:find(keyword.pattern, 1, true) then
+				confidence = math.max(confidence, keyword.confidence)
+				table.insert(reasons, "Name: " .. keyword.pattern)
+				
+				if not self.Config.DeepScan then
+					break
+				end
+			end
+		end
+		
+		-- Check for ProximityPrompts (often used for teleports)
+		if part:FindFirstChildOfClass("ProximityPrompt") then
+			confidence = math.max(confidence, 0.7)
+			table.insert(reasons, "ProximityPrompt")
+		end
+		
+		-- Check for ClickDetectors
+		if part:FindFirstChildOfClass("ClickDetector") then
+			confidence = math.max(confidence, 0.5)
+			table.insert(reasons, "ClickDetector")
+		end
+		
+		return confidence, reasons
 	end
 
 	local function scanWorkspace()
 		self.State.IsScanning = true
-		scanButton.Text = "Scanning... (This may take a moment)"; scanButton.Active = false
+		scanButton.Text = "⏳ Scanning..."
+		scanButton.Active = false
+		
 		local findings = {}
+		local scannedCount = 0
+		local startTime = tick()
 
 		task.spawn(function()
-			for i, descendant in ipairs(Workspace:GetDescendants()) do
-				if i % 500 == 0 then task.wait() end
+			local descendants = Workspace:GetDescendants()
+			local totalCount = #descendants
+			
+			debugLog("Starting scan of " .. totalCount .. " objects")
+			
+			for i, descendant in ipairs(descendants) do
+				scannedCount = i
 				
-				local part, confidence, reason = nil, 0, ""
+				-- Yield periodically
+				if i % self.Config.YieldInterval == 0 then
+					statsLabel.Text = string.format("Scanning... %d/%d (%.1f%%)", i, totalCount, (i / totalCount) * 100)
+					task.wait()
+				end
+				
+				-- Skip if no parent (destroyed during scan)
+				if not descendant.Parent then
+					continue
+				end
+				
+				local part, confidence, reasons = nil, 0, {}
 
+				-- Analyze scripts
 				if descendant:IsA("LuaSourceContainer") then
-					local success, source = pcall(function() return descendant.Source end)
-					if success and source then
-						local lowerSource = source:lower()
-						for _, keyword in ipairs(SCRIPT_KEYWORDS) do
-							if lowerSource:find(keyword:lower(), 1, true) then
-								part = descendant:FindFirstAncestorOfClass("Model") or descendant.Parent
-								if part and part:IsA("BasePart") or part:IsA("Model") then
-									confidence = CONFIDENCE_THRESHOLDS.SCRIPT
-									reason = "Script Analysis"
-									break
-								end
-							end
+					local scriptConf, scriptReasons = analyzeScript(descendant)
+					
+					if scriptConf > 0 then
+						part = descendant:FindFirstAncestorWhichIsA("Model") or descendant:FindFirstAncestorWhichIsA("BasePart") or descendant.Parent
+						
+						if part and (part:IsA("BasePart") or part:IsA("Model")) then
+							confidence = scriptConf
+							reasons = scriptReasons
 						end
 					end
 				end
 
+				-- Analyze base parts
 				if descendant:IsA("BasePart") and not part then
-					local currentConfidence, currentReason = 0, ""
-
-					for _, child in ipairs(descendant:GetChildren()) do
-						if child:IsA("StringValue") or child:IsA("IntValue") or child:IsA("NumberValue") then
-							for _, name in ipairs(DATA_PAYLOAD_NAMES) do
-								if child.Name:lower() == name then
-									currentConfidence = math.max(currentConfidence, CONFIDENCE_THRESHOLDS.DATA_PAYLOAD)
-									currentReason = "Data Payload"
-									break
-								end
-							end
-						end
-					end
-
-					for _, keyword in ipairs(NAME_KEYWORDS) do
-						if descendant.Name:lower():find(keyword, 1, true) then
-							currentConfidence = math.max(currentConfidence, CONFIDENCE_THRESHOLDS.NAME)
-							if currentReason == "" then currentReason = "Suspicious Name" end
-							break
-						end
-					end
-					if currentConfidence > 0 then
-						part, confidence, reason = descendant, currentConfidence, currentReason
+					local partConf, partReasons = analyzeBasePart(descendant)
+					
+					if partConf > 0 then
+						part = descendant
+						confidence = partConf
+						reasons = partReasons
 					end
 				end
 
+				-- Store finding (keep highest confidence per part)
 				if part and (not findings[part] or confidence > findings[part].confidence) then
-					findings[part] = { confidence = confidence, reason = reason }
+					findings[part] = {
+						confidence = confidence,
+						reasons = reasons
+					}
 				end
 			end
 
+			-- Process findings
 			local partsFound = 0
+			local sortedFindings = {}
+			
 			for part, data in pairs(findings) do
-				partsFound += 1
-				highlightPart(part, data.confidence)
-				addResultToList(part, data.confidence, data.reason)
+				table.insert(sortedFindings, {part = part, data = data})
+			end
+			
+			table.sort(sortedFindings, function(a, b)
+				return a.data.confidence > b.data.confidence
+			end)
+			
+			-- Limit results
+			local maxResults = math.min(#sortedFindings, self.Config.MaxResults)
+			
+			for i = 1, maxResults do
+				local finding = sortedFindings[i]
+				partsFound = partsFound + 1
+				highlightPart(finding.part, finding.data.confidence)
+				addResultToList(finding.part, finding.data.confidence, finding.data.reasons)
 			end
 
-			scanButton.Text = `Scan Complete! Found {partsFound} potentials.`
-			DoNotif(`Scan finished. Found {partsFound} points of interest.`, 3)
+			local scanTime = tick() - startTime
+			self.State.Stats.TotalScanned = scannedCount
+			self.State.Stats.PotentalFound = partsFound
+			self.State.Stats.LastScanTime = scanTime
+			self.State.LastScan = tick()
+
+			scanButton.Text = string.format("✓ Scan Complete! (%d found)", partsFound)
+			statsLabel.Text = string.format("Found %d teleporters | Scanned %d objects in %.1fs", partsFound, scannedCount, scanTime)
+			DoNotif(string.format("Scan complete: %d potential teleporters found", partsFound), 3)
 			self.State.IsScanning = false
+			
+			debugLog(string.format("Scan complete: %d found in %.2fs", partsFound, scanTime))
 		end)
 	end
 
+	-- Button connections
 	scanButton.MouseButton1Click:Connect(function()
 		if self.State.IsScanning then return end
 		clearResults()
 		scanWorkspace()
 	end)
-	clearButton.MouseButton1Click:Connect(clearResults)
 
+	clearButton.MouseButton1Click:Connect(clearResults)
+	
+	closeButton.MouseButton1Click:Connect(function()
+		self:ToggleGUI()
+	end)
+	
+	deepScanToggle.MouseButton1Click:Connect(function()
+		self.Config.DeepScan = not self.Config.DeepScan
+		deepScanToggle.Text = "Deep Scan: " .. (self.Config.DeepScan and "ON" or "OFF")
+		deepScanToggle.BackgroundColor3 = self.Config.DeepScan and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(80, 80, 90)
+		DoNotif("Deep scan " .. (self.Config.DeepScan and "enabled" or "disabled"), 2)
+	end)
+
+	-- Dragging functionality
 	local isDragging, dragStart, startPosition = false, nil, nil
-	titleLabel.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then isDragging = true; dragStart = input.Position; startPosition = mainFrame.Position; end end)
-	titleLabel.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement and isDragging then local delta = input.Position - dragStart; mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
-	UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then isDragging = false end end)
+	
+	titleLabel.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			isDragging = true
+			dragStart = input.Position
+			startPosition = mainFrame.Position
+		end
+	end)
+	
+	titleLabel.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement and isDragging then
+			local delta = input.Position - dragStart
+			mainFrame.Position = UDim2.new(
+				startPosition.X.Scale,
+				startPosition.X.Offset + delta.X,
+				startPosition.Y.Scale,
+				startPosition.Y.Offset + delta.Y
+			)
+		end
+	end)
+	
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			isDragging = false
+		end
+	end)
 
 	screenGui.Parent = CoreGui
+	
+	-- Auto-scan if enabled
+	if self.Config.AutoScanOnOpen then
+		task.wait(0.1)
+		scanWorkspace()
+	end
+end
+
+function Modules.TeleporterScanner:CleanupHighlights()
+	for part, highlight in pairs(self.State.Highlights) do
+		if highlight and highlight.Parent then
+			pcall(function()
+				highlight:Destroy()
+			end)
+		end
+	end
+	table.clear(self.State.Highlights)
+end
+
+function Modules.TeleporterScanner:GetStats()
+	return {
+		TotalScanned = self.State.Stats.TotalScanned,
+		PotentialsFound = self.State.Stats.PotentalFound,
+		LastScanTime = self.State.Stats.LastScanTime,
+		IsScanning = self.State.IsScanning
+	}
 end
 
 RegisterCommand({
 	Name = "tpscan",
-	Aliases = {"teleporterscan", "findtp"},
-	Description = "Toggles a GUI that scans the workspace for potential teleporters."
+	Aliases = {"teleporterscan", "findtp", "scanteleports"},
+	Description = "Opens a GUI that scans the workspace for potential teleporters."
 }, function(args)
 	Modules.TeleporterScanner:ToggleGUI()
 end)
+
 
 Modules.AuthorityHijacker = {
     State = {
@@ -9220,67 +9971,279 @@ function Modules.GrabTools:_onHeartbeat()
         module:Toggle()
     end)
 end
+
 Modules.AdminSpoofDemonstration = {
     State = {
         IsSpoofing = false,
         SpoofedId = -1,
+        SpoofedName = nil,
+        SpoofedDisplayName = nil,
         OriginalIndex = nil,
-        PlayerMetatable = nil
+        OriginalNamecall = nil,
+        PlayerMetatable = nil,
+        GameMetatable = nil,
+        HookEnabled = true,
+        Stats = {
+            InterceptedCalls = 0,
+            LastSpoof = 0
+        }
     },
-    Dependencies = {"Players"}
+    Dependencies = {"Players"},
+    
+    Config = {
+        SpoofName = true,
+        SpoofDisplayName = true,
+        InterceptRemoteCalls = true, -- Spoof in remote calls
+        StealthMode = true, -- Minimize detection
+        DebugMode = false,
+        AllowedProperties = { -- Properties to spoof
+            "UserId",
+            "Name", 
+            "DisplayName",
+            "AccountAge"
+        }
+    }
 }
 
-function Modules.AdminSpoofDemonstration:Enable(targetId)
+local function debugLog(message)
+    if Modules.AdminSpoofDemonstration.Config.DebugMode then
+        print("[AdminSpoof Debug]", message)
+    end
+end
+
+local function fetchUserInfo(userId)
+    local success, result = pcall(function()
+        local HttpService = game:GetService("HttpService")
+        local url = "https://users.roblox.com/v1/users/" .. userId
+        
+        -- Try using request if available
+        if request then
+            local response = request({
+                Url = url,
+                Method = "GET"
+            })
+            
+            if response.StatusCode == 200 then
+                return HttpService:JSONDecode(response.Body)
+            end
+        end
+        
+        -- Fallback: try using game:HttpGet (may not work in all executors)
+        local data = game:HttpGet(url)
+        return HttpService:JSONDecode(data)
+    end)
+    
+    if success and result then
+        return {
+            name = result.name,
+            displayName = result.displayName,
+            id = result.id
+        }
+    end
+    
+    return nil
+end
+
+function Modules.AdminSpoofDemonstration:Enable(targetId, targetName, targetDisplayName)
     if self.State.IsSpoofing then
-        DoNotif("Already spoofing UserId. Reset first.", 3)
-        return
+        DoNotif("Already spoofing. Reset first with ;spoofid reset", 3)
+        return false
     end
 
     local localPlayer = self.Services.Players.LocalPlayer
-    if not localPlayer then return end
+    if not localPlayer then
+        DoNotif("Error: LocalPlayer not found", 3)
+        return false
+    end
 
+    -- Store original values
+    local originalUserId = localPlayer.UserId
+    local originalName = localPlayer.Name
+    local originalDisplayName = localPlayer.DisplayName
+
+    -- Validate and set target ID
+    self.State.SpoofedId = tonumber(targetId) or -1
+    
+    if self.State.SpoofedId <= 0 then
+        DoNotif("Invalid UserId. Must be positive.", 3)
+        return false
+    end
+    
+    -- Fetch user info if name not provided
+    if not targetName or not targetDisplayName then
+        DoNotif("Fetching user info...", 2)
+        local userInfo = fetchUserInfo(self.State.SpoofedId)
+        
+        if userInfo then
+            targetName = userInfo.name
+            targetDisplayName = userInfo.displayName
+            debugLog("Fetched info: " .. targetName .. " | " .. targetDisplayName)
+        else
+            debugLog("Failed to fetch user info, using defaults")
+            targetName = targetName or "Player" .. self.State.SpoofedId
+            targetDisplayName = targetDisplayName or targetName
+        end
+    end
+    
+    self.State.SpoofedName = targetName
+    self.State.SpoofedDisplayName = targetDisplayName
+
+    -- Hook Player metatable
     local success, playerMetatable = pcall(getrawmetatable, localPlayer)
     if not success or typeof(playerMetatable) ~= "table" then
-        DoNotif("Error: Could not get the player's metatable. Environment may not support this.", 4)
-        return
+        DoNotif("Error: Could not access player metatable", 4)
+        return false
     end
 
     self.State.PlayerMetatable = playerMetatable
     self.State.OriginalIndex = playerMetatable.__index
+    self.State.OriginalNamecall = playerMetatable.__namecall
+    
     local originalIndexCache = self.State.OriginalIndex
+    local originalNamecallCache = self.State.OriginalNamecall
+    
+    pcall(setreadonly, playerMetatable, false)
 
-    self.State.SpoofedId = tonumber(targetId) or -1
-    self.State.IsSpoofing = true
-
-    playerMetatable.__index = function(self, key)
-
-        if key == "UserId" then
-            return Modules.AdminSpoofDemonstration.State.SpoofedId
+    -- Enhanced __index hook
+    playerMetatable.__index = newcclosure(function(self, key)
+        -- Only spoof if enabled and key is allowed
+        if Modules.AdminSpoofDemonstration.State.IsSpoofing and Modules.AdminSpoofDemonstration.State.HookEnabled then
+            if key == "UserId" then
+                Modules.AdminSpoofDemonstration.State.Stats.InterceptedCalls = Modules.AdminSpoofDemonstration.State.Stats.InterceptedCalls + 1
+                debugLog("Intercepted UserId access")
+                return Modules.AdminSpoofDemonstration.State.SpoofedId
+            elseif key == "Name" and Modules.AdminSpoofDemonstration.Config.SpoofName then
+                Modules.AdminSpoofDemonstration.State.Stats.InterceptedCalls = Modules.AdminSpoofDemonstration.State.Stats.InterceptedCalls + 1
+                debugLog("Intercepted Name access")
+                return Modules.AdminSpoofDemonstration.State.SpoofedName
+            elseif key == "DisplayName" and Modules.AdminSpoofDemonstration.Config.SpoofDisplayName then
+                Modules.AdminSpoofDemonstration.State.Stats.InterceptedCalls = Modules.AdminSpoofDemonstration.State.Stats.InterceptedCalls + 1
+                debugLog("Intercepted DisplayName access")
+                return Modules.AdminSpoofDemonstration.State.SpoofedDisplayName
+            end
         end
 
-        if typeof(originalIndexCache) == "table" then
-            return originalIndexCache[key]
-        elseif typeof(originalIndexCache) == "function" then
-
+        -- Return original value
+        if typeof(originalIndexCache) == "function" then
             return originalIndexCache(self, key)
+        else
+            return originalIndexCache[key]
         end
+    end)
+    
+    -- Hook namecall for remote interception
+    if self.Config.InterceptRemoteCalls then
+        playerMetatable.__namecall = newcclosure(function(self, ...)
+            local args = {...}
+            local method = getnamecallmethod()
+            
+            -- Intercept FireServer/InvokeServer calls
+            if Modules.AdminSpoofDemonstration.State.IsSpoofing and (method == "FireServer" or method == "InvokeServer") then
+                -- Check if any arguments reference UserId/Name that need spoofing
+                for i, arg in ipairs(args) do
+                    if arg == originalUserId then
+                        args[i] = Modules.AdminSpoofDemonstration.State.SpoofedId
+                        debugLog("Spoofed UserId in remote call")
+                    elseif arg == originalName and Modules.AdminSpoofDemonstration.Config.SpoofName then
+                        args[i] = Modules.AdminSpoofDemonstration.State.SpoofedName
+                        debugLog("Spoofed Name in remote call")
+                    end
+                end
+            end
+            
+            return originalNamecallCache(self, unpack(args))
+        end)
     end
 
-    DoNotif("Local UserId spoof enabled. Now appearing as: " .. self.State.SpoofedId, 3)
+    pcall(setreadonly, playerMetatable, true)
+
+    self.State.IsSpoofing = true
+    self.State.Stats.LastSpoof = tick()
+    
+    DoNotif(string.format("Spoofing enabled:\nUserId: %d\nName: %s\nDisplay: %s", 
+        self.State.SpoofedId, 
+        self.State.SpoofedName, 
+        self.State.SpoofedDisplayName
+    ), 4)
+    
+    debugLog("Spoof enabled successfully")
+    return true
 end
 
 function Modules.AdminSpoofDemonstration:Disable()
-    if not self.State.IsSpoofing then return end
-
-    if self.State.PlayerMetatable and self.State.OriginalIndex then
-        self.State.PlayerMetatable.__index = self.State.OriginalIndex
+    if not self.State.IsSpoofing then
+        DoNotif("Not currently spoofing", 2)
+        return false
     end
 
+    -- Restore original metamethods
+    if self.State.PlayerMetatable then
+        pcall(setreadonly, self.State.PlayerMetatable, false)
+        
+        if self.State.OriginalIndex then
+            self.State.PlayerMetatable.__index = self.State.OriginalIndex
+        end
+        
+        if self.State.OriginalNamecall then
+            self.State.PlayerMetatable.__namecall = self.State.OriginalNamecall
+        end
+        
+        pcall(setreadonly, self.State.PlayerMetatable, true)
+    end
+
+    -- Clear state
+    local interceptCount = self.State.Stats.InterceptedCalls
+    
     self.State.IsSpoofing = false
     self.State.SpoofedId = -1
+    self.State.SpoofedName = nil
+    self.State.SpoofedDisplayName = nil
     self.State.OriginalIndex = nil
+    self.State.OriginalNamecall = nil
     self.State.PlayerMetatable = nil
-    DoNotif("Local UserId spoof disabled. Identity restored.", 3)
+    self.State.Stats.InterceptedCalls = 0
+    
+    DoNotif(string.format("Spoof disabled. Intercepted %d calls.", interceptCount), 3)
+    debugLog("Spoof disabled, cleaned up hooks")
+    return true
+end
+
+function Modules.AdminSpoofDemonstration:Toggle()
+    if self.State.IsSpoofing then
+        self:Disable()
+    else
+        DoNotif("Usage: ;spoofid <userid> or ;spoofid <username>", 3)
+    end
+end
+
+function Modules.AdminSpoofDemonstration:ToggleHook(enabled)
+    self.State.HookEnabled = enabled
+    DoNotif("Spoof hook " .. (enabled and "enabled" or "disabled"), 2)
+end
+
+function Modules.AdminSpoofDemonstration:GetStats()
+    return {
+        IsSpoofing = self.State.IsSpoofing,
+        SpoofedId = self.State.SpoofedId,
+        SpoofedName = self.State.SpoofedName,
+        InterceptedCalls = self.State.Stats.InterceptedCalls,
+        Uptime = self.State.IsSpoofing and (tick() - self.State.Stats.LastSpoof) or 0
+    }
+end
+
+function Modules.AdminSpoofDemonstration:SpoofByUsername(username)
+    -- Try to get user ID from username
+    local success, result = pcall(function()
+        local Players = game:GetService("Players")
+        return Players:GetUserIdFromNameAsync(username)
+    end)
+    
+    if success and result then
+        return self:Enable(result)
+    else
+        DoNotif("Failed to find user: " .. username, 3)
+        return false
+    end
 end
 
 function Modules.AdminSpoofDemonstration:Initialize()
@@ -9293,23 +10256,71 @@ function Modules.AdminSpoofDemonstration:Initialize()
 
     RegisterCommand({
         Name = "spoofid",
-        Aliases = {"setid", "fakeid"},
-        Description = "Locally spoofs your UserId for vulnerable scripts."
+        Aliases = {"setid", "fakeid", "adminspoof"},
+        Description = "Spoofs your UserId/Name for vulnerable admin scripts."
     }, function(args)
         local argument = args[1]
+        
         if not argument then
-            return DoNotif("Usage: ;spoofid username", 4)
+            return DoNotif("Usage: ;spoofid <userid|username|reset>", 3)
         end
 
-        if argument:lower() == "reset" or argument:lower() == "clear" then
+        if argument:lower() == "reset" or argument:lower() == "clear" or argument:lower() == "off" then
             module:Disable()
+        elseif argument:lower() == "stats" then
+            local stats = module:GetStats()
+            print("=== Admin Spoof Stats ===")
+            print("Spoofing:", stats.IsSpoofing)
+            print("Spoofed ID:", stats.SpoofedId)
+            print("Spoofed Name:", stats.SpoofedName or "N/A")
+            print("Intercepted Calls:", stats.InterceptedCalls)
+            print("Uptime:", string.format("%.1f", stats.Uptime) .. "s")
+        elseif argument:lower() == "toggle" then
+            module:Toggle()
         else
             local targetId = tonumber(argument)
+            
             if targetId and targetId > 0 then
+                -- Direct ID provided
                 module:Enable(targetId)
             else
-                DoNotif("Invalid UserId. It must be a positive number.", 3)
+                -- Assume username provided
+                module:SpoofByUsername(argument)
             end
+        end
+    end)
+    
+    RegisterCommand({
+        Name = "spoofname",
+        Aliases = {"fakename"},
+        Description = "Toggle name spoofing on/off."
+    }, function(args)
+        module.Config.SpoofName = not module.Config.SpoofName
+        DoNotif("Name spoofing: " .. (module.Config.SpoofName and "ON" or "OFF"), 2)
+    end)
+    
+    RegisterCommand({
+        Name = "spoofdisplay",
+        Aliases = {"fakedisplay"},
+        Description = "Toggle display name spoofing on/off."
+    }, function(args)
+        module.Config.SpoofDisplayName = not module.Config.SpoofDisplayName
+        DoNotif("Display name spoofing: " .. (module.Config.SpoofDisplayName and "ON" or "OFF"), 2)
+    end)
+    
+    RegisterCommand({
+        Name = "spoofstats",
+        Aliases = {"spoofinfo"},
+        Description = "Shows spoofing statistics."
+    }, function(args)
+        local stats = module:GetStats()
+        print("=== Admin Spoof Stats ===")
+        print("Active:", stats.IsSpoofing)
+        if stats.IsSpoofing then
+            print("Spoofed ID:", stats.SpoofedId)
+            print("Spoofed Name:", stats.SpoofedName)
+            print("Intercepted:", stats.InterceptedCalls)
+            print("Uptime:", string.format("%.1fs", stats.Uptime))
         end
     end)
 end
@@ -10316,34 +11327,414 @@ end)
         Hooks = {},
         OriginalNamecall = nil,
         OriginalIndex = nil,
-        OriginalNewIndex = nil
+        OriginalNewIndex = nil,
+        Initialized = false,
+        ErrorCount = 0,
+        MaxErrors = 10,
+        BypassCache = {}
+    },
+    
+    Config = {
+        EnableLogging = false,
+        SafeMode = true,
+        MaxHooksPerType = 50,
+        UseStealthMode = true,
+        MinimalIndexHooking = true -- Only hook index when absolutely necessary
     }
 }
 
-function Modules.HookCentral:Initialize()
-    local mt = getrawmetatable(game)
-    self.State.OriginalNamecall = mt.__namecall
-    self.State.OriginalIndex = mt.__index
-    self.State.OriginalNewIndex = mt.__newindex
-    
-    setreadonly(mt, false)
-    
-    mt.__namecall = newcclosure(function(selfArg, ...)
-        local method = getnamecallmethod()
-        for _, hook in pairs(Modules.HookCentral.State.Hooks) do
-            if hook.Type == "Namecall" and hook.Check(selfArg, method, ...) then
-                return hook.Callback(selfArg, ...)
-            end
+-- Cache to avoid repeated metamethod calls
+local gameMetatable = getrawmetatable(game)
+local originalFunctions = {}
+
+-- Pre-cache common method names to avoid string operations in hot path
+local methodLookup = {
+    FireServer = true,
+    InvokeServer = true,
+    Kick = true,
+    GetService = true,
+    FindFirstChild = true,
+    WaitForChild = true
+}
+
+-- Utility: Safe hook execution with error handling
+local function SafeExecute(func, ...)
+    local success, result = pcall(func, ...)
+    if not success then
+        Modules.HookCentral.State.ErrorCount = Modules.HookCentral.State.ErrorCount + 1
+        
+        if Modules.HookCentral.Config.EnableLogging then
+            warn("[HookCentral] Error:", result)
         end
-        return Modules.HookCentral.State.OriginalNamecall(selfArg, ...)
-    end)
-    
-    setreadonly(mt, true)
-    DoNotif("Hook Central: Engine Initialized", 2)
+        
+        if Modules.HookCentral.State.ErrorCount >= Modules.HookCentral.State.MaxErrors then
+            warn("[HookCentral] Max errors reached")
+            Modules.HookCentral:Shutdown()
+        end
+        
+        return false, nil
+    end
+    return true, result
 end
 
-function Modules.HookCentral:AddHook(id, type, checkFunc, callback)
-    self.State.Hooks[id] = {Type = type, Check = checkFunc, Callback = callback}
+function Modules.HookCentral:Initialize()
+    if self.State.Initialized then
+        warn("[HookCentral] Already initialized")
+        return false
+    end
+    
+    local success = pcall(function()
+        local mt = gameMetatable
+        
+        -- Store originals
+        self.State.OriginalNamecall = mt.__namecall
+        self.State.OriginalIndex = mt.__index
+        self.State.OriginalNewIndex = mt.__newindex
+        
+        setreadonly(mt, false)
+        
+        -- Stealth namecall hook - uses minimal detection surface
+        mt.__namecall = newcclosure(function(...)
+            local args = {...}
+            local selfArg = args[1]
+            local method
+            
+            -- Only use getnamecallmethod if we have namecall hooks
+            local hasNamecallHooks = false
+            for _, hook in pairs(Modules.HookCentral.State.Hooks) do
+                if hook.Type == "Namecall" and hook.Enabled then
+                    hasNamecallHooks = true
+                    break
+                end
+            end
+            
+            if not hasNamecallHooks then
+                return Modules.HookCentral.State.OriginalNamecall(...)
+            end
+            
+            -- Use cached method extraction
+            if self.Config.UseStealthMode then
+                local success, result = pcall(function()
+                    return debug.info(2, "n").name
+                end)
+                method = success and result or nil
+            end
+            
+            if not method then
+                method = getnamecallmethod()
+            end
+            
+            -- Fast path: Skip hook checking for uncommon methods
+            if not methodLookup[method] then
+                local needsCheck = false
+                for _, hook in pairs(self.State.Hooks) do
+                    if hook.Type == "Namecall" and hook.Enabled then
+                        needsCheck = true
+                        break
+                    end
+                end
+                
+                if not needsCheck then
+                    return self.State.OriginalNamecall(...)
+                end
+            end
+            
+            -- Check hooks
+            local callArgs = {}
+            for i = 2, #args do
+                callArgs[i - 1] = args[i]
+            end
+            
+            for id, hook in pairs(self.State.Hooks) do
+                if hook.Type == "Namecall" and hook.Enabled then
+                    local shouldIntercept, interceptResult = SafeExecute(hook.Check, selfArg, method, unpack(callArgs))
+                    
+                    if shouldIntercept and interceptResult then
+                        local callbackSuccess, callbackResult = SafeExecute(hook.Callback, selfArg, unpack(callArgs))
+                        
+                        if callbackSuccess then
+                            return callbackResult
+                        end
+                    end
+                end
+            end
+            
+            return self.State.OriginalNamecall(...)
+        end)
+        
+        -- MINIMAL Index hook - only activates if index hooks exist
+        if not self.Config.MinimalIndexHooking then
+            mt.__index = newcclosure(function(selfArg, key)
+                -- Fast path: check if we even have index hooks
+                local hasIndexHooks = false
+                for _, hook in pairs(self.State.Hooks) do
+                    if hook.Type == "Index" and hook.Enabled then
+                        hasIndexHooks = true
+                        break
+                    end
+                end
+                
+                if not hasIndexHooks then
+                    return self.State.OriginalIndex(selfArg, key)
+                end
+                
+                -- Skip metamethod keys to avoid detection
+                if type(key) == "string" then
+                    local firstTwo = string.sub(key, 1, 2)
+                    if firstTwo == "__" then
+                        return self.State.OriginalIndex(selfArg, key)
+                    end
+                end
+                
+                -- Check hooks
+                for id, hook in pairs(self.State.Hooks) do
+                    if hook.Type == "Index" and hook.Enabled then
+                        local shouldIntercept, interceptResult = SafeExecute(hook.Check, selfArg, key)
+                        
+                        if shouldIntercept and interceptResult then
+                            local callbackSuccess, callbackResult = SafeExecute(hook.Callback, selfArg, key)
+                            
+                            if callbackSuccess then
+                                return callbackResult
+                            end
+                        end
+                    end
+                end
+                
+                return self.State.OriginalIndex(selfArg, key)
+            end)
+        end
+        
+        -- Minimal NewIndex hook
+        mt.__newindex = newcclosure(function(selfArg, key, value)
+            -- Fast path: check if we even have newindex hooks
+            local hasNewIndexHooks = false
+            for _, hook in pairs(self.State.Hooks) do
+                if hook.Type == "NewIndex" and hook.Enabled then
+                    hasNewIndexHooks = true
+                    break
+                end
+            end
+            
+            if not hasNewIndexHooks then
+                return self.State.OriginalNewIndex(selfArg, key, value)
+            end
+            
+            -- Skip metamethod keys
+            if type(key) == "string" then
+                local firstTwo = string.sub(key, 1, 2)
+                if firstTwo == "__" then
+                    return self.State.OriginalNewIndex(selfArg, key, value)
+                end
+            end
+            
+            for id, hook in pairs(self.State.Hooks) do
+                if hook.Type == "NewIndex" and hook.Enabled then
+                    local shouldIntercept, interceptResult = SafeExecute(hook.Check, selfArg, key, value)
+                    
+                    if shouldIntercept and interceptResult then
+                        local callbackSuccess, callbackResult = SafeExecute(hook.Callback, selfArg, key, value)
+                        
+                        if callbackSuccess and callbackResult ~= nil then
+                            return callbackResult
+                        end
+                    end
+                end
+            end
+            
+            return self.State.OriginalNewIndex(selfArg, key, value)
+        end)
+        
+        setreadonly(mt, true)
+        self.State.Initialized = true
+    end)
+    
+    if success then
+        DoNotif("Hook Central: Engine Initialized", 2)
+        return true
+    else
+        warn("[HookCentral] Initialization failed")
+        return false
+    end
+end
+
+-- Alternative: Direct function hooking instead of metamethod (more stealthy)
+function Modules.HookCentral:HookFunction(target, functionName, callback)
+    if not self.State.Initialized then
+        warn("[HookCentral] Not initialized")
+        return false
+    end
+    
+    local original = target[functionName]
+    if type(original) ~= "function" then
+        warn("[HookCentral] Target is not a function")
+        return false
+    end
+    
+    local hookId = tostring(target) .. "." .. functionName
+    
+    -- Store original if not already stored
+    if not originalFunctions[hookId] then
+        originalFunctions[hookId] = original
+    end
+    
+    -- Replace function
+    target[functionName] = function(...)
+        local args = {...}
+        
+        -- Try callback
+        local shouldIntercept, result = SafeExecute(callback, unpack(args))
+        
+        if shouldIntercept and result ~= nil then
+            return result
+        end
+        
+        -- Call original
+        return originalFunctions[hookId](...)
+    end
+    
+    return true
+end
+
+function Modules.HookCentral:UnhookFunction(target, functionName)
+    local hookId = tostring(target) .. "." .. functionName
+    
+    if originalFunctions[hookId] then
+        target[functionName] = originalFunctions[hookId]
+        originalFunctions[hookId] = nil
+        return true
+    end
+    
+    return false
+end
+
+function Modules.HookCentral:AddHook(id, type, checkFunc, callback, priority)
+    if not self.State.Initialized then
+        warn("[HookCentral] Cannot add hook before initialization")
+        return false
+    end
+    
+    local validTypes = {Namecall = true, Index = true, NewIndex = true}
+    if not validTypes[type] then
+        warn("[HookCentral] Invalid hook type:", type)
+        return false
+    end
+    
+    -- Warn if adding Index hooks with minimal mode
+    if type == "Index" and self.Config.MinimalIndexHooking then
+        warn("[HookCentral] Index hooking is disabled in MinimalIndexHooking mode. Use HookFunction instead or disable MinimalIndexHooking.")
+        return false
+    end
+    
+    local hookCount = 0
+    for _, hook in pairs(self.State.Hooks) do
+        if hook.Type == type then
+            hookCount = hookCount + 1
+        end
+    end
+    
+    if hookCount >= self.Config.MaxHooksPerType then
+        warn("[HookCentral] Max hooks reached for type:", type)
+        return false
+    end
+    
+    self.State.Hooks[id] = {
+        Type = type,
+        Check = checkFunc,
+        Callback = callback,
+        Priority = priority or 0,
+        Enabled = true,
+        Created = tick()
+    }
+    
+    if self.Config.EnableLogging then
+        print(string.format("[HookCentral] Added hook '%s' (Type: %s)", id, type))
+    end
+    
+    return true
+end
+
+function Modules.HookCentral:RemoveHook(id)
+    if self.State.Hooks[id] then
+        self.State.Hooks[id] = nil
+        
+        if self.Config.EnableLogging then
+            print(string.format("[HookCentral] Removed hook '%s'", id))
+        end
+        
+        return true
+    end
+    return false
+end
+
+function Modules.HookCentral:ToggleHook(id, enabled)
+    if self.State.Hooks[id] then
+        self.State.Hooks[id].Enabled = enabled
+        return true
+    end
+    return false
+end
+
+function Modules.HookCentral:GetHook(id)
+    return self.State.Hooks[id]
+end
+
+function Modules.HookCentral:ListHooks()
+    local hooks = {}
+    for id, hook in pairs(self.State.Hooks) do
+        table.insert(hooks, {
+            ID = id,
+            Type = hook.Type,
+            Enabled = hook.Enabled,
+            Priority = hook.Priority,
+            Created = hook.Created
+        })
+    end
+    return hooks
+end
+
+function Modules.HookCentral:ClearHooks(hookType)
+    if hookType then
+        for id, hook in pairs(self.State.Hooks) do
+            if hook.Type == hookType then
+                self.State.Hooks[id] = nil
+            end
+        end
+    else
+        self.State.Hooks = {}
+    end
+end
+
+function Modules.HookCentral:ResetErrorCount()
+    self.State.ErrorCount = 0
+end
+
+function Modules.HookCentral:Shutdown()
+    if not self.State.Initialized then
+        return
+    end
+    
+    pcall(function()
+        local mt = gameMetatable
+        setreadonly(mt, false)
+        
+        mt.__namecall = self.State.OriginalNamecall
+        mt.__index = self.State.OriginalIndex
+        mt.__newindex = self.State.OriginalNewIndex
+        
+        setreadonly(mt, true)
+        
+        -- Restore hooked functions
+        for hookId, original in pairs(originalFunctions) do
+            -- Can't easily restore without references, but cleared on shutdown
+        end
+        table.clear(originalFunctions)
+        
+        self.State.Initialized = false
+        self.State.Hooks = {}
+        
+        DoNotif("Hook Central: Engine Shutdown", 2)
+    end)
 end--]]
 
 Modules.SignalRespawn = {
@@ -29725,7 +31116,6 @@ Modules.ApexCounter = {
         IsEnabled = false,
         LagShieldActive = false,
         GhostMode = false,
-        BlenderActive = false,
         Connections = {},
         BlacklistedRemotes = {
             "AcidSpit",
@@ -29801,7 +31191,7 @@ function Modules.ApexCounter:ToggleGhost(state)
     end
 end
 
-function Modules.ApexCounter:RunBlender()
+--[[function Modules.ApexCounter:RunBlender()
     if self.State.BlenderActive then return end
     self.State.BlenderActive = true
     
@@ -29832,7 +31222,7 @@ function Modules.ApexCounter:RunBlender()
         return oldNamecall(self, ...)
     end))
     DoNotif("Kill Blender: SUPREME (6x Multiplier)", 2)
-end
+end--]]
 
 function Modules.ApexCounter:NullifySkidRemotes()
 
@@ -29860,7 +31250,7 @@ function Modules.ApexCounter:Initialize()
     
     RegisterCommand({
         Name = "zcounter",
-        Aliases = {},
+        Aliases = {"zc"},
         Description = "Toggles the counter-zlexploit suite."
     }, function(args)
         module.State.IsEnabled = not module.State.IsEnabled
@@ -31702,8 +33092,8 @@ Modules.HumanShield = {
         Connections = {}
     },
     Config = {
-        DISTANCE = 5.5,
-        VERTICAL_OFFSET = 0
+        DISTANCE = 8.5,
+        VERTICAL_OFFSET = 0,
     },
     Dependencies = {"Players", "RunService"}
 }
@@ -31801,7 +33191,7 @@ function Modules.HumanShield:Initialize(): ()
     local module = self
     RegisterCommand({
         Name = "bring",
-        Aliases = {},
+        Aliases = {"b"},
         Description = "Positions a player in front of you with their back turned. Use 'all' to bring all players."
     }, function(args)
         if module.State.IsEnabled then
