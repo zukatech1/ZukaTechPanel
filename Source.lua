@@ -28,7 +28,7 @@ local function getLocalPlayer()
 end
 
 
---[[local _GC_START = collectgarbage("count")
+local _GC_START = collectgarbage("count")
 local _TIMESTAMP = os.clock()
 
 local set_ro = setreadonly or (make_writeable and function(t, v) if v then make_readonly(t) else make_writeable(t) end end)
@@ -77,7 +77,7 @@ local Services = setmetatable({}, {
 print(string.format("--> [ZukaTech]: Memory Baseline: %.2f KB", _GC_START))
 print(string.format("--> [ZukaTech]: Environment Unlock: SUCCESS"))
 print(string.format("--> [ZukaTech]: C-Closure Wrapper: ACTIVE"))
-print(string.format("Where talent meets ambition."))--]]
+print(string.format("Where talent meets ambition."))
 
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
@@ -8882,6 +8882,521 @@ function Modules.HumanoidIntegrity:Initialize()
 end)
 end
 
+Modules.UniversalExploitDetector = {
+    State = {
+        Enabled = false,
+        TrackedPlayers = {},
+        SuspicionScores = {},
+        ConfirmedExploiters = {},
+        Connections = {},
+        HighlightCache = {},
+        ConfidenceThreshold = 75,
+        ScanInterval = 0.5,
+        HistoryDuration = 10,
+        EnableESP = true,
+        EnableNotifications = true,
+        AutoCounter = false,
+    },
+    Services = {
+        Players = game:GetService("Players"),
+        RunService = game:GetService("RunService"),
+        Workspace = game:GetService("Workspace"),
+    }
+}
+local DetectionPatterns = {
+    MovementAnomaly = {
+        weight = 20,
+        check = function(player, data)
+            if not player.Character then return 0 end
+            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            if not hrp then return 0 end
+            local currentPos = hrp.Position
+            local lastPos = data.LastPosition
+            local lastTime = data.LastPosTime or tick()
+            local currentTime = tick()
+            if lastPos then
+                local distance = (currentPos - lastPos).Magnitude
+                local timeDelta = currentTime - lastTime
+                if timeDelta > 0 then
+                    local speed = distance / timeDelta
+                    if speed > 100 then
+                        return 95
+                    elseif speed > 70 then
+                        return 60
+                    elseif speed > 50 then
+                        return 30
+                    end
+                end
+            end
+            data.LastPosition = currentPos
+            data.LastPosTime = currentTime
+            return 0
+        end
+    },
+    VerticalAnomaly = {
+        weight = 15,
+        check = function(player, data)
+            if not player.Character then return 0 end
+            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            if not hrp then return 0 end
+            local yPos = hrp.Position.Y
+            if yPos > 200 then
+                data.HighAltitudeTime = (data.HighAltitudeTime or 0) + 1
+                if data.HighAltitudeTime > 5 then
+                    return 80
+                elseif data.HighAltitudeTime > 3 then
+                    return 50
+                end
+            else
+                data.HighAltitudeTime = 0
+            end
+            return 0
+        end
+    },
+    SpawnAnomaly = {
+        weight = 25,
+        check = function(player, data)
+            if not player.Character then return 0 end
+            local currentChildCount = #player.Character:GetChildren()
+            local lastCount = data.LastChildCount or currentChildCount
+            local childDelta = currentChildCount - lastCount
+            data.LastChildCount = currentChildCount
+            if childDelta > 10 then
+                return 90
+            elseif childDelta > 5 then
+                return 60
+            end
+            return 0
+        end
+    },
+    HumanoidAnomaly = {
+        weight = 30,
+        check = function(player, data)
+            if not player.Character then return 0 end
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+            if not hum then return 0 end
+            local suspicion = 0
+            if hum.WalkSpeed > 100 then
+                suspicion = suspicion + 70
+            elseif hum.WalkSpeed > 50 then
+                suspicion = suspicion + 30
+            end
+            if hum.JumpPower > 100 or hum.JumpHeight > 20 then
+                suspicion = suspicion + 50
+            end
+            if hum.Health > hum.MaxHealth then
+                suspicion = suspicion + 85
+            end
+            if hum.Health == hum.MaxHealth then
+                data.MaxHealthTime = (data.MaxHealthTime or 0) + 1
+                if data.MaxHealthTime > 20 then
+                    suspicion = suspicion + 20
+                end
+            else
+                data.MaxHealthTime = 0
+            end
+            return math.min(suspicion, 100)
+        end
+    },
+    AnimationAnomaly = {
+        weight = 15,
+        check = function(player, data)
+            if not player.Character then return 0 end
+            local animator = player.Character:FindFirstChild("Humanoid")
+                and player.Character.Humanoid:FindFirstChildOfClass("Animator")
+            if not animator then return 0 end
+            local suspicion = 0
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                if track.Speed > 3 then
+                    suspicion = suspicion + 70
+                elseif track.Speed > 2 then
+                    suspicion = suspicion + 40
+                elseif track.Speed > 1.5 then
+                    suspicion = suspicion + 20
+                end
+            end
+            return math.min(suspicion, 100)
+        end
+    },
+    WorkspacePollution = {
+        weight = 25,
+        check = function(player, data)
+            local suspicion = 0
+            local suspiciousPatterns = {
+                "Acid",
+                "Landmine",
+                "Exploit",
+                "Spam",
+                "Clone"
+            }
+            local pollutionCount = 0
+            for _, obj in ipairs(game.Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    for _, pattern in ipairs(suspiciousPatterns) do
+                        if obj.Name:find(pattern) then
+                            if obj:FindFirstChild("Creator") and obj.Creator.Value == player then
+                                pollutionCount = pollutionCount + 1
+                            end
+                        end
+                    end
+                end
+            end
+            if pollutionCount > 50 then
+                suspicion = 95
+            elseif pollutionCount > 20 then
+                suspicion = 70
+            elseif pollutionCount > 10 then
+                suspicion = 40
+            end
+            return suspicion
+        end
+    },
+    RemoteSpam = {
+        weight = 35,
+        check = function(player, data)
+            local remoteCallCount = data.RemoteCallCount or 0
+            local timeSinceReset = (tick() - (data.RemoteResetTime or tick()))
+            if timeSinceReset >= 1 then
+                data.LastRemoteRate = remoteCallCount
+                data.RemoteCallCount = 0
+                data.RemoteResetTime = tick()
+                remoteCallCount = 0
+            end
+            local rate = data.LastRemoteRate or 0
+            if rate > 100 then
+                return 95
+            elseif rate > 50 then
+                return 75
+            elseif rate > 30 then
+                return 40
+            end
+            return 0
+        end
+    },
+    CharacterModification = {
+        weight = 10,
+        check = function(player, data)
+            if not player.Character then return 0 end
+            local suspicion = 0
+            local criticalParts = {"Head", "HumanoidRootPart"}
+            for _, partName in ipairs(criticalParts) do
+                if not player.Character:FindFirstChild(partName) then
+                    suspicion = suspicion + 40
+                end
+            end
+            local partCount = 0
+            for _, obj in ipairs(player.Character:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    partCount = partCount + 1
+                end
+            end
+            if partCount > 100 then
+                suspicion = suspicion + 30
+            end
+            return math.min(suspicion, 100)
+        end
+    },
+}
+function Modules.UniversalExploitDetector:InitializePlayerTracking(player)
+    if self.State.TrackedPlayers[player] then return end
+    self.State.TrackedPlayers[player] = {
+        JoinTime = tick(),
+        LastPosition = nil,
+        LastPosTime = nil,
+        LastChildCount = 0,
+        HighAltitudeTime = 0,
+        MaxHealthTime = 0,
+        RemoteCallCount = 0,
+        RemoteResetTime = tick(),
+        LastRemoteRate = 0,
+        DetectionHistory = {},
+    }
+    self.State.SuspicionScores[player] = 0
+end
+function Modules.UniversalExploitDetector:AnalyzePlayer(player)
+    if not player.Character then return end
+    local data = self.State.TrackedPlayers[player]
+    if not data then
+        self:InitializePlayerTracking(player)
+        data = self.State.TrackedPlayers[player]
+    end
+    local totalSuspicion = 0
+    local detections = {}
+    for patternName, pattern in pairs(DetectionPatterns) do
+        local score = pattern.check(player, data)
+        if score > 0 then
+            totalSuspicion = totalSuspicion + (score * pattern.weight / 100)
+            table.insert(detections, {
+                pattern = patternName,
+                score = score,
+                weight = pattern.weight
+            })
+        end
+    end
+    local currentScore = self.State.SuspicionScores[player] or 0
+    local decayRate = 2
+    if totalSuspicion > 0 then
+        self.State.SuspicionScores[player] = math.min(currentScore + totalSuspicion, 100)
+    else
+        self.State.SuspicionScores[player] = math.max(currentScore - decayRate, 0)
+    end
+    if #detections > 0 then
+        table.insert(data.DetectionHistory, {
+            time = tick(),
+            detections = detections,
+            totalScore = totalSuspicion
+        })
+        while #data.DetectionHistory > 20 do
+            table.remove(data.DetectionHistory, 1)
+        end
+    end
+    local finalScore = self.State.SuspicionScores[player]
+    local wasExploiter = self.State.ConfirmedExploiters[player]
+    local isExploiter = finalScore >= self.State.ConfidenceThreshold
+    if isExploiter and not wasExploiter then
+        self:MarkAsExploiter(player, detections)
+    elseif not isExploiter and wasExploiter then
+        self:ClearExploiter(player)
+    elseif isExploiter then
+        self:UpdateExploiterESP(player, finalScore)
+    end
+end
+function Modules.UniversalExploitDetector:MarkAsExploiter(player, detections)
+    self.State.ConfirmedExploiters[player] = true
+    if self.State.EnableESP then
+        self:CreateExploiterHighlight(player)
+    end
+    if self.State.EnableNotifications then
+        local patterns = {}
+        for _, det in ipairs(detections) do
+            table.insert(patterns, det.pattern)
+        end
+        local score = self.State.SuspicionScores[player]
+        DoNotif(string.format(
+            "🎯 EXPLOITER DETECTED: %s [%d%% confidence]",
+            player.Name,
+            math.floor(score)
+        ), 5)
+        if #patterns > 0 then
+            DoNotif("Detected: " .. table.concat(patterns, ", "), 4)
+        end
+    end
+    if self.State.AutoCounter then
+        self:EnableCounterMeasures(player, detections)
+    end
+end
+function Modules.UniversalExploitDetector:ClearExploiter(player)
+    self.State.ConfirmedExploiters[player] = nil
+    if self.State.HighlightCache[player] then
+        self.State.HighlightCache[player]:Destroy()
+        self.State.HighlightCache[player] = nil
+    end
+    if self.State.EnableNotifications then
+        DoNotif(string.format("✓ %s no longer flagged", player.Name), 2)
+    end
+end
+function Modules.UniversalExploitDetector:CreateExploiterHighlight(player)
+    if not player.Character then return end
+    if self.State.HighlightCache[player] then
+        self.State.HighlightCache[player]:Destroy()
+    end
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ExploiterESP"
+    highlight.Adornee = player.Character
+    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+    highlight.OutlineColor = Color3.fromRGB(255, 100, 100)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = player.Character
+    self.State.HighlightCache[player] = highlight
+    player.CharacterAdded:Connect(function(char)
+        task.wait(0.5)
+        if self.State.ConfirmedExploiters[player] then
+            self:CreateExploiterHighlight(player)
+        end
+    end)
+end
+function Modules.UniversalExploitDetector:UpdateExploiterESP(player, score)
+    local highlight = self.State.HighlightCache[player]
+    if not highlight or not highlight.Parent then
+        self:CreateExploiterHighlight(player)
+        return
+    end
+    local intensity = score / 100
+    highlight.FillColor = Color3.fromRGB(255, 255 * (1 - intensity), 0)
+end
+function Modules.UniversalExploitDetector:EnableCounterMeasures(player, detections)
+    for _, det in ipairs(detections) do
+        if det.pattern == "RemoteSpam" and Modules.ApexCounter then
+            Modules.ApexCounter:NullifySkidRemotes()
+        elseif det.pattern == "SpawnAnomaly" and Modules.ApexCounter then
+            Modules.ApexCounter:ToggleLagShield(true)
+        end
+    end
+end
+function Modules.UniversalExploitDetector:HookRemoteTracking()
+    local mt = getrawmetatable(game)
+    local oldNamecall = mt.__namecall
+    setreadonly(mt, false)
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if (method == "FireServer" or method == "InvokeServer") and self:IsA("RemoteEvent") or self:IsA("RemoteFunction") then
+        end
+        return oldNamecall(self, ...)
+    end)
+    setreadonly(mt, true)
+end
+function Modules.UniversalExploitDetector:StartScanning()
+    if self.State.Connections.Scanner then return end
+    self.State.Connections.Scanner = self.Services.RunService.Heartbeat:Connect(function()
+        if not self.State.Enabled then return end
+        for _, player in ipairs(self.Services.Players:GetPlayers()) do
+            if player ~= self.Services.Players.LocalPlayer then
+                pcall(function()
+                    self:AnalyzePlayer(player)
+                end)
+            end
+        end
+        task.wait(self.State.ScanInterval)
+    end)
+end
+function Modules.UniversalExploitDetector:StopScanning()
+    if self.State.Connections.Scanner then
+        self.State.Connections.Scanner:Disconnect()
+        self.State.Connections.Scanner = nil
+    end
+end
+function Modules.UniversalExploitDetector:Initialize()
+    local module = self
+    RegisterCommand({
+        Name = "detectexploits",
+        Aliases = {"exdet", "ed"},
+        Description = "Toggle universal exploit detection"
+    }, function(args)
+        module.State.Enabled = not module.State.Enabled
+        if module.State.Enabled then
+            module:StartScanning()
+            DoNotif("🎯 Exploit Detector: ACTIVE (Universal Mode)", 3)
+            DoNotif("Confidence threshold: " .. module.State.ConfidenceThreshold .. "%", 2)
+        else
+            module:StopScanning()
+            for player, highlight in pairs(module.State.HighlightCache) do
+                highlight:Destroy()
+            end
+            module.State.HighlightCache = {}
+            module.State.ConfirmedExploiters = {}
+            DoNotif("Exploit Detector: DISABLED", 2)
+        end
+    end)
+    RegisterCommand({
+        Name = "detthreshold",
+        Aliases = {"dth"},
+        Description = "Set detection confidence threshold (0-100)"
+    }, function(args)
+        local threshold = tonumber(args[1])
+        if not threshold then
+            DoNotif("Current threshold: " .. module.State.ConfidenceThreshold .. "%", 2)
+            return
+        end
+        threshold = math.clamp(threshold, 0, 100)
+        module.State.ConfidenceThreshold = threshold
+        DoNotif("Detection threshold set to: " .. threshold .. "%", 2)
+    end)
+    RegisterCommand({
+        Name = "listexploiters",
+        Aliases = {"lex"},
+        Description = "Show all detected exploiters"
+    }, function(args)
+        local count = 0
+        for player, _ in pairs(module.State.ConfirmedExploiters) do
+            if player and player.Parent then
+                local score = module.State.SuspicionScores[player] or 0
+                DoNotif(string.format("%s - %d%% confidence", player.Name, math.floor(score)), 3)
+                count = count + 1
+            end
+        end
+        if count == 0 then
+            DoNotif("No exploiters detected", 2)
+        else
+            DoNotif(string.format("Total exploiters: %d", count), 2)
+        end
+    end)
+    RegisterCommand({
+        Name = "checkplayer",
+        Aliases = {"checkp"},
+        Description = "Check a specific player for exploits"
+    }, function(args)
+        local target = Utilities.findPlayer(args[1])
+        if not target then
+            DoNotif("Player not found", 2)
+            return
+        end
+        local score = module.State.SuspicionScores[target] or 0
+        local data = module.State.TrackedPlayers[target]
+        DoNotif(string.format("%s - Suspicion: %d%%", target.Name, math.floor(score)), 3)
+        if data and #data.DetectionHistory > 0 then
+            local recent = data.DetectionHistory[#data.DetectionHistory]
+            for _, det in ipairs(recent.detections) do
+                DoNotif(string.format("  • %s: %d%%", det.pattern, math.floor(det.score)), 2)
+            end
+        end
+    end)
+    RegisterCommand({
+        Name = "autocounter",
+        Aliases = {"acounter"},
+        Description = "Toggle automatic counter activation"
+    }, function(args)
+        module.State.AutoCounter = not module.State.AutoCounter
+        DoNotif("Auto-Counter: " .. (module.State.AutoCounter and "ENABLED" or "DISABLED"), 2)
+    end)
+    RegisterCommand({
+        Name = "markexploiter",
+        Aliases = {"mex"},
+        Description = "Manually mark a player as exploiter"
+    }, function(args)
+        local target = Utilities.findPlayer(args[1])
+        if not target then
+            DoNotif("Player not found", 2)
+            return
+        end
+        module.State.SuspicionScores[target] = 100
+        module:MarkAsExploiter(target, {})
+        DoNotif("Marked " .. target.Name .. " as exploiter", 2)
+    end)
+    RegisterCommand({
+        Name = "unmarkexploiter",
+        Aliases = {"uex"},
+        Description = "Remove exploiter mark from player"
+    }, function(args)
+        local target = Utilities.findPlayer(args[1])
+        if not target then
+            DoNotif("Player not found", 2)
+            return
+        end
+        module.State.SuspicionScores[target] = 0
+        module:ClearExploiter(target)
+        DoNotif("Unmarked " .. target.Name, 2)
+    end)
+    for _, player in ipairs(self.Services.Players:GetPlayers()) do
+        if player ~= self.Services.Players.LocalPlayer then
+            self:InitializePlayerTracking(player)
+        end
+    end
+    self.Services.Players.PlayerAdded:Connect(function(player)
+        self:InitializePlayerTracking(player)
+    end)
+    self.Services.Players.PlayerRemoving:Connect(function(player)
+        self.State.TrackedPlayers[player] = nil
+        self.State.SuspicionScores[player] = nil
+        self.State.ConfirmedExploiters[player] = nil
+        if self.State.HighlightCache[player] then
+            self.State.HighlightCache[player]:Destroy()
+            self.State.HighlightCache[player] = nil
+        end
+    end)
+end
+
 Modules.TeleporterScanner = {
 	State = {
 		UI = nil,
@@ -15232,6 +15747,12 @@ context:Register("REMOTE_NETWORK_LOGGER", {
                 elseif n == "FlamingBullet" then return true
                 elseif n == "IgniteChance" then return 9999
                 elseif n == "FreezingBullet" then return true
+                elseif n == "HoldDownEnabled" then return false
+                elseif n == "ChargedShotEnabled" then return false
+                elseif n == "ChargingTime" then return 0
+                elseif n == "HoldAndReleaseEnabled" then return false
+
+
 
 				-- Physics & Accuracy
 				elseif n == "Recoil" or n == "Spread" or n == "Accuracy" then return 0
@@ -31116,63 +31637,96 @@ Modules.ApexCounter = {
         IsEnabled = false,
         LagShieldActive = false,
         GhostMode = false,
+        Blender = false,
+        AcidProtection = false,
         Connections = {},
         BlacklistedRemotes = {
             "AcidSpit",
             "PLACE_LANDMINE",
             "AbilityPlayer",
             "PlayerAttack",
-        }
+            "ReplicateAcidAbility",
+            "AcidDamageVisual",
+        },
+        -- Performance monitoring
+        AcidSpamCounter = 0,
+        LastAcidTime = 0,
+        AcidThreshold = 10, -- Max acid instances per second before aggressive cleanup
     },
     Services = {
         Players = game:GetService("Players"),
         RunService = game:GetService("RunService"),
         ReplicatedStorage = game:GetService("ReplicatedStorage"),
-        Workspace = game:GetService("Workspace")
+        Workspace = game:GetService("Workspace"),
+        Debris = game:GetService("Debris")
     }
 }
 
+-- Enhanced Lag Shield with acid-specific protection
 function Modules.ApexCounter:ToggleLagShield(state)
     self.State.LagShieldActive = state
     if state then
-
-        local targetFolder = self.Services.Workspace:FindFirstChild("Interaction") and self.Services.Workspace.Interaction:FindFirstChild("PlayerPlaced")
+        local targetFolder = self.Services.Workspace:FindFirstChild("Interaction") 
+            and self.Services.Workspace.Interaction:FindFirstChild("PlayerPlaced")
         
         if targetFolder then
-            self.State.Connections.LagMonitor = targetFolder.ChildAdded:Connect(function(child)
+            -- Immediate cleanup of existing acid/landmines
+            for _, child in ipairs(targetFolder:GetChildren()) do
+                if child.Name:find("Landmine") or child.Name:find("Acid") then
+                    child:Destroy()
+                end
+            end
 
+            -- Monitor for new acid spam
+            self.State.Connections.LagMonitor = targetFolder.ChildAdded:Connect(function(child)
                 task.defer(function()
-                    if child.Name:find("Landmine") or child.Name:find("Acid") then
-                        child:Destroy()
+                    if child and child.Parent then
+                        if child.Name:find("Landmine") or child.Name:find("Acid") then
+                            child:Destroy()
+                            
+                            -- Track spam rate
+                            local currentTime = tick()
+                            if currentTime - self.State.LastAcidTime < 1 then
+                                self.State.AcidSpamCounter = self.State.AcidSpamCounter + 1
+                            else
+                                self.State.AcidSpamCounter = 0
+                            end
+                            self.State.LastAcidTime = currentTime
+                            
+                            -- Alert if heavy spam detected
+                            if self.State.AcidSpamCounter > self.State.AcidThreshold then
+                                DoNotif("⚠ HEAVY ACID SPAM DETECTED - Deflecting", 1)
+                            end
+                        end
                     end
                 end)
             end)
-
-            for _, v in ipairs(targetFolder:GetChildren()) do
-                v:Destroy()
-            end
         end
-        DoNotif("Lag Deflector: ACTIVE (Filtering Skid-Spam)", 2)
+        
+        DoNotif("🛡 Lag Deflector: ACTIVE (Blocking Exploit Spam)", 2)
     else
         if self.State.Connections.LagMonitor then
             self.State.Connections.LagMonitor:Disconnect()
         end
+        self.State.AcidSpamCounter = 0
         DoNotif("Lag Deflector: DISABLED", 2)
     end
 end
 
+-- Enhanced Ghost Mode with attribute spoofing
 function Modules.ApexCounter:ToggleGhost(state)
     self.State.GhostMode = state
     local lp = self.Services.Players.LocalPlayer
     local char = lp.Character
     
     if state and char then
-
         pcall(function()
+            -- Spoof team to Ghost (bypasses team-based targeting)
             char:SetAttribute("Team", "Ghost")
+            
             local hum = char:FindFirstChildOfClass("Humanoid")
             if hum then
-
+                -- Hook health to return 0 for external checks
                 local mt = getrawmetatable(game)
                 local oldIndex = mt.__index
                 setreadonly(mt, false)
@@ -31185,21 +31739,28 @@ function Modules.ApexCounter:ToggleGhost(state)
                 setreadonly(mt, true)
             end
         end)
-        DoNotif("Ghost Mode: ACTIVE (Invisible to Skid-Aura)", 2)
+        DoNotif("👻 Ghost Mode: ACTIVE (Invisible to Kill Aura)", 2)
     else
         DoNotif("Ghost Mode: DISABLED", 2)
     end
 end
 
---[[function Modules.ApexCounter:RunBlender()
+-- Improved Kill Blender with rate limiting
+function Modules.ApexCounter:RunBlender()
     if self.State.BlenderActive then return end
     self.State.BlenderActive = true
     
     local lp = self.Services.Players.LocalPlayer
-    local meleeRemote = self.Services.ReplicatedStorage:FindFirstChild("Melee") and self.Services.ReplicatedStorage.Melee:FindFirstChild("Damage")
-    local zombieRemote = self.Services.ReplicatedStorage:FindFirstChild("ZombieRelated") and self.Services.ReplicatedStorage.ZombieRelated:FindFirstChild("PlayerAttack")
+    local meleeRemote = self.Services.ReplicatedStorage:FindFirstChild("Remotes") 
+        and self.Services.ReplicatedStorage.Remotes:FindFirstChild("Melee") 
+        and self.Services.ReplicatedStorage.Remotes.Melee:FindFirstChild("Damage")
+    local zombieRemote = self.Services.ReplicatedStorage:FindFirstChild("Remotes")
+        and self.Services.ReplicatedStorage.Remotes:FindFirstChild("ZombieRelated") 
+        and self.Services.ReplicatedStorage.Remotes.ZombieRelated:FindFirstChild("PlayerAttack")
     
     local isProcessing = false
+    local lastCall = 0
+    local callDelay = 0.05 -- Rate limit to prevent self-crash
 
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
@@ -31207,25 +31768,32 @@ end
         local args = {...}
         
         if (self == meleeRemote or self == zombieRemote) and method == "InvokeServer" and not checkcaller() then
-            if not isProcessing then
+            local currentTime = tick()
+            if not isProcessing and (currentTime - lastCall) > callDelay then
                 isProcessing = true
-
+                lastCall = currentTime
+                
+                -- Spawn 6 rapid calls
                 for i = 1, 6 do
                     task.spawn(function()
-                        self:InvokeServer(unpack(args))
+                        pcall(function()
+                            oldNamecall(self, unpack(args))
+                        end)
                     end)
                 end
+                
                 isProcessing = false
                 return nil
             end
         end
         return oldNamecall(self, ...)
     end))
-    DoNotif("Kill Blender: SUPREME (6x Multiplier)", 2)
-end--]]
+    
+    DoNotif("⚔ Kill Blender: ACTIVE (6x Multiplier)", 2)
+end
 
+-- Advanced Remote Nullification System
 function Modules.ApexCounter:NullifySkidRemotes()
-
     local mt = getrawmetatable(game)
     local oldNamecall = mt.__namecall
     setreadonly(mt, false)
@@ -31233,44 +31801,212 @@ function Modules.ApexCounter:NullifySkidRemotes()
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
         if not checkcaller() then
+            local remoteName = self.Name
+            
+            -- Block blacklisted remotes
             for _, blocked in ipairs(Modules.ApexCounter.State.BlacklistedRemotes) do
-                if self.Name == blocked and (method == "FireServer" or method == "InvokeServer") then
+                if remoteName == blocked and (method == "FireServer" or method == "InvokeServer") then
                     return nil
                 end
             end
         end
         return oldNamecall(self, ...)
     end)
+    
     setreadonly(mt, true)
-    DoNotif("Remote Shield: ACTIVE (Blocking Exploit Remotes)", 2)
+    DoNotif("🔒 Remote Shield: ACTIVE (Blocking Exploit Remotes)", 2)
 end
 
+-- NEW: Advanced Acid Protection System
+function Modules.ApexCounter:ToggleAcidProtection(state)
+    self.State.AcidProtection = state
+    
+    if state then
+        -- Block incoming acid replication events
+        self.State.Connections.AcidReplication = self.Services.ReplicatedStorage
+            :FindFirstChild("Remotes", true) and self.Services.ReplicatedStorage.Remotes
+            :FindFirstChild("Replication", true) and self.Services.ReplicatedStorage.Remotes.Replication
+            :FindFirstChild("ReplicateAcidAbility")
+        
+        if self.State.Connections.AcidReplication then
+            -- Hook the signal to block acid replication on client
+            local oldConnect = self.State.Connections.AcidReplication.OnClientEvent.Connect
+            self.State.Connections.AcidReplication.OnClientEvent.Connect = function(...)
+                return {Disconnect = function() end} -- Return dummy connection
+            end
+        end
+        
+        -- Destroy any existing acid projectiles in workspace
+        task.spawn(function()
+            while self.State.AcidProtection do
+                for _, v in ipairs(self.Services.Workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Name:find("Acid") then
+                        v:Destroy()
+                    end
+                end
+                task.wait(0.5)
+            end
+        end)
+        
+        -- Block acid damage module execution
+        local acidDamageModule = self.Services.ReplicatedStorage:FindFirstChild("Modules", true)
+            and self.Services.ReplicatedStorage.Modules:FindFirstChild("MostRandomStuff", true)
+            and self.Services.ReplicatedStorage.Modules.MostRandomStuff:FindFirstChild("AcidDamage")
+        
+        if acidDamageModule then
+            -- Replace the module with a dummy function
+            local mt = getrawmetatable(game)
+            local oldRequire = mt.__index
+            setreadonly(mt, false)
+            
+            local originalAcidDamage = require(acidDamageModule)
+            
+            -- Override require for this specific module
+            mt.__index = newcclosure(function(t, k)
+                if k == acidDamageModule then
+                    return function() end -- Return empty function
+                end
+                return oldRequire(t, k)
+            end)
+            
+            setreadonly(mt, true)
+        end
+        
+        DoNotif("☣ Acid Protection: MAXIMUM (Full Immunity)", 2)
+    else
+        if self.State.Connections.AcidReplicationHook then
+            self.State.Connections.AcidReplicationHook:Disconnect()
+        end
+        DoNotif("Acid Protection: DISABLED", 2)
+    end
+end
+
+-- NEW: Visual Effect Cleaner (removes acid particles/sounds)
+function Modules.ApexCounter:CleanVisualEffects()
+    if not self.State.IsEnabled then return end
+    
+    task.spawn(function()
+        while self.State.IsEnabled do
+            -- Clean up acid visual/audio effects
+            for _, player in ipairs(self.Services.Players:GetPlayers()) do
+                if player.Character then
+                    for _, part in ipairs(player.Character:GetDescendants()) do
+                        if part:IsA("ParticleEmitter") and part.Name == "ParticleEmitter" then
+                            -- This is likely from AcidDamage module
+                            part:Destroy()
+                        elseif part:IsA("Sound") and part.Name == "Burn" then
+                            part:Destroy()
+                        end
+                    end
+                end
+            end
+            task.wait(1)
+        end
+    end)
+end
+
+-- NEW: Network Flood Protection
+function Modules.ApexCounter:EnableNetworkProtection()
+    local eventCounter = {}
+    local threshold = 50 -- Max events per remote per second
+    
+    local oldFireServer
+    oldFireServer = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        
+        if method == "FireServer" or method == "InvokeServer" then
+            local remoteName = tostring(self)
+            local currentTime = tick()
+            
+            if not eventCounter[remoteName] then
+                eventCounter[remoteName] = {count = 0, lastReset = currentTime}
+            end
+            
+            local data = eventCounter[remoteName]
+            
+            -- Reset counter every second
+            if currentTime - data.lastReset >= 1 then
+                data.count = 0
+                data.lastReset = currentTime
+            end
+            
+            data.count = data.count + 1
+            
+            -- Block if threshold exceeded (likely exploit spam)
+            if data.count > threshold then
+                if not checkcaller() then
+                    return nil
+                end
+            end
+        end
+        
+        return oldFireServer(self, ...)
+    end))
+    
+    DoNotif("🌐 Network Protection: ENABLED", 2)
+end
+
+-- Main initialization
 function Modules.ApexCounter:Initialize()
     local module = self
     
     RegisterCommand({
         Name = "zcounter",
         Aliases = {"zc"},
-        Description = "Toggles the counter-zlexploit suite."
+        Description = "Toggles the counter-exploit suite (APEX Edition)."
     }, function(args)
         module.State.IsEnabled = not module.State.IsEnabled
+        
         if module.State.IsEnabled then
+            DoNotif("⚡ APEX SUITE: INITIALIZING...", 1.5)
+            task.wait(0.5)
+            
+            -- Enable all protection layers
             module:ToggleLagShield(true)
             module:ToggleGhost(true)
+            module:ToggleAcidProtection(true)
             module:RunBlender()
             module:NullifySkidRemotes()
-            DoNotif("APEX SUITE: FULLY OPERATIONAL", 3)
+            module:CleanVisualEffects()
+            module:EnableNetworkProtection()
+            
+            task.wait(0.5)
+            DoNotif("✅ APEX SUITE: FULLY OPERATIONAL", 3)
+            DoNotif("🛡 All Protections: ACTIVE", 2)
         else
             module:ToggleLagShield(false)
             module:ToggleGhost(false)
-            DoNotif("APEX SUITE: DEACTIVATED", 3)
+            module:ToggleAcidProtection(false)
+            
+            -- Clean up all connections
+            for _, conn in pairs(module.State.Connections) do
+                if typeof(conn) == "RBXScriptConnection" then
+                    conn:Disconnect()
+                end
+            end
+            
+            module.State.Connections = {}
+            module.State.BlenderActive = false
+            
+            DoNotif("🔴 APEX SUITE: DEACTIVATED", 3)
         end
     end)
+    
+    -- Optional: Individual toggle commands
+    RegisterCommand({
+        Name = "acidblock",
+        Aliases = {"ab"},
+        Description = "Toggle acid-specific protection only."
+    }, function(args)
+        local newState = not module.State.AcidProtection
+        module:ToggleAcidProtection(newState)
+    end)
+end
 
     RegisterCommand({
         Name = "minigunsniper",
-        Aliases = {"gun"},
-        Description = "Bypasses gun fire rates."
+        Aliases = {"spawnsniper"},
+        Description = "For Zombie Game Series."
     }, function()
         local shop = game:GetService("ReplicatedStorage").Remotes.Shop.EquipWeapon
         shop:InvokeServer("Sniper")
@@ -31290,7 +32026,31 @@ function Modules.ApexCounter:Initialize()
             end
         end
     end)
-end
+
+    RegisterCommand({
+        Name = "spwnShotgun",
+        Aliases = {"spawnsgun"},
+        Description = "For Zombie Game Series."
+    }, function()
+        local shop = game:GetService("ReplicatedStorage").Remotes.Shop.EquipWeapon
+        shop:InvokeServer("Shotgun")
+        find.Shotgun(true)
+        task.wait(0.2)
+        local gun = localplayer.Character:FindFirstChild("Shotgun") or localplayer.Backpack:FindFirstChild("Shotgun")
+        if gun then
+            local scr = getsenv(gun:FindFirstChildOfClass("LocalScript"))
+            if scr and scr.FireGun then
+
+                self.Services.RunService.Heartbeat:Connect(function()
+                    if localplayer:GetMouse().Button1Down then
+                        pcall(scr.FireGun, lp:GetMouse().X, lp:GetMouse().Y)
+                    end
+                end)
+                DoNotif("Rapid Fire: ENABLED", 2)
+            end
+        end
+    end)
+
 
 Modules.ModuleEditor = {
     State = {
@@ -39925,8 +40685,8 @@ local function loadstringCmd(url, notif)
     DoNotif(notif, 3)
 end
 --RegisterCommand({Name = " ", Aliases = {}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
---RegisterCommand({Name = " ", Aliases = {}, Description = " "}, function() loadstringCmd("  ", " Loading.. ") end)
+RegisterCommand({Name = "zsniper", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/sniperZG.lua", "Loading..") end)
+RegisterCommand({Name = "zshotgun", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ShotgunMinigunScriptWorking.lua", "Loading..") end)
 RegisterCommand({Name = "noanim", Aliases = {}, Description = "Pauses/Removes All animations for the player."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/animationremover.lua", " Loading.. ") end)
 RegisterCommand({Name = "gunlagger2", Aliases = {}, Description = "For Protect the house from Monsters."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/machinegun.lua", " Loading.. ") end)
 RegisterCommand({Name = "gunlagger", Aliases = {}, Description = "For Protect the house from Monsters."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/Lagger.lua", " Loading.. ") end)
@@ -39946,7 +40706,7 @@ RegisterCommand({Name = "pumpkin", Aliases = {}, Description = "For https://www.
 RegisterCommand({Name = "zukahub", Aliases = {"zuka"}, Description = "Loads the Zuka Hub"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZukaHub.lua", "Loading Zuka's Hub...") end)
 RegisterCommand({Name = "noacid", Aliases = {"unfuck"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/AntiAcidRainLag.lua", "Loading...") end)
 RegisterCommand({Name = "stats", Aliases = {}, Description = "Edit and lock your properties."}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/statlock.lua", "Loading Stats..") end)
-RegisterCommand({Name = "zgui", Aliases = {"upd3", "zui"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/ZfuckerUpgraded.lua", "Loaded GUI") end)
+RegisterCommand({Name = "plasmasniper", Aliases = {}, Description = "ForBackrooms."}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/plasmasniper.lua", "Loaded") end)
 RegisterCommand({Name = "creepyanim", Aliases = {"canim"}, Description = "Uncanny Animation GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/uncannyanim.lua", "Loaded GUI") end)
 RegisterCommand({Name = "swordbot", Aliases = {"sf", "sfbot"}, Description = "Auto Sword Fighter, use E and R"}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/swordnpc", "Bot loaded.") end)
 RegisterCommand({Name = "touchfling", Aliases = {}, Description = "Loads the touchfling GUI"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/SimpleTouchFlingGui.lua", "Loaded") end)
@@ -39957,7 +40717,6 @@ RegisterCommand({Name = "ketamine", Aliases = {}, Description = "Updated remote 
 RegisterCommand({Name = "simplespy", Aliases = {"bestspy"}, Description = "Best remote spy"}, function() loadstringCmd("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/main/simplee%20spyyy%20mobilee", "Loading rSpy...") end)
 RegisterCommand({Name = "csgo", Aliases = {"bhop"}, Description = "Bhop movement"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/phoon.lua", "Loading") end)
 RegisterCommand({Name = "lineofsight", Aliases = {}, Description = "Logger for players looking at you"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/LineOfSightLogger.lua", "Loading...") end)
-RegisterCommand({Name = "nova", Aliases = {"delua"}, Description = "Novas Deobfuscator, Bytecode Grabber"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/NovasDeobfuscator.lua", "Deobfuscator Loaded") end)
 RegisterCommand({Name = "zcooldowns", Aliases = {"ncd"}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/legalize8ga-maker/Scripts/refs/heads/main/NocooldownsZombieUpd3.txt", "Loading Cooldownremover...") end)
 RegisterCommand({Name = "zshovel", Aliases = {}, Description = "For https://www.roblox.com/games/14419907512/Zombie-game"}, function() loadstringCmd("https://raw.githubusercontent.com/zukatech1/ZukaTechPanel/refs/heads/main/ShovelAnimation.lua", "Loading Shovel.") end)
 RegisterCommand({Name = "npc", Aliases = {"npcmode"}, Description = "Avoid being kicked for being idle."}, function() loadstringCmd("https://raw.githubusercontent.com/bloxtech1/luaprojects2/refs/heads/main/AutoPilotMode.lua", "Anti Afk loaded.") end)
