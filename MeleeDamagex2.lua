@@ -6,7 +6,7 @@ local lp = Players.LocalPlayer
 local function DoNotif(msg)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Melee Overdrive",
+            Title = "Melee On Crack",
             Text = msg,
             Duration = 2
         })
@@ -55,7 +55,7 @@ end
 local function SetupStableBlender()
     local remote = ReplicatedStorage:FindFirstChild("MeleeDamage", true)
     if not remote or not remote:IsA("RemoteEvent") then
-        warn("--> [OVERDRIVE]: Melee Remote not found. Blender inactive.")
+        warn("--> [Crack]: Melee Remote not found.")
         return
     end
 
@@ -74,7 +74,7 @@ local function SetupStableBlender()
         
         return oldNamecall(self, ...)
     end))
-    DoNotif("✓ Damage Multiplier: 4X STABLE")
+    DoNotif("Success")
 end
 
 local function StartDebounceFlush()
@@ -92,14 +92,14 @@ local function StartDebounceFlush()
 
             pcall(cachedHitTable.ClearTagged)
         end)
-        DoNotif("✓ Hit-Debounce: BYPASSED")
+        DoNotif("Crack Smoked, x2 Success")
     else
         warn("--> [OVERDRIVE]: Hit-table not found. Multi-hit limited.")
     end
 end
 
 task.spawn(function()
-    DoNotif("Injecting Overdrive v2...")
+    DoNotif("Injecting fent v2...")
     
     local cooldownPatched = PatchCooldowns()
     local teamPatched = BypassTeams()
@@ -108,8 +108,8 @@ task.spawn(function()
     StartDebounceFlush()
 
     if cooldownPatched or teamPatched then
-        DoNotif("✓ Melee Overdrive: FULLY OPERATIONAL")
+        DoNotif("✓ Melee on Crack: FULLY OPERATIONAL")
     else
-        DoNotif("Melee Overdrive: Partial Load (Check F9)")
+        DoNotif("check f9 for debug")
     end
 end)
