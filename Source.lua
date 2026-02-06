@@ -33852,7 +33852,7 @@ Modules.HumanShield = {
         Connections = {}
     },
     Config = {
-        DISTANCE = 8.5,
+        DISTANCE = 1.0,
         VERTICAL_OFFSET = 0,
     },
     Dependencies = {"Players", "RunService"}
