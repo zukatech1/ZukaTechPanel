@@ -397,7 +397,7 @@ PlayerUsername.TextWrapped = true
 PlayerUsername.Name = "PlayerUsername"
 PlayerUsername.TextColor3 = Color3.fromRGB(178, 178, 178)
 PlayerUsername.BorderColor3 = Color3.fromRGB(0, 0, 0)
-PlayerUsername.Text = "@ZukaIsntHere"
+PlayerUsername.Text = "@Zuka"
 PlayerUsername.Size = UDim2.new(1, -45, 0, 12)
 PlayerUsername.Position = UDim2.new(1, 0, 0, 20)
 PlayerUsername.AnchorPoint = Vector2.new(1, 0)
@@ -1196,6 +1196,25 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0.2, 0)
 UICorner.Parent = Float
 
+local AimbotTroll = Instance.new("TextButton")
+AimbotTroll.TextWrapped = true
+AimbotTroll.TextColor3 = Color3.fromRGB(255, 255, 255)
+AimbotTroll.BorderColor3 = Color3.fromRGB(0, 0, 0)
+AimbotTroll.Text = "AimbotTroll"
+AimbotTroll.Name = "AimbotTroll"
+AimbotTroll.Size = UDim2.new(0, 80, 0, 20)
+AimbotTroll.BorderSizePixel = 0
+AimbotTroll.BackgroundTransparency = 0.9
+AimbotTroll.TextSize = 14
+AimbotTroll.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+AimbotTroll.TextScaled = true
+AimbotTroll.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+AimbotTroll.Parent = PresetsContainer
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0.2, 0)
+UICorner.Parent = AimbotTroll
+
 local Title1 = Instance.new("TextLabel")
 Title1.TextWrapped = true
 Title1.Name = "Title1"
@@ -1382,7 +1401,7 @@ SelectedPlayerUsername.TextWrapped = true
 SelectedPlayerUsername.Name = "PlayerUsername"
 SelectedPlayerUsername.TextColor3 = Color3.fromRGB(178, 178, 178)
 SelectedPlayerUsername.BorderColor3 = Color3.fromRGB(0, 0, 0)
-SelectedPlayerUsername.Text = "@ZukaIsntHere"
+SelectedPlayerUsername.Text = "@Zuka"
 SelectedPlayerUsername.Size = UDim2.new(1, -45, 0, 12)
 SelectedPlayerUsername.Position = UDim2.new(1, 0, 0, 20)
 SelectedPlayerUsername.AnchorPoint = Vector2.new(1, 0)
@@ -1629,6 +1648,16 @@ local PresetSkydive = function()
 	ReturnValues()
 end
 
+local PresetAimbotTroll = function()
+	PositionSliderBox_X.Text = "-1.5"
+	PositionSliderBox_Y.Text = "0.5"
+	PositionSliderBox_Z.Text = "-0.75"
+	RotationSliderBox_X.Text = "15"
+	RotationSliderBox_Y.Text = "25"
+	RotationSliderBox_Z.Text = "-10"
+	ReturnValues()
+end
+
 local CloseGui = function()
 	SpectateDB = false
 	AttachDB = false
@@ -1664,5 +1693,6 @@ InfJump.MouseButton1Click:Connect(PresetInfJump)
 NoJump.MouseButton1Click:Connect(PresetNoJump)
 Climb.MouseButton1Click:Connect(PresetClimb)
 Skydive.MouseButton1Click:Connect(PresetSkydive)
+AimbotTroll.MouseButton1Click:Connect(PresetAimbotTroll)
 Players.PlayerAdded:Connect(AddPlayer)
 Players.PlayerRemoving:Connect(RemovePlayer)
